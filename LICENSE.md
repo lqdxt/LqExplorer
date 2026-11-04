@@ -13,7 +13,6 @@
 - You **may** distribute copies and forks, provided they stay named **"Lq Explorer"** and include this license.
 - You **may** write and distribute your own **plugins** that interact with Lq Explorer — they remain fully yours.
 - You **may not** rebrand, rename, or present the software (or any fork) under any other name.
-- You **may not** strip runtime credit markers or watermarks, though source-level header comments may be modified or removed.
 - You **may not** sell the software or use it in a commercial product without written permission.
 - Any breach **ends this license immediately**.
 - Provided **as is**, with no warranty and no liability.
@@ -73,17 +72,12 @@ You are **not** permitted to:
     or derivative) under any name, logo, or identity other than
     "Lq Explorer";
 
-(b) remove, alter, or obscure any copyright notice, credit marker,
-    or attribution watermark that the software emits at runtime
-    (such as the `getgenv().LqExplorer` global or the
-    `[Lq Explorer]` console line);
-
-(c) redistribute, sublicense, sell, rent, or otherwise make the
+(b) redistribute, sublicense, sell, rent, or otherwise make the
     software available for payment or as part of a paid product
     or service without prior written permission from the copyright
     holder;
 
-(d) misrepresent the software, or any fork of it, as your own
+(c) misrepresent the software, or any fork of it, as your own
     original work or as the work of anyone other than Liquidoxity
     and its contributors.
 
@@ -93,9 +87,9 @@ You are **not** permitted to:
 
 This license does not require source-level header comments or a
 per-file copyright notice. Attribution is satisfied by complying
-with Sections 2(b) and 3(b): the project must remain named
-"Lq Explorer" in its distribution surfaces, and runtime credit
-markers must not be removed.
+with Section 2(b): the project must remain named "Lq Explorer" in
+its repository name, README, release listings, and distribution
+channel.
 
 Fork authors are encouraged, but not required, to include the
 following notice in their README:
@@ -137,12 +131,6 @@ is permitted under Section 1(c) but remains subject to Section 2 and
 Section 3. Code that originates in Lq Explorer remains covered by this
 license wherever it is shipped, regardless of the label it is shipped
 under.
-
-**Attribution:** if a plugin programmatically removes, suppresses, or
-forges the copyright notice, credit marker, or attribution watermark
-emitted by Lq Explorer itself, that removal is a violation of
-Section 3(b) regardless of whether the surrounding plugin is otherwise
-independent.
 
 ---
 
