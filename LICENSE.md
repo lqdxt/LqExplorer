@@ -56,12 +56,7 @@ Any copy, fork, or distribution under 1(c) or 1(d) must:
     repository name, README, window title, menu labels, and any
     other user-facing surface;
 
-(c) retain any copyright notice, credit marker, or attribution
-    watermark that the software emits at runtime (such as in the
-    window title, about text, or console output). Source-level
-    header comments may be modified or removed;
-
-(d) clearly state, in the README or equivalent, that the copy or
+(c) clearly state, in the README or equivalent, that the copy or
     fork is a modified version of Lq Explorer and describe the
     changes made, if any.
 
@@ -75,15 +70,12 @@ You are **not** permitted to:
     or derivative) under any name, logo, or identity other than
     "Lq Explorer";
 
-(b) remove, alter, or obscure any copyright notice, credit marker,
-    or attribution watermark that the software emits at runtime;
-
-(c) redistribute, sublicense, sell, rent, or otherwise make the
+(b) redistribute, sublicense, sell, rent, or otherwise make the
     software available for payment or as part of a paid product
     or service without prior written permission from the copyright
     holder;
 
-(d) misrepresent the software, or any fork of it, as your own
+(c) misrepresent the software, or any fork of it, as your own
     original work or as the work of anyone other than Liquidoxity
     and its contributors.
 
