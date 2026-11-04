@@ -47,14 +47,17 @@ or otherwise.
 
 ## 2. Conditions
 
-Any copy, fork, or distribution under 1(c) or 1(d) must:
+Any copy, fork, or distribution under Section 1(c) or 1(d) must:
 
 (a) include this license in full (for example, as a LICENSE.md file
     in the repository root or equivalent);
 
-(b) keep the software named **"Lq Explorer"**, including in the
-    repository name, README, window title, menu labels, and any
-    other user-facing surface;
+(b) keep the project named **"Lq Explorer"** in its repository
+    name, README, release listings, and distribution channel.
+    Internal file names, folder structure, and generic interface
+    labels (such as "Explorer", "Properties", or "Menu") are not
+    governed by this clause and may be used as-is or changed
+    freely;
 
 (c) clearly state, in the README or equivalent, that the copy or
     fork is a modified version of Lq Explorer and describe the
@@ -70,12 +73,17 @@ You are **not** permitted to:
     or derivative) under any name, logo, or identity other than
     "Lq Explorer";
 
-(b) redistribute, sublicense, sell, rent, or otherwise make the
+(b) remove, alter, or obscure any copyright notice, credit marker,
+    or attribution watermark that the software emits at runtime
+    (such as the `getgenv().LqExplorer` global or the
+    `[Lq Explorer]` console line);
+
+(c) redistribute, sublicense, sell, rent, or otherwise make the
     software available for payment or as part of a paid product
     or service without prior written permission from the copyright
     holder;
 
-(c) misrepresent the software, or any fork of it, as your own
+(d) misrepresent the software, or any fork of it, as your own
     original work or as the work of anyone other than Liquidoxity
     and its contributors.
 
@@ -85,9 +93,9 @@ You are **not** permitted to:
 
 This license does not require source-level header comments or a
 per-file copyright notice. Attribution is satisfied by complying
-with Sections 2(b) and 2(c): the software must remain named
-"Lq Explorer" in user-facing surfaces, and runtime credit markers
-must not be removed.
+with Sections 2(b) and 3(b): the project must remain named
+"Lq Explorer" in its distribution surfaces, and runtime credit
+markers must not be removed.
 
 Fork authors are encouraged, but not required, to include the
 following notice in their README:
@@ -154,13 +162,13 @@ does not grant the fork author any ownership of the mark.
 ## 7. Termination
 
 This license terminates **automatically, without notice**, upon any
-breach of Sections 2, 3, or 7.
+breach of Sections 2, 3, or 6.
 
 Upon termination you must immediately cease all use, delete all copies
 in your possession or control, and remove the software from any public
 or private distribution channel.
 
-3, 6, 7, 9, and 10 survive termination.
+Sections 3, 6, 8, and 9 survive termination.
 
 ---
 
