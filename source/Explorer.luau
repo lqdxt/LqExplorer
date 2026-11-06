@@ -175,14 +175,12 @@ local Root = setmetatable({
  Children = {},
 }, VirtualInstance)
 
-local CLASS_PRIORITY = {
- Folder = 1, Model = 2, WorldModel = 2,
- LocalScript = 3, Script = 3, ModuleScript = 3,
- RemoteEvent = 4, RemoteFunction = 4, BindableEvent = 4, BindableFunction = 4,
-}
+local NATURAL_SORT = false
+local CLASS_PRIORITY = { Camera = 1, Terrain = 2 }
 
-local PRIO_STR = {}
-for i = 0, 99 do PRIO_STR[i] = string.format("%02d", i) end
+local function padNum(d)
+ return string.rep("0", 10 - #d) .. d
+end
 
 local function refreshKey(n)
  local name, cls = n.Name, n.ClassName
@@ -193,7 +191,11 @@ local function refreshKey(n)
   if o then
    n._sk = "\1" .. string.format("%08d", o)
   else
-   n._sk = PRIO_STR[CLASS_PRIORITY[cls] or 99] .. tostring(name):lower()
+   local nm = tostring(name):lower()
+   if NATURAL_SORT then
+    nm = nm:gsub("%d+", function(d) return #d <= 10 and padNum(d) or d end)
+   end
+   n._sk = tostring(CLASS_PRIORITY[cls] or 3) .. nm
   end
  end
  return n._sk
@@ -216,7 +218,7 @@ local function sortedChildren(inst)
  local keys, map = table.create(n), {}
  for i = 1, n do
   local c = kids[i]
-  local k = refreshKey(c) .. "\0" .. i
+  local k = refreshKey(c) .. "\0" .. string.format("%08d", i)
   keys[i] = k
   map[k] = c
  end
@@ -2418,12 +2420,36 @@ do
  hs.Parent = dropHL
 end
 
-local function dragCursor(inp)
+local function rawCursor(inp)
  if inp.UserInputType == Enum.UserInputType.Touch then
   local ok, gi = pcall(function() return SV.Gui:GetGuiInset() end)
   return Vector2.new(inp.Position.X, inp.Position.Y) + ((ok and gi) or Vector2.new(0, 0))
  end
  return SV.UserInput:GetMouseLocation()
+end
+
+local function dragCursor(inp)
+ if Drag.anchor then
+  return Drag.anchor + (Vector2.new(inp.Position.X, inp.Position.Y) - Drag.anchorInp)
+ end
+ return rawCursor(inp)
+end
+
+function Drag.calibrate(inp, entry)
+ Drag.anchor = nil
+ local raw = rawCursor(inp)
+ local ap = entry.AbsolutePosition
+ local function inside(y) return y >= ap.Y - 1 and y <= ap.Y + config.ROW_H + 1 end
+ local ok, gi = pcall(function() return SV.Gui:GetGuiInset() end)
+ local iy = (ok and gi and gi.Y) or 0
+ local y
+ if inside(raw.Y) then y = raw.Y
+ elseif iy ~= 0 and inside(raw.Y + iy) then y = raw.Y + iy
+ elseif iy ~= 0 and inside(raw.Y - iy) then y = raw.Y - iy
+ else y = ap.Y + config.ROW_H / 2 end
+ y = math.clamp(y, ap.Y, ap.Y + config.ROW_H - 1)
+ Drag.anchor = Vector2.new(raw.X, y)
+ Drag.anchorInp = Vector2.new(inp.Position.X, inp.Position.Y)
 end
 
 local function dragWarn(where, err)
@@ -2471,7 +2497,11 @@ end
 local function dragUpdate()
  local cur = Drag.cursor
  local g = Drag.grab or Vector2.new(20, config.ROW_H / 2)
- dragGhost.Position = UDim2.fromOffset(cur.X - g.X, cur.Y - g.Y)
+ do
+  local pos = dragGhost.Position
+  local origin = dragGhost.AbsolutePosition - Vector2.new(pos.X.Offset, pos.Y.Offset)
+  dragGhost.Position = UDim2.fromOffset(cur.X - g.X - origin.X, cur.Y - g.Y - origin.Y)
+ end
  local target, idx = dragTargetAt(cur)
  if target and canDropOn(Drag.list, target) then
   Drag.target = target
@@ -2507,6 +2537,7 @@ local function dragBegin()
  if #list == 0 then Drag.pending = nil return end
  Drag.list = list
  Drag.active = true
+ if Explorer.CloseContextMenu then pcall(Explorer.CloseContextMenu) end
  do
   local first = list[1]
   applyIcon(dragIcon, first.ClassName)
@@ -2516,7 +2547,7 @@ local function dragBegin()
   local pw = Drag.pending.rowWidth or 220
   dragGhost.Size = UDim2.new(0, math.clamp(pw, 160, GHOST_MAX_W), 0, config.ROW_H)
   local gx = (Drag.pending.grabX or 20)
-  Drag.grab = Vector2.new(math.clamp(gx, 0, dragGhost.Size.X.Offset), config.ROW_H / 2)
+  Drag.grab = Vector2.new(math.clamp(gx, 0, dragGhost.Size.X.Offset), math.clamp(Drag.pending.grabY or (config.ROW_H / 2), 0, config.ROW_H))
  end
  dragGhost.Visible = true
  if Drag.pending.cancelHold then Drag.pending.cancelHold() end
@@ -2719,10 +2750,12 @@ local function CreatePoolEntry(poolIndex)
 
   holdStartPos = inp.Position
   if inst.Parent ~= Explorer.Root then
+   Explorer.Drag.calibrate(inp, entry)
    Explorer.Drag.pending = {
     inst = inst,
     grabX = Explorer.Drag.cursorOf(inp).X - entry.AbsolutePosition.X,
     rowWidth = entry.AbsoluteSize.X,
+    grabY = Explorer.Drag.anchor and (Explorer.Drag.anchor.Y - entry.AbsolutePosition.Y) or (config.ROW_H / 2),
     cancelHold = function()
      if holdThread then task.cancel(holdThread) holdThread = nil end
     end,
@@ -2733,6 +2766,7 @@ local function CreatePoolEntry(poolIndex)
   if holdThread then task.cancel(holdThread) end
   holdThread = task.delay(0.4, function()
    holdThread = nil
+   if Explorer.Drag.active or Explorer.Drag.pending and Explorer.Drag.pending.moved then return end
    data.holdTriggered = true
    if OpenContextMenu then OpenContextMenu(inst, inp.Position.X, inp.Position.Y) end
   end)
@@ -3629,8 +3663,10 @@ end })
 local function CloseContextMenu()
  if contextDropdown then contextDropdown:Close() end
 end
+Explorer.CloseContextMenu = CloseContextMenu
 
 function OpenContextMenu(inst, x, y)
+ if Explorer.Drag and (Explorer.Drag.active or Explorer.Drag.justDragged) then return end
  if Explorer.OnRightClickCb then
   local ok, suppress = pcall(Explorer.OnRightClickCb, inst, x, y)
   if ok and suppress == true then return end
