@@ -1,9 +1,57 @@
-local ServiceCache = {}
+local config = {
+ ROW_H = 25,
+ ScrollIndex = 0,
+ ScrollHOffset = 0,
+ TreeContentWidth = 0,
+ DOUBLE_CLICK = 0.38,
+ EDGE = 8,
+ IsMinimized = false,
+ NT = 0,
+ LastClickedTime = {},
+ SearchQuery = "",
+ SearchPred = nil,
+ SearchCursor = 0,
+ Anchor = nil,
+ IncrementNames = true,
+ ExpandOnSelect = true,
+ SelectAfterInsert = true,
+ ShowHierarchyHighlights = true,
+ ContextMenu = nil,
+ ContextMenuTarget = nil,
+ NormalSize = UDim2.new(0, 340, 0, 280),
+ MinimizedSize = UDim2.new(0, 340, 0, 44),
+ DockSide = nil,
+ entries = {},
+ pooldata = {},
+ visiblerows = {},
+ guideLines = {},
+}
+
+local function MakeFolder(tree)
+ if not makefolder or not isfolder then return end
+ for _, folder in ipairs(tree) do
+  local current = ""
+  for seg in folder:gsub("\\", "/"):gmatch("[^/]+") do
+   current = current == "" and seg or (current .. "/" .. seg)
+   if not isfolder(current) then
+    pcall(makefolder, current)
+   end
+  end
+ end
+end
+
+MakeFolder({
+ "LqExplorer",
+ "LqExplorer/images",
+})
+
+
+config.ServiceCache = {}
 local function GetService(name)
- if ServiceCache[name] then return ServiceCache[name] end
+ if config.ServiceCache[name] then return config.ServiceCache[name] end
  local ok, svc = pcall(game.GetService, game, name)
  if ok then
-  ServiceCache[name] = svc
+  config.ServiceCache[name] = svc
   return svc
  end
  return nil
@@ -43,7 +91,7 @@ cloneref = cloneref or function(ref)
  return f.invalidate
 end
 
-local SV = {
+config.SV = {
  UserInput = cloneref(GetService("UserInputService")),
  Tween = cloneref(GetService("TweenService")),
  TextSrv = cloneref(GetService("TextService")),
@@ -63,6 +111,68 @@ end
 
 local function RoundPx(n) return math.floor(n + 0.5) end
 
+config.Frame = 0
+config.LastPressFrame = -1
+config.SV.RunSrv.Heartbeat:Connect(function() config.Frame += 1 end)
+config.SV.UserInput.InputBegan:Connect(function(inp)
+ if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+  config.LastPressFrame = config.Frame
+ end
+end)
+config.Fresh = function(inp)
+ local f = config.Frame
+ config.SV.RunSrv.Heartbeat:Wait()
+ return math.abs(config.LastPressFrame - f) <= 2
+end
+config.WidenHit = function(thumb, horizontal)
+ local hit = Instance.new("TextButton")
+ hit.Name = randomString()
+ hit.Text = ""
+ hit.AutoButtonColor = false
+ hit.BackgroundTransparency = 1
+ hit.BorderSizePixel = 0
+ hit.Active = true
+ hit.Visible = false
+ hit.Archivable = false
+ hit.Parent = config.window
+ local conn
+ conn = config.SV.RunSrv.Heartbeat:Connect(function()
+  if not thumb:IsDescendantOf(config.window) then
+   conn:Disconnect()
+   hit:Destroy()
+   return
+  end
+  local top, shown = thumb, true
+  while top.Parent and top.Parent ~= config.window do
+   if top:IsA("GuiObject") and not top.Visible then shown = false end
+   top = top.Parent
+  end
+  if top:IsA("GuiObject") and not top.Visible then shown = false end
+  local as = thumb.AbsoluteSize
+  if not shown or top.Parent ~= config.window or as.X <= 0 or as.Y <= 0 then
+   hit.Visible = false
+   return
+  end
+  local ap = thumb.AbsolutePosition - config.window.AbsolutePosition
+  local x, y, w, h
+  if horizontal then
+   x, y, w, h = ap.X - 10, ap.Y - 28, as.X + 20, as.Y + 28
+  else
+   x, y, w, h = ap.X - 28, ap.Y - 10, as.X + 28, as.Y + 20
+  end
+  hit.Position = UDim2.fromOffset(math.floor(x), math.floor(y))
+  hit.Size = UDim2.fromOffset(math.ceil(w), math.ceil(h))
+  hit.ZIndex = top:IsA("GuiObject") and top.ZIndex + 1 or 2
+  hit.Visible = true
+ end)
+ return hit
+end
+config.Held = function(inp)
+ if inp.UserInputType == Enum.UserInputType.MouseMovement then
+  return config.SV.UserInput:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
+ end
+ return true
+end
 local function isPress(inp)
  return inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch
 end
@@ -70,8 +180,8 @@ end
 local function absOf(inp, gui)
  local p = Vector2.new(inp.Position.X, inp.Position.Y)
  local gi = Vector2.new(0, 0)
- if SV.Gui then
-  local ok, v = pcall(function() return SV.Gui:GetGuiInset() end)
+ if config.SV.Gui then
+  local ok, v = pcall(function() return config.SV.Gui:GetGuiInset() end)
   if ok and v then gi = v end
  end
  if gui then
@@ -83,7 +193,7 @@ local function absOf(inp, gui)
  return p + gi
 end
 
-local COLORS = {
+config.COLORS = {
  PRIMARY = Color3.fromRGB(28,29,35),
  SECONDARY = Color3.fromRGB(61,64,71),
  RESIZER = Color3.fromRGB(63,67,75),
@@ -100,7 +210,7 @@ local COLORS = {
  ACCENT = Color3.fromRGB(100,160,255),
 }
 
-local FONT = {
+config.FONT = {
  GothamBold = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold),
  GothamMedium = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Medium),
  GothamRegular = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Regular),
@@ -111,12 +221,12 @@ local function ComputeResponsiveWidth(w)
 end
 
 local Explorer
-local VirtualInstance = {}
-local LAZY_TABLES = { Attributes = true, Properties = true, Metadata = true }
-VirtualInstance.__index = function(t, k)
- local m = VirtualInstance[k]
+config.VirtualInstance = {}
+config.LAZY_TABLES = { Attributes = true, Properties = true, Metadata = true }
+config.VirtualInstance.__index = function(t, k)
+ local m = config.VirtualInstance[k]
  if m ~= nil then return m end
- if LAZY_TABLES[k] then
+ if config.LAZY_TABLES[k] then
   local n = {}
   rawset(t, k, n)
   return n
@@ -124,18 +234,18 @@ VirtualInstance.__index = function(t, k)
  return nil
 end
 
-function VirtualInstance.new(className, name, parent)
+function config.VirtualInstance.new(className, name, parent)
  local self = setmetatable({
   Name = name or className or "Instance",
   ClassName = className or "Instance",
   Parent = nil,
   Children = {},
- }, VirtualInstance)
+ }, config.VirtualInstance)
  if parent then self:SetParent(parent) end
  return self
 end
 
-function VirtualInstance:SetParent(parent)
+function config.VirtualInstance:SetParent(parent)
  local old = self.Parent
  if old then
   local ch = old.Children
@@ -151,7 +261,7 @@ function VirtualInstance:SetParent(parent)
  end
 end
 
-function VirtualInstance:Destroy()
+function config.VirtualInstance:Destroy()
  self:SetParent(nil)
  for _, c in ipairs(self.Children) do c.Parent = nil end
  self.Children = {}
@@ -159,7 +269,7 @@ function VirtualInstance:Destroy()
  Explorer.Expanded[self] = nil
 end
 
-function VirtualInstance:GetFullName()
+function config.VirtualInstance:GetFullName()
  local parts, cur = {}, self
  while cur and cur ~= Explorer.Root do
   table.insert(parts, 1, cur.Name)
@@ -168,15 +278,15 @@ function VirtualInstance:GetFullName()
  return table.concat(parts, ".")
 end
 
-local Root = setmetatable({
+config.Root = setmetatable({
  Name = "<root>",
  ClassName = "Root",
  Parent = nil,
  Children = {},
-}, VirtualInstance)
+}, config.VirtualInstance)
 
-local NATURAL_SORT = false
-local CLASS_PRIORITY = { Camera = 1, Terrain = 2 }
+config.NATURAL_SORT = false
+config.CLASS_PRIORITY = { Camera = 1, Terrain = 2 }
 
 local function padNum(d)
  return string.rep("0", 10 - #d) .. d
@@ -192,10 +302,10 @@ local function refreshKey(n)
    n._sk = "\1" .. string.format("%08d", o)
   else
    local nm = tostring(name):lower()
-   if NATURAL_SORT then
+   if config.NATURAL_SORT then
     nm = nm:gsub("%d+", function(d) return #d <= 10 and padNum(d) or d end)
    end
-   n._sk = tostring(CLASS_PRIORITY[cls] or 3) .. nm
+   n._sk = tostring(config.CLASS_PRIORITY[cls] or 3) .. nm
   end
  end
  return n._sk
@@ -231,7 +341,7 @@ local function sortedChildren(inst)
 end
 
 Explorer = {
- Root = Root,
+ Root = config.Root,
  SelectedSet = {},
  Clipboard = {},
  Expanded = setmetatable({}, {__mode="k"}),
@@ -240,42 +350,22 @@ Explorer = {
  ContextItems = {},
  UserIcons = {},
  Settings = {},
+ Images = {
+  ClassIcons = "rbxassetid://135148380892747",
+  Chevron = "rbxassetid://81462102154124",
+  Colon = "rbxassetid://18569843302",
+  History = "rbxassetid://101905359759779",
+  Rotation = { Url = "https://files.catbox.moe/wnft2n.png", File = "rotation.png" },
+  ZoomIn = { Url = "https://files.catbox.moe/ai8l1e.png", File = "zoom_in.png" },
+  ZoomOut = { Url = "https://files.catbox.moe/cxkixh.png", File = "zoom_out.png" },
+ },
  OnSelectCb = nil,
  OnDoubleClickCb = nil,
  OnRightClickCb = nil,
  PanelResizing = setmetatable({}, {__mode="k"}),
 }
 
-local config = {
- ROW_H = 25,
- ScrollIndex = 0,
- ScrollHOffset = 0,
- TreeContentWidth = 0,
- DOUBLE_CLICK = 0.38,
- EDGE = 8,
- IsMinimized = false,
- NT = 0,
- LastClickedTime = {},
- SearchQuery = "",
- SearchPred = nil,
- SearchCursor = 0,
- Anchor = nil,
- IncrementNames = true,
- ExpandOnSelect = true,
- SelectAfterInsert = true,
- ShowHierarchyHighlights = true,
- ContextMenu = nil,
- ContextMenuTarget = nil,
- NormalSize = UDim2.new(0, 340, 0, 280),
- MinimizedSize = UDim2.new(0, 340, 0, 44),
- DockSide = nil,
- entries = {},
- pooldata = {},
- visiblerows = {},
- guideLines = {},
-}
-
-local Positions = {
+config.Positions = {
  ARROW_X = math.floor(config.ROW_H * 0.4 + 0.5),
  ICON_X = math.floor(config.ROW_H * 1 + 0.5),
  TEXT_X = math.floor(config.ROW_H * 2.25 + 0.5),
@@ -310,6 +400,49 @@ local function DropStroke(inst)
  st.Archivable = false
  st.Parent = inst
  return st
+end
+
+config.AssetCache = {}
+
+function Explorer.GetImage(name)
+ local v = Explorer.Images[name]
+ if type(v) == "table" then
+  return Explorer.GetAsset(v.Url, "LqExplorer/images/" .. v.File)
+ end
+ return v
+end
+
+function Explorer.ApplyImage(gui, name)
+ task.spawn(function()
+  local ok, asset = pcall(Explorer.GetImage, name)
+  if ok and asset and gui.Parent then gui.Image = asset end
+ end)
+end
+
+function Explorer.GetAsset(url, name)
+ if config.AssetCache[name] then return config.AssetCache[name] end
+
+ local content
+ if isfile and isfile(name) then
+  content = readfile(name)
+ end
+
+ if not content then
+  content = game:HttpGet(url)
+  local dir = name:match("^(.*)/[^/]+$")
+  if dir and dir ~= "" and makefolder then
+   local built = ""
+   for seg in dir:gmatch("[^/]+") do
+    built = built == "" and seg or (built .. "/" .. seg)
+    pcall(makefolder, built)
+   end
+  end
+  if writefile then pcall(writefile, name, content) end
+ end
+
+ local asset = getcustomasset(name)
+ config.AssetCache[name] = asset
+ return asset
 end
 
 local function MakeCheckBox(parent, size, z)
@@ -517,7 +650,7 @@ local function MakePlus(parent, z)
   bar.Name = randomString()
   bar.Size = UDim2.new(0, d[1], 0, d[2])
   bar.Position = UDim2.new(0.5, -d[1] / 2, 0.5, -d[2] / 2)
-  bar.BackgroundColor3 = COLORS.PRIMARY
+  bar.BackgroundColor3 = config.COLORS.PRIMARY
   bar.BorderSizePixel = 0
   bar.ZIndex = z + 1
   bar.Archivable = false
@@ -579,9 +712,9 @@ local function MakeDots(parent, z)
  return b
 end
 
-local ICON_ID = "rbxassetid://135148380892747"
-local ICON_SIZE = Vector2.new(32, 32)
-local ICONS = {
+config.ICON_ID = Explorer.Images.ClassIcons
+config.ICON_SIZE = Vector2.new(32, 32)
+config.ICONS = {
  ["Accessory"]={1,1},
  ["Actor"]={1,2},
  ["AdGui"]={1,3},
@@ -855,10 +988,10 @@ local ICONS = {
 }
 
 local function getIconOffset(classname)
- local c = ICONS[classname]
- if not c and classname:match("Value$") then c = ICONS["Value"] end
- if not c and (classname:match("Service$") or classname:match("Provider$")) then c = ICONS["Service"] end
- if not c then c = ICONS["Instance"] end
+ local c = config.ICONS[classname]
+ if not c and classname:match("Value$") then c = config.ICONS["Value"] end
+ if not c and (classname:match("Service$") or classname:match("Provider$")) then c = config.ICONS["Service"] end
+ if not c then c = config.ICONS["Instance"] end
  return Vector2.new((c[2] - 1) * 32, (c[1] - 1) * 32)
 end
 
@@ -871,8 +1004,8 @@ local function applyIcon(iconLabel, className)
   iconLabel.ImageRectOffset = u.offset or Vector2.new(0, 0)
   return
  end
- iconLabel.Image = ICON_ID
- iconLabel.ImageRectSize = ICON_SIZE
+ iconLabel.Image = config.ICON_ID
+ iconLabel.ImageRectSize = config.ICON_SIZE
  iconLabel.ImageRectOffset = getIconOffset(className)
 end
 
@@ -880,37 +1013,37 @@ local function escape(s)
  return (s:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"))
 end
 
-local ADBP = loadstring(game:HttpGet("https://raw.githubusercontent.com/lqdxt/Scripts/refs/heads/main/ADBP.lua"))()
-local main
-local docksplitter
-local layoutSource
-local layoutDocks, pmain, pdocksplitter
-local PDock = { Side = nil, Order = "below", Split = nil }
+config.ADBP = loadstring(game:HttpGet("https://raw.githubusercontent.com/lqdxt/Scripts/refs/heads/main/ADBP.lua"))()
+config.main = nil
+config.docksplitter = nil
+config.layoutSource = nil
+config.layoutDocks, config.pmain, config.pdocksplitter = nil
+config.PDock = { Side = nil, Order = "below", Split = nil }
 
-local folder = Instance.new("Folder")
-folder.Name = randomString()
-folder.Archivable = false
-folder.RobloxLocked = true
-folder.Parent = (gethui and gethui()) or SV.CoreGui
-ADBP(folder)
+config.folder = Instance.new("Folder")
+config.folder.Name = randomString()
+config.folder.Archivable = false
+config.folder.RobloxLocked = true
+config.folder.Parent = (gethui and gethui()) or config.SV.CoreGui
+config.ADBP(config.folder)
 
-local window = Instance.new("ScreenGui")
-window.Name = randomString()
-window.ResetOnSpawn = false
-window.IgnoreGuiInset = true
-window.DisplayOrder = 10
-window.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-window.Archivable = false
-window.ClipToDeviceSafeArea = true
-window.Parent = folder
+config.window = Instance.new("ScreenGui")
+config.window.Name = randomString()
+config.window.ResetOnSpawn = false
+config.window.IgnoreGuiInset = true
+config.window.DisplayOrder = 10
+config.window.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+config.window.Archivable = false
+config.window.ClipToDeviceSafeArea = true
+config.window.Parent = config.folder
 
 local function topInset()
- local ok, v = pcall(function() return SV.Gui:GetGuiInset() end)
+ local ok, v = pcall(function() return config.SV.Gui:GetGuiInset() end)
  return (ok and v and v.Y) or 0
 end
 
 local function clampPanelTop(panel)
- local H = window.AbsoluteSize.Y
+ local H = config.window.AbsoluteSize.Y
  local inset = topInset()
  local p, sz, ap = panel.Position, panel.Size, panel.AnchorPoint
  local top = p.Y.Scale * H + p.Y.Offset - ap.Y * (sz.Y.Scale * H + sz.Y.Offset)
@@ -921,81 +1054,81 @@ end
 
 local function nearestSide(gui)
  local ap, as = gui.AbsolutePosition, gui.AbsoluteSize
- return (ap.X + as.X / 2 < window.AbsoluteSize.X / 2) and "left" or "right"
+ return (ap.X + as.X / 2 < config.window.AbsoluteSize.X / 2) and "left" or "right"
 end
 
-local DT = 1
+config.DT = 1
 local function ApplyDock(side)
  config.DockSide = side
- main.AnchorPoint = Vector2.new(0, 0)
- docksplitter.Visible = true
+ config.main.AnchorPoint = Vector2.new(0, 0)
+ config.docksplitter.Visible = true
  if side == "left" then
-  docksplitter.Position = UDim2.new(1, 0, 0, 0)
+  config.docksplitter.Position = UDim2.new(1, 0, 0, 0)
  else
-  docksplitter.Position = UDim2.new(0, -3, 0, 0)
+  config.docksplitter.Position = UDim2.new(0, -3, 0, 0)
  end
- if layoutDocks then layoutDocks() end
- if layoutSource then layoutSource() end
+ if config.layoutDocks then config.layoutDocks() end
+ if config.layoutSource then config.layoutSource() end
 end
 
 local function undock()
  if not config.DockSide then return end
- local px, py = main.Position.X.Offset, main.Position.Y.Offset
- local w, h = main.Size.X.Offset, config.NormalSize.Y.Offset
+ local px, py = config.main.Position.X.Offset, config.main.Position.Y.Offset
+ local w, h = config.main.Size.X.Offset, config.NormalSize.Y.Offset
  config.DockSide = nil
- main.AnchorPoint = Vector2.new(0.5, 0.5)
- main.Position = UDim2.new(0, px + w / 2, 0, py + h / 2)
- main.Size = UDim2.new(0, w, 0, h)
- docksplitter.Visible = false
- if layoutDocks then layoutDocks() end
- if layoutSource then layoutSource() end
+ config.main.AnchorPoint = Vector2.new(0.5, 0.5)
+ config.main.Position = UDim2.new(0, px + w / 2, 0, py + h / 2)
+ config.main.Size = UDim2.new(0, w, 0, h)
+ config.docksplitter.Visible = false
+ if config.layoutDocks then config.layoutDocks() end
+ if config.layoutSource then config.layoutSource() end
 end
 
 local function applyResponsiveWidth()
- local vpX = window.AbsoluteSize.X
+ local vpX = config.window.AbsoluteSize.X
  if vpX <= 0 then return end
  local newDT = ComputeResponsiveWidth(vpX)
- if newDT == DT then return end
- DT = newDT
- config.NormalSize = UDim2.new(0, DT, 0, config.NormalSize.Y.Offset)
- config.MinimizedSize = UDim2.new(0, DT, 0, 44)
- if main and main.Parent then
-  main.Size = UDim2.new(0, DT, 0, main.Size.Y.Offset)
+ if newDT == config.DT then return end
+ config.DT = newDT
+ config.NormalSize = UDim2.new(0, config.DT, 0, config.NormalSize.Y.Offset)
+ config.MinimizedSize = UDim2.new(0, config.DT, 0, 44)
+ if config.main and config.main.Parent then
+  config.main.Size = UDim2.new(0, config.DT, 0, config.main.Size.Y.Offset)
  end
- if pmain and pmain.Parent and PDock.Side then
-  pmain.Size = UDim2.new(0, DT, 0, pmain.Size.Y.Offset)
+ if config.pmain and config.pmain.Parent and config.PDock.Side then
+  config.pmain.Size = UDim2.new(0, config.DT, 0, config.pmain.Size.Y.Offset)
  end
- if layoutDocks and (config.DockSide or PDock.Side) then layoutDocks() end
+ if config.layoutDocks and (config.DockSide or config.PDock.Side) then config.layoutDocks() end
 end
-DT = ComputeResponsiveWidth(window.AbsoluteSize.X > 0 and window.AbsoluteSize.X or 1000)
-window:GetPropertyChangedSignal("AbsoluteSize"):Connect(applyResponsiveWidth)
+config.DT = ComputeResponsiveWidth(config.window.AbsoluteSize.X > 0 and config.window.AbsoluteSize.X or 1000)
+config.window:GetPropertyChangedSignal("AbsoluteSize"):Connect(applyResponsiveWidth)
 
-local WinOrder = {}
+config.WinOrder = {}
 local function BringToFront(w)
- for i, v in ipairs(WinOrder) do
-  if v == w then table.remove(WinOrder, i) break end
+ for i, v in ipairs(config.WinOrder) do
+  if v == w then table.remove(config.WinOrder, i) break end
  end
- table.insert(WinOrder, w)
- for i, v in ipairs(WinOrder) do v.ZIndex = 1 + i end
+ table.insert(config.WinOrder, w)
+ for i, v in ipairs(config.WinOrder) do v.ZIndex = 1 + i end
 end
 local function RegisterWindow(w)
- table.insert(WinOrder, w)
- w.ZIndex = 1 + #WinOrder
+ table.insert(config.WinOrder, w)
+ w.ZIndex = 1 + #config.WinOrder
 end
-SV.UserInput.InputBegan:Connect(function(inp)
+config.SV.UserInput.InputBegan:Connect(function(inp)
  local t = inp.UserInputType
  if t ~= Enum.UserInputType.MouseButton1 and t ~= Enum.UserInputType.Touch then return end
- local pos = SV.UserInput:GetMouseLocation()
+ local pos = config.SV.UserInput:GetMouseLocation()
  if t == Enum.UserInputType.Touch then
-  local ok, gi = pcall(function() return SV.Gui:GetGuiInset() end)
+  local ok, gi = pcall(function() return config.SV.Gui:GetGuiInset() end)
   pos = Vector2.new(inp.Position.X, inp.Position.Y) + ((ok and gi) or Vector2.new(0, 0))
  end
- for i = #WinOrder, 1, -1 do
-  local w = WinOrder[i]
+ for i = #config.WinOrder, 1, -1 do
+  local w = config.WinOrder[i]
   if w.Visible then
    local ap, as = w.AbsolutePosition, w.AbsoluteSize
    if pos.X >= ap.X and pos.X <= ap.X + as.X and pos.Y >= ap.Y and pos.Y <= ap.Y + as.Y then
-    if i ~= #WinOrder then BringToFront(w) end
+    if i ~= #config.WinOrder then BringToFront(w) end
     return
    end
   end
@@ -1123,8 +1256,8 @@ Explorer.AddDropdown = function(builder, opts)
    empty.Position = UDim2.new(0, PAD, 0, y)
    empty.BackgroundTransparency = 1
    empty.Text = "No items"
-   empty.TextColor3 = COLORS.TEXT_DIM
-   empty.FontFace = FONT.GothamMedium
+   empty.TextColor3 = config.COLORS.TEXT_DIM
+   empty.FontFace = config.FONT.GothamMedium
    empty.TextSize = 14
    empty.ZIndex = 13 + ZB
    empty.Archivable = false
@@ -1169,7 +1302,7 @@ Explorer.AddDropdown = function(builder, opts)
    lbl.TextColor3 = item.textColor or Color3.fromRGB(255, 255, 255)
    lbl.TextXAlignment = Enum.TextXAlignment.Left
    lbl.TextWrapped = true
-   lbl.FontFace = STUDIO and FONT.GothamRegular or FONT.GothamMedium
+   lbl.FontFace = STUDIO and config.FONT.GothamRegular or config.FONT.GothamMedium
    lbl.TextSize = STUDIO and 14 or (opts.TextSize or 14)
    lbl.ZIndex = 13 + ZB
    lbl.Archivable = false
@@ -1187,7 +1320,7 @@ Explorer.AddDropdown = function(builder, opts)
    if STUDIO then RoundCorner(row, 0, 6) end
    local hoverTarget = STUDIO and row or btn
    btn.MouseEnter:Connect(function()
-    hoverTarget.BackgroundColor3 = COLORS.SECONDARY
+    hoverTarget.BackgroundColor3 = config.COLORS.SECONDARY
     hoverTarget.BackgroundTransparency = 0
    end)
    btn.MouseLeave:Connect(function()
@@ -1196,10 +1329,17 @@ Explorer.AddDropdown = function(builder, opts)
    end)
 
    if item.kind == "Options" then
-    local chev = MakeChevron(btn, 15 + ZB)
+    local chev = Instance.new("ImageLabel")
+    chev.Name = randomString()
+    chev.Size = UDim2.new(0, 16, 0, 16)
     chev.AnchorPoint = Vector2.new(0.5, 0.5)
-    chev.Position = UDim2.new(1, -12, 0.5, 0)
-    chev.Rotation = -90
+    chev.Position = UDim2.new(1, -14, 0.5, 0)
+    chev.BackgroundTransparency = 1
+    chev.Image = Explorer.Images.Chevron
+    chev.Rotation = 0
+    chev.ZIndex = 15 + ZB
+    chev.Archivable = false
+    chev.Parent = btn
     btn.Activated:Connect(function()
      if handle.SubOwner == item then
       closeSub()
@@ -1252,7 +1392,7 @@ Explorer.AddDropdown = function(builder, opts)
 
   local sub = Instance.new("Frame")
   sub.Name = randomString()
-  sub.BackgroundColor3 = COLORS.PRIMARY
+  sub.BackgroundColor3 = config.COLORS.PRIMARY
   sub.BorderSizePixel = 0
   sub.ZIndex = 11 + ZB
   sub.Archivable = false
@@ -1283,7 +1423,7 @@ Explorer.AddDropdown = function(builder, opts)
 
   for _, c in ipairs(row:GetChildren()) do
    if c:IsA("TextButton") then
-    c.BackgroundColor3 = COLORS.SECONDARY
+    c.BackgroundColor3 = config.COLORS.SECONDARY
     c.BackgroundTransparency = 0
    end
   end
@@ -1297,7 +1437,7 @@ Explorer.AddDropdown = function(builder, opts)
  end
 
  function handle:Open(x, y)
-  local parent = opts.Screen and window or main
+  local parent = opts.Screen and config.window or config.main
   if not parent then return self end
   close()
   build()
@@ -1305,7 +1445,7 @@ Explorer.AddDropdown = function(builder, opts)
 
   local frame = Instance.new("Frame")
   frame.Name = randomString()
-  frame.BackgroundColor3 = COLORS.PRIMARY
+  frame.BackgroundColor3 = config.COLORS.PRIMARY
   frame.BorderSizePixel = 0
   frame.ZIndex = 11 + ZB
   frame.Archivable = false
@@ -1326,7 +1466,7 @@ Explorer.AddDropdown = function(builder, opts)
    0, math.clamp(y or 0, 4, maxY)
   )
 
-  handle.Connection = SV.UserInput.InputBegan:Connect(function(inp)
+  handle.Connection = config.SV.UserInput.InputBegan:Connect(function(inp)
    if inp.UserInputType ~= Enum.UserInputType.MouseButton1
     and inp.UserInputType ~= Enum.UserInputType.MouseButton2
     and inp.UserInputType ~= Enum.UserInputType.Touch then return end
@@ -1356,13 +1496,13 @@ Explorer.AddDropdown = function(builder, opts)
  end
 
  function handle:OpenAt(gui, alignRight, offsetY)
-  if not gui or not main then return self end
+  if not gui or not config.main then return self end
   local ap = gui.AbsolutePosition
   local as = gui.AbsoluteSize
-  local mainAp = main.AbsolutePosition
+  local mainAp = config.main.AbsolutePosition
   local x
   if opts.FullWidth then
-   DROPDOWN_WIDTH = math.max(180, main.AbsoluteSize.X - 14)
+   DROPDOWN_WIDTH = math.max(180, config.main.AbsoluteSize.X - 14)
    x = 7
   elseif alignRight == false then
    x = ap.X - mainAp.X
@@ -1393,165 +1533,165 @@ Explorer.AddDropdown = function(builder, opts)
  return handle
 end
 
-main = Instance.new("Frame")
-main.Name = randomString()
-main.Size = UDim2.new(0, DT, 0, 280)
-main.AnchorPoint = Vector2.new(0.5, 0.5)
-main.Position = UDim2.new(0.5, 0, 0.5, 0)
-main.BackgroundColor3 = COLORS.PRIMARY
-main.BackgroundTransparency = config.NT
-main.Active = true
-main.BorderSizePixel = 0
-main.ZIndex = 2
-main.Archivable = false
-main.Parent = window
-RegisterWindow(main)
+config.main = Instance.new("Frame")
+config.main.Name = randomString()
+config.main.Size = UDim2.new(0, config.DT, 0, 280)
+config.main.AnchorPoint = Vector2.new(0.5, 0.5)
+config.main.Position = UDim2.new(0.5, 0, 0.5, 0)
+config.main.BackgroundColor3 = config.COLORS.PRIMARY
+config.main.BackgroundTransparency = config.NT
+config.main.Active = true
+config.main.BorderSizePixel = 0
+config.main.ZIndex = 2
+config.main.Archivable = false
+config.main.Parent = config.window
+RegisterWindow(config.main)
 
-docksplitter = Instance.new("Frame")
-docksplitter.Name = randomString()
-docksplitter.Size = UDim2.new(0, 3, 1, 0)
-docksplitter.BackgroundColor3 = COLORS.RESIZER
-docksplitter.BorderSizePixel = 0
-docksplitter.ZIndex = 8
-docksplitter.Visible = false
-docksplitter.Archivable = false
-docksplitter.Active = true
-docksplitter.Parent = main
+config.docksplitter = Instance.new("Frame")
+config.docksplitter.Name = randomString()
+config.docksplitter.Size = UDim2.new(0, 3, 1, 0)
+config.docksplitter.BackgroundColor3 = config.COLORS.RESIZER
+config.docksplitter.BorderSizePixel = 0
+config.docksplitter.ZIndex = 8
+config.docksplitter.Visible = false
+config.docksplitter.Archivable = false
+config.docksplitter.Active = true
+config.docksplitter.Parent = config.main
 
-local header = Instance.new("Frame")
-header.Name = randomString()
-header.Size = UDim2.new(1, 0, 0, 28)
-header.BackgroundColor3 = COLORS.HEADER
-header.BorderSizePixel = 0
-header.Active = true
-header.ZIndex = 3
-header.Archivable = false
-header.Parent = main
+config.header = Instance.new("Frame")
+config.header.Name = randomString()
+config.header.Size = UDim2.new(1, 0, 0, 28)
+config.header.BackgroundColor3 = config.COLORS.HEADER
+config.header.BorderSizePixel = 0
+config.header.Active = true
+config.header.ZIndex = 3
+config.header.Archivable = false
+config.header.Parent = config.main
 
-local separator = Instance.new("Frame")
-separator.Name = randomString()
-separator.Size = UDim2.new(1, -8, 0, 2)
-separator.Position = UDim2.new(0, 7, 0, 63)
-separator.BackgroundColor3 = COLORS.SECONDARY
-separator.BorderSizePixel = 0
-separator.ZIndex = 5
-separator.Archivable = false
-separator.Parent = main
+config.separator = Instance.new("Frame")
+config.separator.Name = randomString()
+config.separator.Size = UDim2.new(1, -8, 0, 2)
+config.separator.Position = UDim2.new(0, 7, 0, 63)
+config.separator.BackgroundColor3 = config.COLORS.SECONDARY
+config.separator.BorderSizePixel = 0
+config.separator.ZIndex = 5
+config.separator.Archivable = false
+config.separator.Parent = config.main
 
-local searchRow = Instance.new("Frame")
-searchRow.Name = randomString()
-searchRow.Size = UDim2.new(1, 0, 0, 34)
-searchRow.Position = UDim2.new(0, 0, 0, 28)
-searchRow.BackgroundTransparency = 1
-searchRow.BorderSizePixel = 0
-searchRow.ZIndex = 3
-searchRow.Archivable = false
-searchRow.Parent = main
+config.searchRow = Instance.new("Frame")
+config.searchRow.Name = randomString()
+config.searchRow.Size = UDim2.new(1, 0, 0, 34)
+config.searchRow.Position = UDim2.new(0, 0, 0, 28)
+config.searchRow.BackgroundTransparency = 1
+config.searchRow.BorderSizePixel = 0
+config.searchRow.ZIndex = 3
+config.searchRow.Archivable = false
+config.searchRow.Parent = config.main
 
-local searchbar = Instance.new("TextBox")
-searchbar.Name = randomString()
-searchbar.Size = UDim2.new(1, -50, 0, 28)
-searchbar.Position = UDim2.new(0, 7, 0, 4)
-searchbar.BackgroundTransparency = 0
-searchbar.BackgroundColor3 = COLORS.SECONDARY
-searchbar.PlaceholderText = "Search"
-searchbar.PlaceholderColor3 = COLORS.TEXT
-searchbar.Text = ""
-searchbar.TextColor3 = COLORS.TEXT_BRIGHT
-searchbar.Font = Enum.Font.SourceSans
-searchbar.TextSize = 15
-searchbar.TextXAlignment = Enum.TextXAlignment.Left
-searchbar.ClearTextOnFocus = false
-searchbar.ZIndex = 5
-searchbar.Archivable = false
-searchbar.Parent = searchRow
-RoundCorner(searchbar, 0, 8)
+config.searchbar = Instance.new("TextBox")
+config.searchbar.Name = randomString()
+config.searchbar.Size = UDim2.new(1, -50, 0, 28)
+config.searchbar.Position = UDim2.new(0, 7, 0, 4)
+config.searchbar.BackgroundTransparency = 0
+config.searchbar.BackgroundColor3 = config.COLORS.SECONDARY
+config.searchbar.PlaceholderText = "Search"
+config.searchbar.PlaceholderColor3 = config.COLORS.TEXT
+config.searchbar.Text = ""
+config.searchbar.TextColor3 = config.COLORS.TEXT_BRIGHT
+config.searchbar.Font = Enum.Font.SourceSans
+config.searchbar.TextSize = 15
+config.searchbar.TextXAlignment = Enum.TextXAlignment.Left
+config.searchbar.ClearTextOnFocus = false
+config.searchbar.ZIndex = 5
+config.searchbar.Archivable = false
+config.searchbar.Parent = config.searchRow
+RoundCorner(config.searchbar, 0, 8)
 
-local threedotmenu = Instance.new("ImageButton")
-threedotmenu.Name = randomString()
-threedotmenu.Size = UDim2.new(0, 28, 0, 28)
-threedotmenu.Position = UDim2.new(1, -36, 0.5, -13)
-threedotmenu.BackgroundColor3 = COLORS.SECONDARY
-threedotmenu.Image = ""
-threedotmenu.BorderSizePixel = 0
-threedotmenu.ZIndex = 5
-threedotmenu.Archivable = false
-threedotmenu.Parent = searchRow
-RoundCorner(threedotmenu, 0, 8)
+config.threedotmenu = Instance.new("ImageButton")
+config.threedotmenu.Name = randomString()
+config.threedotmenu.Size = UDim2.new(0, 28, 0, 28)
+config.threedotmenu.Position = UDim2.new(1, -36, 0.5, -13)
+config.threedotmenu.BackgroundColor3 = config.COLORS.SECONDARY
+config.threedotmenu.Image = ""
+config.threedotmenu.BorderSizePixel = 0
+config.threedotmenu.ZIndex = 5
+config.threedotmenu.Archivable = false
+config.threedotmenu.Parent = config.searchRow
+RoundCorner(config.threedotmenu, 0, 8)
 
-local colonimage = Instance.new("ImageLabel")
-colonimage.Name = randomString()
-colonimage.Size = UDim2.new(0, 24, 0, 24)
-colonimage.Position = UDim2.new(0, 2, 0, 2)
-colonimage.BackgroundTransparency = 1
-colonimage.Image = "rbxassetid://18569843302"
-colonimage.BorderSizePixel = 0
-colonimage.ZIndex = 5
-colonimage.Archivable = false
-colonimage.Parent = threedotmenu
+config.colonimage = Instance.new("ImageLabel")
+config.colonimage.Name = randomString()
+config.colonimage.Size = UDim2.new(0, 24, 0, 24)
+config.colonimage.Position = UDim2.new(0, 2, 0, 2)
+config.colonimage.BackgroundTransparency = 1
+config.colonimage.Image = Explorer.Images.Colon
+config.colonimage.BorderSizePixel = 0
+config.colonimage.ZIndex = 5
+config.colonimage.Archivable = false
+config.colonimage.Parent = config.threedotmenu
 
 config.SearchHistory = {}
 
-local historybtn = Instance.new("ImageButton")
-historybtn.Name = randomString()
-historybtn.Size = UDim2.new(0, 28, 0, 28)
-historybtn.Position = UDim2.new(1, -68, 0.5, -13)
-historybtn.BackgroundColor3 = COLORS.SECONDARY
-historybtn.BackgroundTransparency = 0
-historybtn.Image = "rbxassetid://101905359759779"
-historybtn.BorderSizePixel = 0
-historybtn.ZIndex = 5
-historybtn.Archivable = false
-historybtn.Parent = searchRow
-RoundCorner(historybtn, 0, 8)
+config.historybtn = Instance.new("ImageButton")
+config.historybtn.Name = randomString()
+config.historybtn.Size = UDim2.new(0, 28, 0, 28)
+config.historybtn.Position = UDim2.new(1, -68, 0.5, -13)
+config.historybtn.BackgroundColor3 = config.COLORS.SECONDARY
+config.historybtn.BackgroundTransparency = 0
+config.historybtn.Image = Explorer.Images.History
+config.historybtn.BorderSizePixel = 0
+config.historybtn.ZIndex = 5
+config.historybtn.Archivable = false
+config.historybtn.Parent = config.searchRow
+RoundCorner(config.historybtn, 0, 8)
 
-local clearbtn = Instance.new("TextButton")
-clearbtn.Name = randomString()
-clearbtn.Size = UDim2.new(0, 28, 0, 28)
-clearbtn.Position = UDim2.new(1, -95, 0.5, -13)
-clearbtn.BackgroundTransparency = 1
-clearbtn.Text = ""
-clearbtn.AutoButtonColor = false
-clearbtn.BorderSizePixel = 0
-clearbtn.ZIndex = 6
-clearbtn.Visible = false
-clearbtn.Archivable = false
-clearbtn.Parent = searchRow
-RoundCorner(clearbtn, 0, 8)
-MakeCloseIcon(clearbtn, 11, 7, Color3.fromRGB(160, 160, 160))
+config.clearbtn = Instance.new("TextButton")
+config.clearbtn.Name = randomString()
+config.clearbtn.Size = UDim2.new(0, 28, 0, 28)
+config.clearbtn.Position = UDim2.new(1, -95, 0.5, -13)
+config.clearbtn.BackgroundTransparency = 1
+config.clearbtn.Text = ""
+config.clearbtn.AutoButtonColor = false
+config.clearbtn.BorderSizePixel = 0
+config.clearbtn.ZIndex = 6
+config.clearbtn.Visible = false
+config.clearbtn.Archivable = false
+config.clearbtn.Parent = config.searchRow
+RoundCorner(config.clearbtn, 0, 8)
+MakeCloseIcon(config.clearbtn, 11, 7, Color3.fromRGB(160, 160, 160))
 
-clearbtn.Activated:Connect(function()
- searchbar.Text = ""
+config.clearbtn.Activated:Connect(function()
+ config.searchbar.Text = ""
 end)
 
-searchbar:GetPropertyChangedSignal("Text"):Connect(function()
- clearbtn.Visible = searchbar.Text ~= ""
+config.searchbar:GetPropertyChangedSignal("Text"):Connect(function()
+ config.clearbtn.Visible = config.searchbar.Text ~= ""
 end)
 
-local historyDropdown
-historyDropdown = Explorer.AddDropdown(function(Add)
+config.historyDropdown = nil
+config.historyDropdown = Explorer.AddDropdown(function(Add)
  for _, term in ipairs(config.SearchHistory) do
   Add(term, "Button", function()
-   searchbar.Text = term
+   config.searchbar.Text = term
    config.SearchQuery = term
-   historyDropdown:Close()
+   config.historyDropdown:Close()
   end)
  end
  if #config.SearchHistory > 0 then
   Add("Clear history", "Button", function()
    table.clear(config.SearchHistory)
-   historyDropdown:Close()
-  end, nil, { TextColor = COLORS.CLOSE_TEXT })
+   config.historyDropdown:Close()
+  end, nil, { TextColor = config.COLORS.CLOSE_TEXT })
  end
 end)
 
-historybtn.Activated:Connect(function()
+config.historybtn.Activated:Connect(function()
  if #config.SearchHistory == 0 then return end
- historyDropdown:ToggleAt(historybtn)
+ config.historyDropdown:ToggleAt(config.historybtn)
 end)
 
-searchbar.FocusLost:Connect(function()
- local text = searchbar.Text
+config.searchbar.FocusLost:Connect(function()
+ local text = config.searchbar.Text
  if text == "" then return end
  if config.SearchHistory[1] == text then return end
  for i = #config.SearchHistory, 1, -1 do
@@ -1561,44 +1701,44 @@ searchbar.FocusLost:Connect(function()
  if #config.SearchHistory > 10 then table.remove(config.SearchHistory) end
 end)
 
-local accent = Instance.new("Frame")
-accent.Name = randomString()
-accent.Size = UDim2.new(1, 0, 0, 1.5)
-accent.Position = UDim2.new(0, 0, 1, -1.5)
-accent.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-accent.BorderSizePixel = 0
-accent.ZIndex = 3
-accent.Archivable = false
-accent.Parent = header
+config.accent = Instance.new("Frame")
+config.accent.Name = randomString()
+config.accent.Size = UDim2.new(1, 0, 0, 1.5)
+config.accent.Position = UDim2.new(0, 0, 1, -1.5)
+config.accent.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+config.accent.BorderSizePixel = 0
+config.accent.ZIndex = 3
+config.accent.Archivable = false
+config.accent.Parent = config.header
 
-local title = Instance.new("TextLabel")
-title.Name = randomString()
-title.Text = "Explorer"
-title.Size = UDim2.new(1, 0, 1, 0)
-title.Position = UDim2.new(0, -15, 0, 0)
-title.BackgroundTransparency = 1
-title.TextColor3 = COLORS.TEXT_BRIGHT
-title.FontFace = FONT.GothamRegular
-title.TextSize = 12
-title.TextXAlignment = Enum.TextXAlignment.Center
-title.ZIndex = 3
-title.Archivable = false
-title.Parent = header
+config.title = Instance.new("TextLabel")
+config.title.Name = randomString()
+config.title.Text = "Explorer"
+config.title.Size = UDim2.new(1, 0, 1, 0)
+config.title.Position = UDim2.new(0, -15, 0, 0)
+config.title.BackgroundTransparency = 1
+config.title.TextColor3 = config.COLORS.TEXT_BRIGHT
+config.title.FontFace = config.FONT.GothamRegular
+config.title.TextSize = 12
+config.title.TextXAlignment = Enum.TextXAlignment.Center
+config.title.ZIndex = 3
+config.title.Archivable = false
+config.title.Parent = config.header
 
-local close = Instance.new("TextButton")
-close.Name = randomString()
-close.Size = UDim2.new(0, 28, 0, 28)
-close.Position = UDim2.new(1, -30, 0.5, -13)
-close.BackgroundTransparency = 1
-close.Text = ""
-close.AutoButtonColor = false
-close.BorderSizePixel = 0
-close.ZIndex = 3
-close.Archivable = false
-close.Parent = header
-MakeCloseIcon(close, 8, 4, Color3.fromRGB(210, 210, 210))
+config.close = Instance.new("TextButton")
+config.close.Name = randomString()
+config.close.Size = UDim2.new(0, 28, 0, 28)
+config.close.Position = UDim2.new(1, -30, 0.5, -13)
+config.close.BackgroundTransparency = 1
+config.close.Text = ""
+config.close.AutoButtonColor = false
+config.close.BorderSizePixel = 0
+config.close.ZIndex = 3
+config.close.Archivable = false
+config.close.Parent = config.header
+MakeCloseIcon(config.close, 8, 4, Color3.fromRGB(210, 210, 210))
 
-local MENU_Z, menuGui, topbar
+config.MENU_Z, config.menuGui, config.topbar = nil
 do
 local MENU_BTN_W, MENU_BTN_H = 96, 32
 local CELL_W, CELL_H, CELL_GAP, BAR_PAD = 76, 66, 4, 8
@@ -1607,52 +1747,52 @@ local MENU_BAR_W = BAR_PAD * 2 + CELL_W * 2 + CELL_GAP
 local MENU_BAR_H = BAR_PAD * 2 + CELL_H
 local layoutBar
 local menuCells = {}
-MENU_Z = 60
+config.MENU_Z = 60
 local ICON_WHITE = Color3.fromRGB(255, 255, 255)
 local ICON_ACCENT = Color3.fromRGB(125, 128, 175)
 
-menuGui = Instance.new("ScreenGui")
-menuGui.Name = randomString()
-menuGui.ResetOnSpawn = false
-menuGui.IgnoreGuiInset = true
-menuGui.DisplayOrder = 11
-menuGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-menuGui.ClipToDeviceSafeArea = false
-menuGui.Archivable = false
-menuGui.Parent = folder
+config.menuGui = Instance.new("ScreenGui")
+config.menuGui.Name = randomString()
+config.menuGui.ResetOnSpawn = false
+config.menuGui.IgnoreGuiInset = true
+config.menuGui.DisplayOrder = 11
+config.menuGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+config.menuGui.ClipToDeviceSafeArea = false
+config.menuGui.Archivable = false
+config.menuGui.Parent = config.folder
 
 local menubtn = Instance.new("TextButton")
 menubtn.Name = randomString()
 menubtn.Size = UDim2.new(0, MENU_BTN_W, 0, MENU_BTN_H)
 menubtn.AnchorPoint = Vector2.new(0.5, 0)
 menubtn.Position = UDim2.new(0.5, 0, 0, 6)
-menubtn.BackgroundColor3 = COLORS.HEADER
+menubtn.BackgroundColor3 = config.COLORS.HEADER
 menubtn.AutoButtonColor = false
 menubtn.Text = "Menu"
-menubtn.TextColor3 = COLORS.TEXT_BRIGHT
-menubtn.FontFace = FONT.GothamMedium
+menubtn.TextColor3 = config.COLORS.TEXT_BRIGHT
+menubtn.FontFace = config.FONT.GothamMedium
 menubtn.TextSize = 15
 menubtn.BorderSizePixel = 0
-menubtn.ZIndex = MENU_Z
+menubtn.ZIndex = config.MENU_Z
 menubtn.Archivable = false
-menubtn.Parent = menuGui
+menubtn.Parent = config.menuGui
 RoundCorner(menubtn, 0, 8)
 BorderStroke(menubtn, 1, 60, 60, 60)
 
-topbar = Instance.new("Frame")
-topbar.Name = randomString()
-topbar.Size = UDim2.new(0, MENU_BAR_W, 0, MENU_BAR_H)
-topbar.AnchorPoint = Vector2.new(0.5, 0)
-topbar.Position = UDim2.new(0.5, 0, 0, 6 + MENU_BTN_H + 6)
-topbar.BackgroundColor3 = COLORS.PRIMARY
-topbar.BorderSizePixel = 0
-topbar.Visible = false
-topbar.Active = true
-topbar.ZIndex = MENU_Z
-topbar.Archivable = false
-topbar.Parent = menuGui
-RoundCorner(topbar, 0, 10)
-BorderStroke(topbar, 1, 60, 60, 60)
+config.topbar = Instance.new("Frame")
+config.topbar.Name = randomString()
+config.topbar.Size = UDim2.new(0, MENU_BAR_W, 0, MENU_BAR_H)
+config.topbar.AnchorPoint = Vector2.new(0.5, 0)
+config.topbar.Position = UDim2.new(0.5, 0, 0, 6 + MENU_BTN_H + 6)
+config.topbar.BackgroundColor3 = config.COLORS.PRIMARY
+config.topbar.BorderSizePixel = 0
+config.topbar.Visible = false
+config.topbar.Active = true
+config.topbar.ZIndex = config.MENU_Z
+config.topbar.Archivable = false
+config.topbar.Parent = config.menuGui
+RoundCorner(config.topbar, 0, 10)
+BorderStroke(config.topbar, 1, 60, 60, 60)
 
 local textRow = Instance.new("Frame")
 textRow.Name = randomString()
@@ -1660,9 +1800,9 @@ textRow.Size = UDim2.new(1, -BAR_PAD * 2, 0, TEXT_ROW_H)
 textRow.Position = UDim2.new(0, BAR_PAD, 0, BAR_PAD - 2)
 textRow.BackgroundTransparency = 1
 textRow.Visible = false
-textRow.ZIndex = MENU_Z + 1
+textRow.ZIndex = config.MENU_Z + 1
 textRow.Archivable = false
-textRow.Parent = topbar
+textRow.Parent = config.topbar
 
 local textRowLayout = Instance.new("UIListLayout")
 textRowLayout.FillDirection = Enum.FillDirection.Horizontal
@@ -1675,12 +1815,12 @@ local textRowLine = Instance.new("Frame")
 textRowLine.Name = randomString()
 textRowLine.Size = UDim2.new(1, -BAR_PAD * 2, 0, 1)
 textRowLine.Position = UDim2.new(0, BAR_PAD, 0, BAR_PAD + TEXT_ROW_H + 1)
-textRowLine.BackgroundColor3 = COLORS.SECONDARY
+textRowLine.BackgroundColor3 = config.COLORS.SECONDARY
 textRowLine.BorderSizePixel = 0
 textRowLine.Visible = false
-textRowLine.ZIndex = MENU_Z + 1
+textRowLine.ZIndex = config.MENU_Z + 1
 textRowLine.Archivable = false
-textRowLine.Parent = topbar
+textRowLine.Parent = config.topbar
 
 local textBtnCount = 0
 function Explorer.AddMenuButton(name, callback)
@@ -1689,16 +1829,16 @@ function Explorer.AddMenuButton(name, callback)
  b.Name = randomString()
  b.AutomaticSize = Enum.AutomaticSize.X
  b.Size = UDim2.new(0, 0, 0, 22)
- b.BackgroundColor3 = COLORS.SECONDARY
+ b.BackgroundColor3 = config.COLORS.SECONDARY
  b.BackgroundTransparency = 1
  b.AutoButtonColor = false
  b.Text = name
- b.TextColor3 = COLORS.TEXT_BRIGHT
- b.FontFace = FONT.GothamMedium
+ b.TextColor3 = config.COLORS.TEXT_BRIGHT
+ b.FontFace = config.FONT.GothamMedium
  b.TextSize = 12
  b.BorderSizePixel = 0
  b.LayoutOrder = textBtnCount
- b.ZIndex = MENU_Z + 2
+ b.ZIndex = config.MENU_Z + 2
  b.Archivable = false
  b.Parent = textRow
  RoundCorner(b, 0, 6)
@@ -1720,7 +1860,7 @@ local function iconRect(parent, x, y, w, h, color, radius)
  f.Size = UDim2.new(0, w, 0, h)
  f.BackgroundColor3 = color
  f.BorderSizePixel = 0
- f.ZIndex = MENU_Z + 2
+ f.ZIndex = config.MENU_Z + 2
  f.Archivable = false
  f.Parent = parent
  if radius and radius > 0 then RoundCorner(f, 0, radius) end
@@ -1740,7 +1880,7 @@ end
 
 local function buildPropertiesIcon(box)
  iconRect(box, 4, 5, 23, 25, ICON_ACCENT, 4)
- local front = iconRect(box, 9, 2, 19, 21, COLORS.PRIMARY, 4)
+ local front = iconRect(box, 9, 2, 19, 21, config.COLORS.PRIMARY, 4)
  BorderStroke(front, 2, 255, 255, 255)
  for _, y in ipairs({ 5, 12 }) do
   iconRect(front, 3, y, 4, 4, ICON_WHITE, 1)
@@ -1753,14 +1893,14 @@ local function makeMenuCell(index, labelText, buildIcon)
  cell.Name = randomString()
  cell.Size = UDim2.new(0, CELL_W, 0, CELL_H)
  cell.Position = UDim2.new(0, 0, 0, BAR_PAD)
- cell.BackgroundColor3 = COLORS.SECONDARY
+ cell.BackgroundColor3 = config.COLORS.SECONDARY
  cell.BackgroundTransparency = 1
  cell.AutoButtonColor = false
  cell.Text = ""
  cell.BorderSizePixel = 0
- cell.ZIndex = MENU_Z + 1
+ cell.ZIndex = config.MENU_Z + 1
  cell.Archivable = false
- cell.Parent = topbar
+ cell.Parent = config.topbar
  menuCells[index] = cell
  RoundCorner(cell, 0, 8)
 
@@ -1769,7 +1909,7 @@ local function makeMenuCell(index, labelText, buildIcon)
  iconBox.Size = UDim2.new(0, 32, 0, 32)
  iconBox.Position = UDim2.new(0.5, -16, 0, 6)
  iconBox.BackgroundTransparency = 1
- iconBox.ZIndex = MENU_Z + 2
+ iconBox.ZIndex = config.MENU_Z + 2
  iconBox.Archivable = false
  iconBox.Parent = cell
  buildIcon(iconBox)
@@ -1780,17 +1920,17 @@ local function makeMenuCell(index, labelText, buildIcon)
  lbl.Position = UDim2.new(0, 0, 0, 44)
  lbl.BackgroundTransparency = 1
  lbl.Text = labelText
- lbl.TextColor3 = COLORS.TEXT_BRIGHT
- lbl.FontFace = FONT.GothamMedium
+ lbl.TextColor3 = config.COLORS.TEXT_BRIGHT
+ lbl.FontFace = config.FONT.GothamMedium
  lbl.TextSize = 12
- lbl.ZIndex = MENU_Z + 2
+ lbl.ZIndex = config.MENU_Z + 2
  lbl.Archivable = false
  lbl.Parent = cell
 
  local hover, active = false, false
  local function paint()
   if active or hover then
-   cell.BackgroundColor3 = COLORS.SECONDARY
+   cell.BackgroundColor3 = config.COLORS.SECONDARY
    cell.BackgroundTransparency = active and (hover and 0.2 or 0.3) or 0.5
   else
    cell.BackgroundTransparency = 1
@@ -1809,7 +1949,7 @@ layoutBar = function()
  local cellsW = CELL_W * #menuCells + CELL_GAP * (#menuCells - 1)
  local textW = hasText and (textRowLayout.AbsoluteContentSize.X + BAR_PAD * 2) or 0
  local barW = math.max(cellsW + BAR_PAD * 2, textW)
- topbar.Size = UDim2.new(0, barW, 0, BAR_PAD * 2 + CELL_H + extra)
+ config.topbar.Size = UDim2.new(0, barW, 0, BAR_PAD * 2 + CELL_H + extra)
  textRow.Visible = hasText
  textRowLine.Visible = hasText
  for i, c in ipairs(menuCells) do
@@ -1820,8 +1960,8 @@ textRowLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(layoutBar)
 layoutBar()
 
 config.SetPropertiesActive = setPropertiesActive
-setExplorerActive(main.Visible)
-main:GetPropertyChangedSignal("Visible"):Connect(function() setExplorerActive(main.Visible) end)
+setExplorerActive(config.main.Visible)
+config.main:GetPropertyChangedSignal("Visible"):Connect(function() setExplorerActive(config.main.Visible) end)
 
 explorerbtn.Activated:Connect(function() Explorer.Toggle() end)
 propertiesbtn.Activated:Connect(function()
@@ -1830,145 +1970,145 @@ end)
 
 local function setMenuOpen(open)
  config.MenuOpen = open
- topbar.Visible = open
- menubtn.BackgroundColor3 = open and COLORS.SECONDARY or COLORS.HEADER
+ config.topbar.Visible = open
+ menubtn.BackgroundColor3 = open and config.COLORS.SECONDARY or config.COLORS.HEADER
  if config.OnMenuToggle then config.OnMenuToggle(open) end
 end
 config.MenuOpen = false
 menubtn.Activated:Connect(function() setMenuOpen(not config.MenuOpen) end)
 end
 
-local pinbtn = Instance.new("TextButton")
-pinbtn.Name = randomString()
-pinbtn.Size = UDim2.new(0, 22, 0, 22)
-pinbtn.Position = UDim2.new(1, -58, 0.5, -11)
-pinbtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-pinbtn.BackgroundTransparency = 0.7
-pinbtn.AutoButtonColor = false
-pinbtn.Text = ""
-pinbtn.BorderSizePixel = 0
-pinbtn.ZIndex = 3
-pinbtn.Archivable = false
-pinbtn.Parent = header
-RoundCorner(pinbtn, 0, 6)
-MakePinIcon(pinbtn, 14, 4, Color3.fromRGB(210, 210, 210))
-pinbtn.Activated:Connect(function()
- if config.DockSide then undock() else ApplyDock(nearestSide(main)) end
+config.pinbtn = Instance.new("TextButton")
+config.pinbtn.Name = randomString()
+config.pinbtn.Size = UDim2.new(0, 22, 0, 22)
+config.pinbtn.Position = UDim2.new(1, -58, 0.5, -11)
+config.pinbtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+config.pinbtn.BackgroundTransparency = 0.7
+config.pinbtn.AutoButtonColor = false
+config.pinbtn.Text = ""
+config.pinbtn.BorderSizePixel = 0
+config.pinbtn.ZIndex = 3
+config.pinbtn.Archivable = false
+config.pinbtn.Parent = config.header
+RoundCorner(config.pinbtn, 0, 6)
+MakePinIcon(config.pinbtn, 14, 4, Color3.fromRGB(210, 210, 210))
+config.pinbtn.Activated:Connect(function()
+ if config.DockSide then undock() else ApplyDock(nearestSide(config.main)) end
 end)
 
-local body = Instance.new("Frame")
-body.Name = randomString()
-body.Size = UDim2.new(1, 0, 1, -65)
-body.Position = UDim2.new(0, 0, 0, 65)
-body.BackgroundTransparency = 1
-body.ZIndex = 3
-body.Archivable = false
-body.Parent = main
+config.body = Instance.new("Frame")
+config.body.Name = randomString()
+config.body.Size = UDim2.new(1, 0, 1, -65)
+config.body.Position = UDim2.new(0, 0, 0, 65)
+config.body.BackgroundTransparency = 1
+config.body.ZIndex = 3
+config.body.Archivable = false
+config.body.Parent = config.main
 
-local scrolling = Instance.new("Frame")
-scrolling.Name = randomString()
-scrolling.Size = UDim2.new(1, -24, 1, 0)
-scrolling.Position = UDim2.new(0, 0, 0, 0)
-scrolling.BackgroundTransparency = 1
-scrolling.ClipsDescendants = true
-scrolling.ZIndex = 3
-scrolling.Archivable = false
-scrolling.Parent = body
+config.scrolling = Instance.new("Frame")
+config.scrolling.Name = randomString()
+config.scrolling.Size = UDim2.new(1, -24, 1, 0)
+config.scrolling.Position = UDim2.new(0, 0, 0, 0)
+config.scrolling.BackgroundTransparency = 1
+config.scrolling.ClipsDescendants = true
+config.scrolling.ZIndex = 3
+config.scrolling.Archivable = false
+config.scrolling.Parent = config.body
 
-local vbar = Instance.new("Frame")
-vbar.Name = randomString()
-vbar.Size = UDim2.new(0, 24, 1, 0)
-vbar.Position = UDim2.new(1, -24, 0, 0)
-vbar.BackgroundTransparency = 1
-vbar.BorderSizePixel = 0
-vbar.Active = true
-vbar.Visible = false
-vbar.ZIndex = 9
-vbar.Archivable = false
-vbar.Parent = body
+config.vbar = Instance.new("Frame")
+config.vbar.Name = randomString()
+config.vbar.Size = UDim2.new(0, 24, 1, 0)
+config.vbar.Position = UDim2.new(1, -24, 0, 0)
+config.vbar.BackgroundTransparency = 1
+config.vbar.BorderSizePixel = 0
+config.vbar.Active = true
+config.vbar.Visible = false
+config.vbar.ZIndex = 9
+config.vbar.Archivable = false
+config.vbar.Parent = config.body
 
-local vthumb = Instance.new("Frame")
-vthumb.Name = randomString()
-vthumb.Size = UDim2.new(1, 0, 0.2, 0)
-vthumb.BackgroundTransparency = 1
-vthumb.BorderSizePixel = 0
-vthumb.Active = false
-vthumb.ZIndex = 10
-vthumb.Archivable = false
-vthumb.Parent = vbar
+config.vthumb = Instance.new("Frame")
+config.vthumb.Name = randomString()
+config.vthumb.Size = UDim2.new(1, 0, 0.2, 0)
+config.vthumb.BackgroundTransparency = 1
+config.vthumb.BorderSizePixel = 0
+config.vthumb.Active = false
+config.vthumb.ZIndex = 10
+config.vthumb.Archivable = false
+config.vthumb.Parent = config.vbar
 
-local vvis = Instance.new("Frame")
-vvis.Name = randomString()
-vvis.Size = UDim2.new(0, 12, 1, 0)
-vvis.Position = UDim2.new(1, -14, 0, 0)
-vvis.BackgroundColor3 = Color3.fromRGB(90,90,90)
-vvis.BorderSizePixel = 0
-vvis.ZIndex = 10
-vvis.Active = false
-vvis.Archivable = false
-vvis.Parent = vthumb
-RoundCorner(vvis, 1, 0)
+config.vvis = Instance.new("Frame")
+config.vvis.Name = randomString()
+config.vvis.Size = UDim2.new(0, 12, 1, 0)
+config.vvis.Position = UDim2.new(1, -14, 0, 0)
+config.vvis.BackgroundColor3 = Color3.fromRGB(90,90,90)
+config.vvis.BorderSizePixel = 0
+config.vvis.ZIndex = 10
+config.vvis.Active = false
+config.vvis.Archivable = false
+config.vvis.Parent = config.vthumb
+RoundCorner(config.vvis, 1, 0)
 
-local hbar = Instance.new("Frame")
-hbar.Name = randomString()
-hbar.Size = UDim2.new(1, -24, 0, 24)
-hbar.Position = UDim2.new(0, 0, 1, -24)
-hbar.BackgroundTransparency = 1
-hbar.BorderSizePixel = 0
-hbar.Active = true
-hbar.Visible = false
-hbar.ZIndex = 9
-hbar.Archivable = false
-hbar.Parent = body
+config.hbar = Instance.new("Frame")
+config.hbar.Name = randomString()
+config.hbar.Size = UDim2.new(1, -24, 0, 24)
+config.hbar.Position = UDim2.new(0, 0, 1, -24)
+config.hbar.BackgroundTransparency = 1
+config.hbar.BorderSizePixel = 0
+config.hbar.Active = true
+config.hbar.Visible = false
+config.hbar.ZIndex = 9
+config.hbar.Archivable = false
+config.hbar.Parent = config.body
 
-local hthumb = Instance.new("Frame")
-hthumb.Name = randomString()
-hthumb.Size = UDim2.new(0.2, 0, 1, 0)
-hthumb.BackgroundTransparency = 1
-hthumb.BorderSizePixel = 0
-hthumb.Active = false
-hthumb.ZIndex = 10
-hthumb.Archivable = false
-hthumb.Parent = hbar
+config.hthumb = Instance.new("Frame")
+config.hthumb.Name = randomString()
+config.hthumb.Size = UDim2.new(0.2, 0, 1, 0)
+config.hthumb.BackgroundTransparency = 1
+config.hthumb.BorderSizePixel = 0
+config.hthumb.Active = false
+config.hthumb.ZIndex = 10
+config.hthumb.Archivable = false
+config.hthumb.Parent = config.hbar
 
-local hvis = Instance.new("Frame")
-hvis.Name = randomString()
-hvis.Size = UDim2.new(1, 0, 0, 12)
-hvis.Position = UDim2.new(0, 0, 1, -14)
-hvis.BackgroundColor3 = Color3.fromRGB(90,90,90)
-hvis.BorderSizePixel = 0
-hvis.ZIndex = 10
-hvis.Active = false
-hvis.Archivable = false
-hvis.Parent = hthumb
-RoundCorner(hvis, 1, 0)
+config.hvis = Instance.new("Frame")
+config.hvis.Name = randomString()
+config.hvis.Size = UDim2.new(1, 0, 0, 12)
+config.hvis.Position = UDim2.new(0, 0, 1, -14)
+config.hvis.BackgroundColor3 = Color3.fromRGB(90,90,90)
+config.hvis.BorderSizePixel = 0
+config.hvis.ZIndex = 10
+config.hvis.Active = false
+config.hvis.Archivable = false
+config.hvis.Parent = config.hthumb
+RoundCorner(config.hvis, 1, 0)
 
-local emptyLabel = Instance.new("TextLabel")
-emptyLabel.Name = randomString()
-emptyLabel.Size = UDim2.new(1, 0, 0, 40)
-emptyLabel.Position = UDim2.new(0, 0, 0, 40)
-emptyLabel.BackgroundTransparency = 1
-emptyLabel.Text = ""
-emptyLabel.TextColor3 = COLORS.TEXT_DIM
-emptyLabel.FontFace = FONT.GothamMedium
-emptyLabel.TextSize = 11
-emptyLabel.TextWrapped = true
-emptyLabel.Visible = false
-emptyLabel.ZIndex = 4
-emptyLabel.Archivable = false
-emptyLabel.Parent = scrolling
+config.emptyLabel = Instance.new("TextLabel")
+config.emptyLabel.Name = randomString()
+config.emptyLabel.Size = UDim2.new(1, 0, 0, 40)
+config.emptyLabel.Position = UDim2.new(0, 0, 0, 40)
+config.emptyLabel.BackgroundTransparency = 1
+config.emptyLabel.Text = ""
+config.emptyLabel.TextColor3 = config.COLORS.TEXT_DIM
+config.emptyLabel.FontFace = config.FONT.GothamMedium
+config.emptyLabel.TextSize = 11
+config.emptyLabel.TextWrapped = true
+config.emptyLabel.Visible = false
+config.emptyLabel.ZIndex = 4
+config.emptyLabel.Archivable = false
+config.emptyLabel.Parent = config.scrolling
 
-local insertBtn = Instance.new("TextButton")
-insertBtn.Name = randomString()
-insertBtn.Size = UDim2.new(0, 18, 0, 18)
-insertBtn.BackgroundTransparency = 1
-insertBtn.BorderSizePixel = 0
-insertBtn.AutoButtonColor = false
-insertBtn.Text = ""
-insertBtn.Visible = false
-insertBtn.ZIndex = 6
-insertBtn.Archivable = false
-insertBtn.Parent = scrolling
+config.insertBtn = Instance.new("TextButton")
+config.insertBtn.Name = randomString()
+config.insertBtn.Size = UDim2.new(0, 18, 0, 18)
+config.insertBtn.BackgroundTransparency = 1
+config.insertBtn.BorderSizePixel = 0
+config.insertBtn.AutoButtonColor = false
+config.insertBtn.Text = ""
+config.insertBtn.Visible = false
+config.insertBtn.ZIndex = 6
+config.insertBtn.Archivable = false
+config.insertBtn.Parent = config.scrolling
 
 do
  local ring = Instance.new("Frame")
@@ -1978,7 +2118,7 @@ do
  ring.BorderSizePixel = 0
  ring.ZIndex = 7
  ring.Archivable = false
- ring.Parent = insertBtn
+ ring.Parent = config.insertBtn
  local rc = Instance.new("UICorner")
  rc.CornerRadius = UDim.new(1, 0)
  rc.Parent = ring
@@ -1986,19 +2126,19 @@ do
   local bar = Instance.new("Frame")
   bar.Size = UDim2.new(0, d[1], 0, d[2])
   bar.Position = UDim2.new(0.5, -d[1] / 2, 0.5, -d[2] / 2)
-  bar.BackgroundColor3 = COLORS.PRIMARY
+  bar.BackgroundColor3 = config.COLORS.PRIMARY
   bar.BorderSizePixel = 0
   bar.ZIndex = 7
   bar.Archivable = false
-  bar.Parent = insertBtn
+  bar.Parent = config.insertBtn
  end
 end
 
 local function placeInsertBtn(row, slot)
- local w = SV.TextSrv:GetTextSize(row.instance.Name, 21, Enum.Font.SourceSans, Vector2.new(10000, 26)).X
- local x = Positions.TEXT_X + row.depth * Positions.INDENT + w + 6 - config.ScrollHOffset
- insertBtn.Position = UDim2.new(0, math.max(0, x), 0, (slot - 1) * config.ROW_H + (config.ROW_H - 18) / 2)
- insertBtn.Visible = true
+ local w = config.SV.TextSrv:GetTextSize(row.instance.Name, 21, Enum.Font.SourceSans, Vector2.new(10000, 26)).X
+ local x = config.Positions.TEXT_X + row.depth * config.Positions.INDENT + w + 6 - config.ScrollHOffset
+ config.insertBtn.Position = UDim2.new(0, math.max(0, x), 0, (slot - 1) * config.ROW_H + (config.ROW_H - 18) / 2)
+ config.insertBtn.Visible = true
 end
 
 local function MakeDraggable(panel, handle, opts)
@@ -2006,6 +2146,7 @@ local function MakeDraggable(panel, handle, opts)
  local state = { Dragging = false, activeInput = nil, dragStart = nil, startPos = nil, didDrag = false, inset = Vector2.new(0, 0), cursor = nil }
 
  handle.InputBegan:Connect(function(inp)
+  if not config.Fresh(inp) then return end
   if inp.UserInputType ~= Enum.UserInputType.MouseButton1 and inp.UserInputType ~= Enum.UserInputType.Touch then return end
   if opts.blockCheck and opts.blockCheck() then return end
   state.inset = absOf(inp, handle) - Vector2.new(inp.Position.X, inp.Position.Y)
@@ -2018,8 +2159,14 @@ local function MakeDraggable(panel, handle, opts)
   state.startPos = panel.Position
  end)
 
- SV.UserInput.InputChanged:Connect(function(inp)
+ config.SV.UserInput.InputChanged:Connect(function(inp)
   if not state.Dragging then return end
+  if not config.Held(inp) then
+  	state.Dragging = false
+  	state.activeInput = nil
+  	if opts.onEnd then opts.onEnd(state.didDrag, state.cursor) end
+  	return
+  end
   local ai = state.activeInput
   if inp ~= ai and not (inp.UserInputType == Enum.UserInputType.MouseMovement and ai.UserInputType == Enum.UserInputType.MouseButton1) then return end
   if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
@@ -2035,7 +2182,7 @@ local function MakeDraggable(panel, handle, opts)
   if opts.onDrag then opts.onDrag(state.cursor) end
  end)
 
- SV.UserInput.InputEnded:Connect(function(inp)
+ config.SV.UserInput.InputEnded:Connect(function(inp)
   if inp ~= state.activeInput then return end
   if inp.UserInputType ~= Enum.UserInputType.MouseButton1 and inp.UserInputType ~= Enum.UserInputType.Touch then return end
   state.Dragging = false
@@ -2063,9 +2210,10 @@ local function MakeResizeHandler(min_w, min_h, edge, xS, yS, xO, yO, wS, hS, wO,
  h.Parent = window
 
  h.InputBegan:Connect(function(inp)
+  if not config.Fresh(inp) then return end
   if Explorer.PanelResizing[window] then return end
   if inp.UserInputType ~= Enum.UserInputType.MouseButton1 and inp.UserInputType ~= Enum.UserInputType.Touch then return end
-  if config.IsMinimized and isV and window == main then return end
+  if config.IsMinimized and isV and window == config.main then return end
   if blockCheck and blockCheck() then return end
 
   local pos = absOf(inp, h)
@@ -2080,15 +2228,21 @@ local function MakeResizeHandler(min_w, min_h, edge, xS, yS, xO, yO, wS, hS, wO,
 
   local relCon, movCon
 
-  relCon = SV.UserInput.InputEnded:Connect(function(i)
+  relCon = config.SV.UserInput.InputEnded:Connect(function(i)
    if i.UserInputType ~= Enum.UserInputType.MouseButton1 and i.UserInputType ~= Enum.UserInputType.Touch then return end
    relCon:Disconnect()
    if movCon then movCon:Disconnect() end
    Explorer.PanelResizing[window] = nil
   end)
 
-  movCon = SV.UserInput.InputChanged:Connect(function(i)
+  movCon = config.SV.UserInput.InputChanged:Connect(function(i)
    if not Explorer.PanelResizing[window] then return end
+   if not config.Held(i) then
+   	if relCon then relCon:Disconnect() end
+   	if movCon then movCon:Disconnect() end
+   	Explorer.PanelResizing[window] = nil
+   	return
+   end
    if i.UserInputType ~= Enum.UserInputType.MouseMovement and i.UserInputType ~= Enum.UserInputType.Touch then return end
 
    local dx = i.Position.X - startMouse.X
@@ -2143,109 +2297,111 @@ local function SyncMainResize(newSize)
  local fH = newSize.Y.Offset
  config.NormalSize = UDim2.new(0, fW, 0, fH)
  config.MinimizedSize = UDim2.new(0, fW, 0, 44)
- if config.DockSide and layoutDocks then layoutDocks() end
+ if config.DockSide and config.layoutDocks then config.layoutDocks() end
 end
 
-local dockHint = Instance.new("Frame")
-dockHint.Name = randomString()
-dockHint.BackgroundColor3 = COLORS.ACCENT
-dockHint.BackgroundTransparency = 0.75
-dockHint.BorderSizePixel = 0
-dockHint.Visible = false
-dockHint.ZIndex = 30
-dockHint.Active = false
-dockHint.Archivable = false
-dockHint.Parent = window
-BorderStroke(dockHint, 2, 100, 160, 255)
+config.dockHint = Instance.new("Frame")
+config.dockHint.Name = randomString()
+config.dockHint.BackgroundColor3 = config.COLORS.ACCENT
+config.dockHint.BackgroundTransparency = 0.75
+config.dockHint.BorderSizePixel = 0
+config.dockHint.Visible = false
+config.dockHint.ZIndex = 30
+config.dockHint.Active = false
+config.dockHint.Archivable = false
+config.dockHint.Parent = config.window
+BorderStroke(config.dockHint, 2, 100, 160, 255)
 
-local stackSplitter = Instance.new("TextButton")
-stackSplitter.Name = randomString()
-stackSplitter.BackgroundColor3 = COLORS.RESIZER
-stackSplitter.BorderSizePixel = 0
-stackSplitter.AutoButtonColor = false
-stackSplitter.Text = ""
-stackSplitter.Visible = false
-stackSplitter.ZIndex = 9
-stackSplitter.Archivable = false
-stackSplitter.Parent = window
+config.stackSplitter = Instance.new("TextButton")
+config.stackSplitter.Name = randomString()
+config.stackSplitter.BackgroundColor3 = config.COLORS.RESIZER
+config.stackSplitter.BorderSizePixel = 0
+config.stackSplitter.AutoButtonColor = false
+config.stackSplitter.Text = ""
+config.stackSplitter.Visible = false
+config.stackSplitter.ZIndex = 9
+config.stackSplitter.Archivable = false
+config.stackSplitter.Parent = config.window
 
 local function isStacked()
- return pmain ~= nil and PDock.Side ~= nil and PDock.Side == config.DockSide and main.Visible and pmain.Visible
+ return config.pmain ~= nil and config.PDock.Side ~= nil and config.PDock.Side == config.DockSide and config.main.Visible and config.pmain.Visible
 end
 
-layoutDocks = function()
- local scr = window.AbsoluteSize
+config.layoutDocks = function()
+ local scr = config.window.AbsoluteSize
  if scr.X <= 0 or scr.Y <= 0 then return end
  local stacked = isStacked()
- local ew = main.Size.X.Offset
- local pw = pmain and pmain.Size.X.Offset or ew
+ local ew = config.main.Size.X.Offset
+ local pw = config.pmain and config.pmain.Size.X.Offset or ew
  local minH = 120
  local top = topInset()
  if stacked then
   pw = ew
-  if not PDock.WasStacked or PDock.LastOrder ~= PDock.Order then PDock.Split = nil end
-  PDock.WasStacked, PDock.LastOrder = true, PDock.Order
+  if not config.PDock.WasStacked or config.PDock.LastOrder ~= config.PDock.Order then config.PDock.Split = nil end
+  config.PDock.WasStacked, config.PDock.LastOrder = true, config.PDock.Order
   local availH = scr.Y - top
-  local defaultSplit = top + ((PDock.Order == "below") and math.floor(availH * 0.7) or math.floor(availH * 0.3))
-  PDock.Split = math.clamp(PDock.Split or defaultSplit, top + minH, math.max(top + minH, scr.Y - minH))
+  local defaultSplit = top + ((config.PDock.Order == "below") and math.floor(availH * 0.7) or math.floor(availH * 0.3))
+  config.PDock.Split = math.clamp(config.PDock.Split or defaultSplit, top + minH, math.max(top + minH, scr.Y - minH))
  else
-  PDock.WasStacked = false
+  config.PDock.WasStacked = false
  end
- local explorerOnTop = PDock.Order == "below"
+ local explorerOnTop = config.PDock.Order == "below"
 
  if config.DockSide then
   local y, h = top, scr.Y - top
   if stacked then
-   if explorerOnTop then y, h = top, PDock.Split - top else y, h = PDock.Split, scr.Y - PDock.Split end
+   if explorerOnTop then y, h = top, config.PDock.Split - top else y, h = config.PDock.Split, scr.Y - config.PDock.Split end
   end
-  main.AnchorPoint = Vector2.new(0, 0)
-  main.Position = UDim2.new(0, config.DockSide == "left" and 0 or scr.X - ew, 0, y)
-  main.Size = UDim2.new(0, ew, 0, h)
+  config.main.AnchorPoint = Vector2.new(0, 0)
+  config.main.Position = UDim2.new(0, config.DockSide == "left" and 0 or scr.X - ew, 0, y)
+  config.main.Size = UDim2.new(0, ew, 0, h)
  end
 
- if pmain and PDock.Side then
+ if config.pmain and config.PDock.Side then
   local y, h = top, scr.Y - top
   if stacked then
-   if explorerOnTop then y, h = PDock.Split, scr.Y - PDock.Split else y, h = top, PDock.Split - top end
+   if explorerOnTop then y, h = config.PDock.Split, scr.Y - config.PDock.Split else y, h = top, config.PDock.Split - top end
   end
-  pmain.AnchorPoint = Vector2.new(0, 0)
-  pmain.Position = UDim2.new(0, PDock.Side == "left" and 0 or scr.X - pw, 0, y)
-  pmain.Size = UDim2.new(0, pw, 0, h)
+  config.pmain.AnchorPoint = Vector2.new(0, 0)
+  config.pmain.Position = UDim2.new(0, config.PDock.Side == "left" and 0 or scr.X - pw, 0, y)
+  config.pmain.Size = UDim2.new(0, pw, 0, h)
  end
 
- if pdocksplitter then
-  pdocksplitter.Visible = PDock.Side ~= nil
-  if PDock.Side == "left" then
-   pdocksplitter.Position = UDim2.new(1, 0, 0, 0)
+ if config.pdocksplitter then
+  config.pdocksplitter.Visible = config.PDock.Side ~= nil
+  if config.PDock.Side == "left" then
+   config.pdocksplitter.Position = UDim2.new(1, 0, 0, 0)
   else
-   pdocksplitter.Position = UDim2.new(0, -3, 0, 0)
+   config.pdocksplitter.Position = UDim2.new(0, -3, 0, 0)
   end
  end
 
- stackSplitter.Visible = stacked
+ config.stackSplitter.Visible = stacked
  if stacked then
-  stackSplitter.Position = UDim2.new(0, config.DockSide == "left" and 0 or scr.X - ew, 0, PDock.Split - 1)
-  stackSplitter.Size = UDim2.new(0, ew, 0, 3)
+  config.stackSplitter.Position = UDim2.new(0, config.DockSide == "left" and 0 or scr.X - ew, 0, config.PDock.Split - 1)
+  config.stackSplitter.Size = UDim2.new(0, ew, 0, 3)
  end
 
- if layoutSource then layoutSource() end
+ if config.layoutSource then config.layoutSource() end
 end
 
 do
  local dragging, startY, startSplit
- stackSplitter.InputBegan:Connect(function(inp)
+ config.stackSplitter.InputBegan:Connect(function(inp)
+  if not config.Fresh(inp) then return end
   if not isPress(inp) then return end
   dragging = true
   startY = inp.Position.Y
-  startSplit = PDock.Split or 0
+  startSplit = config.PDock.Split or 0
  end)
- SV.UserInput.InputChanged:Connect(function(inp)
+ config.SV.UserInput.InputChanged:Connect(function(inp)
   if not dragging then return end
+  if not config.Held(inp) then dragging = false return end
   if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
-  PDock.Split = startSplit + (inp.Position.Y - startY)
-  layoutDocks()
+  config.PDock.Split = startSplit + (inp.Position.Y - startY)
+  config.layoutDocks()
  end)
- SV.UserInput.InputEnded:Connect(function(inp)
+ config.SV.UserInput.InputEnded:Connect(function(inp)
   if isPress(inp) then dragging = false end
  end)
 end
@@ -2261,7 +2417,7 @@ end
 
 local function resolveDrop(dragged, other, otherSide, otherVisible, cur)
  if not cur then return nil end
- local scr = window.AbsoluteSize
+ local scr = config.window.AbsoluteSize
  local otherDocked = otherSide ~= nil and otherVisible
  if otherDocked then
   local zone, inside = dropZone(other, cur)
@@ -2284,54 +2440,54 @@ local function resolveDrop(dragged, other, otherSide, otherVisible, cur)
 end
 
 local function showHint(dragged, other, side, zone)
- if not side then dockHint.Visible = false return end
- local scr = window.AbsoluteSize
+ if not side then config.dockHint.Visible = false return end
+ local scr = config.window.AbsoluteSize
  if zone and other then
   local ap, as = other.AbsolutePosition, other.AbsoluteSize
   local h = as.Y / 2
-  dockHint.Position = UDim2.new(0, ap.X, 0, zone == "top" and ap.Y or ap.Y + h)
-  dockHint.Size = UDim2.new(0, as.X, 0, h)
+  config.dockHint.Position = UDim2.new(0, ap.X, 0, zone == "top" and ap.Y or ap.Y + h)
+  config.dockHint.Size = UDim2.new(0, as.X, 0, h)
  else
   local w = dragged.AbsoluteSize.X
   local inset = topInset()
-  dockHint.Position = UDim2.new(0, side == "left" and 0 or scr.X - w, 0, inset)
-  dockHint.Size = UDim2.new(0, w, 1, -inset)
+  config.dockHint.Position = UDim2.new(0, side == "left" and 0 or scr.X - w, 0, inset)
+  config.dockHint.Size = UDim2.new(0, w, 1, -inset)
  end
- dockHint.Visible = true
+ config.dockHint.Visible = true
 end
 
-MakeDraggable(main, header, {
+MakeDraggable(config.main, config.header, {
  blockCheck = function()
-  return Explorer.PanelResizing[main]
+  return Explorer.PanelResizing[config.main]
  end,
  threshold = 4,
  onBegin = function()
   if config.DockSide then undock() end
  end,
  onDrag = function(cursor)
-  local side, zone = resolveDrop(main, pmain, PDock.Side, pmain ~= nil and pmain.Visible, cursor)
-  showHint(main, pmain, side, zone)
+  local side, zone = resolveDrop(config.main, config.pmain, config.PDock.Side, config.pmain ~= nil and config.pmain.Visible, cursor)
+  showHint(config.main, config.pmain, side, zone)
  end,
  onEnd = function(didDrag, cursor)
-  dockHint.Visible = false
+  config.dockHint.Visible = false
   if not didDrag then return end
-  local side, zone = resolveDrop(main, pmain, PDock.Side, pmain ~= nil and pmain.Visible, cursor)
+  local side, zone = resolveDrop(config.main, config.pmain, config.PDock.Side, config.pmain ~= nil and config.pmain.Visible, cursor)
   if not side then return end
-  if zone and PDock.Side == side and pmain and pmain.Visible then
-   PDock.Order = (zone == "top") and "below" or "above"
+  if zone and config.PDock.Side == side and config.pmain and config.pmain.Visible then
+   config.PDock.Order = (zone == "top") and "below" or "above"
   end
   ApplyDock(side)
  end,
 })
 
-MakeResizeHandler(220, 160, "right", 1,0, 0, config.EDGE, 0,1, config.EDGE*2, -config.EDGE*2, 8, main, function() return config.DockSide == "right" end, SyncMainResize)
-MakeResizeHandler(220, 160, "left", 0,0, -config.EDGE*2, config.EDGE, 0,1, config.EDGE*2, -config.EDGE*2, 8, main, function() return config.DockSide == "left" end, SyncMainResize)
-MakeResizeHandler(220, 160, "bottom", 0,1, config.EDGE, 0, 1,0, -config.EDGE*2, config.EDGE*2, 8, main, function() return config.DockSide ~= nil end, SyncMainResize)
-MakeResizeHandler(220, 160, "top", 0,0, config.EDGE, -config.EDGE*2, 1,0, -config.EDGE*2, config.EDGE*2, 8, main, function() return config.DockSide ~= nil end, SyncMainResize)
-MakeResizeHandler(220, 160, "top_left", 0,0, -config.EDGE*2, -config.EDGE*2, 0,0, config.EDGE*2, config.EDGE*2, 9, main, function() return config.DockSide ~= nil end, SyncMainResize)
-MakeResizeHandler(220, 160, "top_right", 1,0, 0, -config.EDGE*2, 0,0, config.EDGE*2, config.EDGE*2, 9, main, function() return config.DockSide ~= nil end, SyncMainResize)
-MakeResizeHandler(220, 160, "bottom_left", 0,1, -config.EDGE*2, 0, 0,0, config.EDGE*2, config.EDGE*2, 9, main, function() return config.DockSide ~= nil end, SyncMainResize)
-MakeResizeHandler(220, 160, "bottom_right", 1,1, 0, 0, 0,0, config.EDGE*2, config.EDGE*2, 9, main, function() return config.DockSide ~= nil end, SyncMainResize)
+MakeResizeHandler(220, 160, "right", 1,0, 3-config.EDGE*2, config.EDGE, 0,1, config.EDGE*2, -config.EDGE*2, 8, config.main, function() return config.DockSide == "right" end, SyncMainResize)
+MakeResizeHandler(220, 160, "left", 0,0, -3, config.EDGE, 0,1, config.EDGE*2, -config.EDGE*2, 8, config.main, function() return config.DockSide == "left" end, SyncMainResize)
+MakeResizeHandler(220, 160, "bottom", 0,1, config.EDGE, 0, 1,0, -config.EDGE*2, config.EDGE*2, 8, config.main, function() return config.DockSide ~= nil end, SyncMainResize)
+MakeResizeHandler(220, 160, "top", 0,0, config.EDGE, -config.EDGE*2, 1,0, -config.EDGE*2, config.EDGE*2, 8, config.main, function() return config.DockSide ~= nil end, SyncMainResize)
+MakeResizeHandler(220, 160, "top_left", 0,0, -3, -config.EDGE*2, 0,0, config.EDGE*2, config.EDGE*2, 9, config.main, function() return config.DockSide ~= nil end, SyncMainResize)
+MakeResizeHandler(220, 160, "top_right", 1,0, 3-config.EDGE*2, -config.EDGE*2, 0,0, config.EDGE*2, config.EDGE*2, 9, config.main, function() return config.DockSide ~= nil end, SyncMainResize)
+MakeResizeHandler(220, 160, "bottom_left", 0,1, -3, 0, 0,0, config.EDGE*2, config.EDGE*2, 9, config.main, function() return config.DockSide ~= nil end, SyncMainResize)
+MakeResizeHandler(220, 160, "bottom_right", 1,1, 3-config.EDGE*2, 0, 0,0, config.EDGE*2, config.EDGE*2, 9, config.main, function() return config.DockSide ~= nil end, SyncMainResize)
 
 do
 local Drag = {
@@ -2344,37 +2500,37 @@ local GHOST_MAX_W = 320
 local dragGhost = Instance.new("Frame")
 dragGhost.Name = randomString()
 dragGhost.Size = UDim2.new(0, 220, 0, config.ROW_H)
-dragGhost.BackgroundColor3 = COLORS.SELECTED
+dragGhost.BackgroundColor3 = config.COLORS.SELECTED
 dragGhost.BackgroundTransparency = 0.25
 dragGhost.BorderSizePixel = 0
 dragGhost.Visible = false
 dragGhost.Active = false
 dragGhost.ZIndex = 60
 dragGhost.Archivable = false
-dragGhost.Parent = window
+dragGhost.Parent = config.window
 local dragIcon, dragLabel, dragBadge
 do
  local gc = Instance.new("UICorner")
  gc.CornerRadius = UDim.new(0, 8)
  gc.Parent = dragGhost
  local gs = Instance.new("UIStroke")
- gs.Color = COLORS.ACCENT
+ gs.Color = config.COLORS.ACCENT
  gs.Thickness = 1
  gs.Parent = dragGhost
  dragIcon = Instance.new("ImageLabel")
  dragIcon.Name = randomString()
- dragIcon.Size = UDim2.new(0, Positions.ICON_PX, 0, Positions.ICON_PX)
- dragIcon.Position = UDim2.new(0, 8, 0.5, -Positions.ICON_PX / 2)
+ dragIcon.Size = UDim2.new(0, config.Positions.ICON_PX, 0, config.Positions.ICON_PX)
+ dragIcon.Position = UDim2.new(0, 8, 0.5, -config.Positions.ICON_PX / 2)
  dragIcon.BackgroundTransparency = 1
  dragIcon.ZIndex = 61
  dragIcon.Active = false
  dragIcon.Parent = dragGhost
  dragLabel = Instance.new("TextLabel")
  dragLabel.Name = randomString()
- dragLabel.Size = UDim2.new(1, -(8 + Positions.ICON_PX + 8 + 8), 1, 0)
- dragLabel.Position = UDim2.new(0, 8 + Positions.ICON_PX + 8, 0, 0)
+ dragLabel.Size = UDim2.new(1, -(8 + config.Positions.ICON_PX + 8 + 8), 1, 0)
+ dragLabel.Position = UDim2.new(0, 8 + config.Positions.ICON_PX + 8, 0, 0)
  dragLabel.BackgroundTransparency = 1
- dragLabel.TextColor3 = COLORS.TEXT_BRIGHT
+ dragLabel.TextColor3 = config.COLORS.TEXT_BRIGHT
  dragLabel.TextXAlignment = Enum.TextXAlignment.Left
  dragLabel.Font = Enum.Font.SourceSans
  dragLabel.TextSize = 21
@@ -2387,8 +2543,8 @@ do
  dragBadge.AnchorPoint = Vector2.new(1, 0.5)
  dragBadge.Size = UDim2.new(0, 22, 0, 18)
  dragBadge.Position = UDim2.new(1, -6, 0.5, 0)
- dragBadge.BackgroundColor3 = COLORS.ACCENT
- dragBadge.TextColor3 = COLORS.TEXT_BRIGHT
+ dragBadge.BackgroundColor3 = config.COLORS.ACCENT
+ dragBadge.TextColor3 = config.COLORS.TEXT_BRIGHT
  dragBadge.Font = Enum.Font.SourceSansBold
  dragBadge.TextSize = 16
  dragBadge.Visible = false
@@ -2402,30 +2558,30 @@ end
 
 local dropHL = Instance.new("Frame")
 dropHL.Name = randomString()
-dropHL.BackgroundColor3 = COLORS.ACCENT
+dropHL.BackgroundColor3 = config.COLORS.ACCENT
 dropHL.BackgroundTransparency = 0.8
 dropHL.BorderSizePixel = 0
 dropHL.Visible = false
 dropHL.Active = false
 dropHL.ZIndex = 6
 dropHL.Archivable = false
-dropHL.Parent = scrolling
+dropHL.Parent = config.scrolling
 do
  local hc = Instance.new("UICorner")
  hc.CornerRadius = UDim.new(0, 8)
  hc.Parent = dropHL
  local hs = Instance.new("UIStroke")
- hs.Color = COLORS.ACCENT
+ hs.Color = config.COLORS.ACCENT
  hs.Thickness = 1.5
  hs.Parent = dropHL
 end
 
 local function rawCursor(inp)
  if inp.UserInputType == Enum.UserInputType.Touch then
-  local ok, gi = pcall(function() return SV.Gui:GetGuiInset() end)
+  local ok, gi = pcall(function() return config.SV.Gui:GetGuiInset() end)
   return Vector2.new(inp.Position.X, inp.Position.Y) + ((ok and gi) or Vector2.new(0, 0))
  end
- return SV.UserInput:GetMouseLocation()
+ return config.SV.UserInput:GetMouseLocation()
 end
 
 local function dragCursor(inp)
@@ -2440,7 +2596,7 @@ function Drag.calibrate(inp, entry)
  local raw = rawCursor(inp)
  local ap = entry.AbsolutePosition
  local function inside(y) return y >= ap.Y - 1 and y <= ap.Y + config.ROW_H + 1 end
- local ok, gi = pcall(function() return SV.Gui:GetGuiInset() end)
+ local ok, gi = pcall(function() return config.SV.Gui:GetGuiInset() end)
  local iy = (ok and gi and gi.Y) or 0
  local y
  if inside(raw.Y) then y = raw.Y
@@ -2486,7 +2642,7 @@ local function canDropOn(list, target)
 end
 
 local function dragTargetAt(cur)
- local ap, as = scrolling.AbsolutePosition, scrolling.AbsoluteSize
+ local ap, as = config.scrolling.AbsolutePosition, config.scrolling.AbsoluteSize
  if cur.X < ap.X or cur.X > ap.X + as.X or cur.Y < ap.Y or cur.Y > ap.Y + as.Y then return nil end
  local idx = math.floor((cur.Y - ap.Y) / config.ROW_H) + 1 + config.ScrollIndex
  local row = config.visiblerows[idx]
@@ -2553,9 +2709,9 @@ local function dragBegin()
  if Drag.pending.cancelHold then Drag.pending.cancelHold() end
 
  local acc = 0
- Drag.hb = SV.RunSrv.Heartbeat:Connect(function(dt)
+ Drag.hb = config.SV.RunSrv.Heartbeat:Connect(function(dt)
   if not Drag.active then return end
-  local ap, as = scrolling.AbsolutePosition, scrolling.AbsoluteSize
+  local ap, as = config.scrolling.AbsolutePosition, config.scrolling.AbsoluteSize
   local y = Drag.cursor.Y
   local edge = 22
   local dir = 0
@@ -2577,9 +2733,13 @@ local function dragBegin()
  dragUpdate()
 end
 
-SV.UserInput.InputChanged:Connect(function(inp)
+config.SV.UserInput.InputChanged:Connect(function(inp)
  local p = Drag.pending
  if not p then return end
+ if not config.Held(inp) then
+  if Drag.active then dragStop() else Drag.pending = nil end
+  return
+ end
  local okc, errc = pcall(function()
  local t = inp.UserInputType
  if t ~= Enum.UserInputType.MouseMovement and t ~= Enum.UserInputType.Touch then return end
@@ -2594,7 +2754,7 @@ SV.UserInput.InputChanged:Connect(function(inp)
  if not okc then dragWarn("move", errc) dragStop() end
 end)
 
-SV.UserInput.InputEnded:Connect(function(inp)
+config.SV.UserInput.InputEnded:Connect(function(inp)
  if not isPress(inp) then return end
  if not Drag.pending then return end
  if Drag.active then
@@ -2611,7 +2771,7 @@ SV.UserInput.InputEnded:Connect(function(inp)
  end
 end)
 
-SV.UserInput.InputBegan:Connect(function(inp)
+config.SV.UserInput.InputBegan:Connect(function(inp)
  if Drag.active and inp.KeyCode == Enum.KeyCode.Escape then
   Drag.justDragged = true
   task.delay(0.2, function()
@@ -2628,13 +2788,14 @@ local function CreatePoolEntry(poolIndex)
  local entry = Instance.new("TextButton")
  entry.Name = randomString()
  entry.Size = UDim2.new(0, 100, 0, config.ROW_H)
- entry.BackgroundColor3 = COLORS.SELECTED
+ entry.BackgroundColor3 = config.COLORS.SELECTED
  entry.BackgroundTransparency = 1
  entry.Text = ""
+ entry.AutoButtonColor = false
  entry.Visible = false
  entry.ZIndex = 3
  entry.Archivable = false
- entry.Parent = scrolling
+ entry.Parent = config.scrolling
 
  local corner = Instance.new("UICorner")
  corner.CornerRadius = UDim.new(0, 8)
@@ -2648,33 +2809,33 @@ local function CreatePoolEntry(poolIndex)
  bottomMask.ZIndex = entry.ZIndex
  bottomMask.Visible = false
  bottomMask.Archivable = false
- bottomMask.Parent = scrolling
+ bottomMask.Parent = config.scrolling
 
  local toggle = Instance.new("ImageButton")
  toggle.Name = randomString()
  toggle.Size = UDim2.new(0, 16, 0, 16)
  toggle.BackgroundTransparency = 1
- toggle.Image = "rbxassetid://81462102154124"
+ toggle.Image = Explorer.Images.Chevron
  toggle.ZIndex = 5
  toggle.Active = true
  toggle.AutoButtonColor = false
  toggle.Archivable = false
- toggle.Parent = scrolling
+ toggle.Parent = config.scrolling
 
  local icon = Instance.new("ImageLabel")
  icon.Name = randomString()
- icon.Size = UDim2.new(0, Positions.ICON_PX, 0, Positions.ICON_PX)
+ icon.Size = UDim2.new(0, config.Positions.ICON_PX, 0, config.Positions.ICON_PX)
  icon.BackgroundTransparency = 1
- icon.Image = ICON_ID
- icon.ImageRectSize = ICON_SIZE
+ icon.Image = config.ICON_ID
+ icon.ImageRectSize = config.ICON_SIZE
  icon.ZIndex = 4
  icon.Archivable = false
- icon.Parent = scrolling
+ icon.Parent = config.scrolling
 
  local label = Instance.new("TextLabel")
  label.Name = randomString()
  label.BackgroundTransparency = 1
- label.TextColor3 = COLORS.TEXT
+ label.TextColor3 = config.COLORS.TEXT
  label.TextXAlignment = Enum.TextXAlignment.Left
  label.TextYAlignment = Enum.TextYAlignment.Center
  label.Font = Enum.Font.SourceSans
@@ -2682,7 +2843,7 @@ local function CreatePoolEntry(poolIndex)
  label.TextTruncate = Enum.TextTruncate.AtEnd
  label.ZIndex = 4
  label.Archivable = false
- label.Parent = scrolling
+ label.Parent = config.scrolling
 
  local holdThread, holdStartPos
  local data = { inst = nil, row = nil, mask = bottomMask, holdTriggered = false, hovering = false, highlighted = false }
@@ -2692,13 +2853,14 @@ local function CreatePoolEntry(poolIndex)
   if not inst then return end
   data.hovering = true
   if not data.highlighted then
-   entry.BackgroundColor3 = COLORS.SECONDARY
+   corner.CornerRadius = UDim.new(0, 8)
+   entry.BackgroundColor3 = config.COLORS.SECONDARY
    entry.BackgroundTransparency = 0.6
   elseif Explorer.SelectedSet[inst] then
-   entry.BackgroundColor3 = COLORS.SELECTED_HOVER
+   entry.BackgroundColor3 = config.COLORS.SELECTED_HOVER
    entry.BackgroundTransparency = 0
   else
-   entry.BackgroundColor3 = COLORS.SELECTED
+   entry.BackgroundColor3 = config.COLORS.SELECTED
    entry.BackgroundTransparency = 0.7
   end
   bottomMask.BackgroundColor3 = entry.BackgroundColor3
@@ -2710,23 +2872,24 @@ local function CreatePoolEntry(poolIndex)
  local function onHoverLeave()
   data.hovering = false
   if not data.highlighted then
-   entry.BackgroundColor3 = COLORS.SELECTED
+   corner.CornerRadius = UDim.new(0, 0)
+   entry.BackgroundColor3 = config.COLORS.SELECTED
    entry.BackgroundTransparency = 1
   else
    local sel = data.inst and Explorer.SelectedSet[data.inst] == true
-   entry.BackgroundColor3 = COLORS.SELECTED
+   entry.BackgroundColor3 = config.COLORS.SELECTED
    entry.BackgroundTransparency = sel and 0 or 0.85
   end
   bottomMask.BackgroundColor3 = entry.BackgroundColor3
   bottomMask.BackgroundTransparency = entry.BackgroundTransparency
   config.HoverInst = nil
   task.defer(function()
-   if not config.OverInsert and not config.HoverInst then insertBtn.Visible = false end
+   if not config.OverInsert and not config.HoverInst then config.insertBtn.Visible = false end
   end)
  end
- local inEntry, inMask = false, false
+ local inEntry, inMask, inToggle = false, false, false
  local function refreshHover()
-  local want = inEntry or inMask
+  local want = (inEntry or inMask) and not inToggle
   if want and not data.hovering then onHoverEnter()
   elseif not want and data.hovering then onHoverLeave() end
  end
@@ -2737,9 +2900,12 @@ local function CreatePoolEntry(poolIndex)
  entry.MouseLeave:Connect(function() inEntry = false; refreshHover() end)
  bottomMask.MouseEnter:Connect(function() inMask = true; refreshHover() end)
  bottomMask.MouseLeave:Connect(function() inMask = false; refreshHover() end)
+ toggle.MouseEnter:Connect(function() inToggle = true; refreshHover() end)
+ toggle.MouseLeave:Connect(function() inToggle = false; refreshHover() end)
  config.pooldata[poolIndex] = data
 
  entry.InputBegan:Connect(function(inp)
+  if not config.Fresh(inp) then return end
   local inst = data.inst
   if not inst then return end
   if inp.UserInputType == Enum.UserInputType.MouseButton2 then
@@ -2795,7 +2961,7 @@ local function CreatePoolEntry(poolIndex)
   if not idx then return end
   local row = config.visiblerows[idx]
   if not row then return end
-  local shift = SV.UserInput:IsKeyDown(Enum.KeyCode.LeftShift) or SV.UserInput:IsKeyDown(Enum.KeyCode.RightShift)
+  local shift = config.SV.UserInput:IsKeyDown(Enum.KeyCode.LeftShift) or config.SV.UserInput:IsKeyDown(Enum.KeyCode.RightShift)
   if row.expanded then
    if shift then Explorer.CollapseAll(inst) else Explorer.CollapseRow(idx, row, inst) end
   else
@@ -2849,17 +3015,17 @@ local function GetGuideLine(n)
   local line = Instance.new("Frame")
   line.Name = randomString()
   line.BorderSizePixel = 0
-  line.BackgroundColor3 = COLORS.WHITE
+  line.BackgroundColor3 = config.COLORS.WHITE
   line.BackgroundTransparency = 0.9
   line.ZIndex = 3
   line.Archivable = false
-  line.Parent = scrolling
+  line.Parent = config.scrolling
   table.insert(config.guideLines, line)
  end
  return config.guideLines[n]
 end
 
-local SUBCLASS = {
+config.SUBCLASS = {
  basepart = {Part=1,MeshPart=1,UnionOperation=1,WedgePart=1,CornerWedgePart=1,TrussPart=1,SpawnLocation=1,Seat=1,VehicleSeat=1},
  luasourcecontainer = {Script=1,LocalScript=1,ModuleScript=1},
  guiobject = {Frame=1,TextLabel=1,TextButton=1,TextBox=1,ImageLabel=1,ImageButton=1,ScrollingFrame=1,ViewportFrame=1,CanvasGroup=1},
@@ -2871,7 +3037,7 @@ local SUBCLASS = {
 local function isA(inst, cls)
  local c = inst.ClassName:lower()
  if c == cls or cls == "instance" then return true end
- local set = SUBCLASS[cls]
+ local set = config.SUBCLASS[cls]
  if set and set[inst.ClassName] then return true end
  if cls == "valuebase" and c:match("value$") then return true end
  if cls == "constraint" and c:match("constraint$") then return true end
@@ -2903,10 +3069,10 @@ local function getProp(inst, key)
  return nil
 end
 
-local LCLS = {}
+config.LCLS = {}
 local function lcls(c)
- local l = LCLS[c]
- if not l then l = c:lower() LCLS[c] = l end
+ local l = config.LCLS[c]
+ if not l then l = c:lower() config.LCLS[c] = l end
  return l
 end
 
@@ -3078,7 +3244,7 @@ function Explorer.LoadChildren(v)
  local count = #list
  for i = 1, #kids do
   local c = kids[i]
-  if c ~= folder then
+  if c ~= config.folder then
    local ok, name, class = pcall(readInfo, c)
    if ok then
     count += 1
@@ -3088,7 +3254,7 @@ function Explorer.LoadChildren(v)
      Parent = v,
      Children = {},
      Real = c,
-    }, VirtualInstance)
+    }, config.VirtualInstance)
    end
   end
  end
@@ -3103,7 +3269,7 @@ function Explorer.HasChildren(inst)
   if h == nil then
    local ok, r = pcall(real.FindFirstChildWhichIsA, real, "Instance")
    h = ok and r ~= nil
-   if h and r == folder then
+   if h and r == config.folder then
     local ok2, k = pcall(real.GetChildren, real)
     h = ok2 and #k > 1
    end
@@ -3117,7 +3283,7 @@ end
 local function nameWidth(inst)
  local nm = inst.Name
  if inst._wSrc == nm then return inst._w end
- local w = SV.TextSrv:GetTextSize(nm, 13, Enum.Font.Gotham, Vector2.new(10000, 26)).X
+ local w = config.SV.TextSrv:GetTextSize(nm, 13, Enum.Font.Gotham, Vector2.new(10000, 26)).X
  inst._wSrc, inst._w = nm, w
  return w
 end
@@ -3191,7 +3357,7 @@ function Explorer.ScanTree()
  traverse(Explorer.Root, 0)
 
  local index, nRows = {}, #rows
- local INDENT = Positions.INDENT
+ local INDENT = config.Positions.INDENT
  local bestEst, bestRow = -1, nil
  for i = 1, nRows do
   local row = rows[i]
@@ -3203,7 +3369,7 @@ function Explorer.ScanTree()
  Explorer.RowIndex = index
  config.TreeWidthBase = bestRow and (bestRow.depth * INDENT + 44 + nameWidth(bestRow.instance) + 60) or 0
  config.TreeWidthRow = bestRow
- emptyLabel.Visible = (nRows == 0)
+ config.emptyLabel.Visible = (nRows == 0)
 end
 
 local function appendSubtree(out, inst, depth)
@@ -3260,7 +3426,7 @@ local function fastRebuild(inst)
  local newN = oldN + delta
  for i = idx + 1, newN do index[rows[i].instance] = i end
 
- local INDENT = Positions.INDENT
+ local INDENT = config.Positions.INDENT
  if lostWidthRow or not widthRow then
   local bestEst, bestRow = -1, nil
   for i = 1, newN do
@@ -3283,7 +3449,7 @@ local function fastRebuild(inst)
    config.TreeWidthBase = bestRow.depth * INDENT + 44 + nameWidth(bestRow.instance) + 60
   end
  end
- emptyLabel.Visible = (newN == 0)
+ config.emptyLabel.Visible = (newN == 0)
  return true
 end
 
@@ -3308,21 +3474,21 @@ function RefreshTree()
  do
   local vr = config.visiblerows
   local from = config.ScrollIndex + 1
-  local to = math.min(#vr, from + math.ceil(body.AbsoluteSize.Y / config.ROW_H) + 2)
+  local to = math.min(#vr, from + math.ceil(config.body.AbsoluteSize.Y / config.ROW_H) + 2)
   for i = from, to do
    local row = vr[i]
-   local needed = row.depth * Positions.INDENT + 44 + nameWidth(row.instance) + 60
+   local needed = row.depth * config.Positions.INDENT + 44 + nameWidth(row.instance) + 60
    if needed > maxW then maxW = needed end
   end
  end
  config.TreeContentWidth = maxW
 
- local viewW = body.AbsoluteSize.X - 24
+ local viewW = config.body.AbsoluteSize.X - 24
  local needH = config.TreeContentWidth > viewW
  local gutterH = needH and -24 or 0
- scrolling.Size = UDim2.new(1, -24, 1, gutterH)
- vbar.Size = UDim2.new(0, 24, 1, gutterH)
- local viewH = body.AbsoluteSize.Y + gutterH
+ config.scrolling.Size = UDim2.new(1, -24, 1, gutterH)
+ config.vbar.Size = UDim2.new(0, 24, 1, gutterH)
+ local viewH = config.body.AbsoluteSize.Y + gutterH
  local visibleCount = math.max(1, math.ceil(viewH / config.ROW_H) + 1)
  EnsurePoolSize(visibleCount)
 
@@ -3366,7 +3532,7 @@ function RefreshTree()
    data.row = row
 
    local depth = row.depth
-   local indentation = depth * Positions.INDENT
+   local indentation = depth * config.Positions.INDENT
 
    local hasKids = (not row.searchLeaf) and Explorer.HasChildren(inst)
 
@@ -3374,7 +3540,7 @@ function RefreshTree()
    local isSelected = Explorer.SelectedSet[inst] == true
    data.highlighted = isHighlighted
 
-   e.toggle.Position = UDim2.new(0, Positions.ARROW_X - 4 + indentation - config.ScrollHOffset, 0, (i-0.8)*config.ROW_H + (config.ROW_H-26)/2)
+   e.toggle.Position = UDim2.new(0, config.Positions.ARROW_X - 4 + indentation - config.ScrollHOffset, 0, (i-0.8)*config.ROW_H + (config.ROW_H-26)/2)
    e.toggle.Visible = hasKids
    e.toggle.Rotation = row.expanded and 90 or 0
 
@@ -3385,11 +3551,11 @@ function RefreshTree()
    e.entry.Size = UDim2.new(0, viewW + config.ScrollHOffset, 0, config.ROW_H)
 
    if isHighlighted then
-    e.entry.BackgroundColor3 = COLORS.SELECTED
+    e.entry.BackgroundColor3 = config.COLORS.SELECTED
     e.entry.BackgroundTransparency = isSelected and 0 or 0.85
     if data.hovering then
      if isSelected then
-      e.entry.BackgroundColor3 = COLORS.SELECTED_HOVER
+      e.entry.BackgroundColor3 = config.COLORS.SELECTED_HOVER
      else
       e.entry.BackgroundTransparency = 0.7
      end
@@ -3418,18 +3584,19 @@ function RefreshTree()
     end
    else
     if data.hovering then
-     e.entry.BackgroundColor3 = COLORS.SECONDARY
+     e.entry.BackgroundColor3 = config.COLORS.SECONDARY
      e.entry.BackgroundTransparency = 0.6
+     e.corner.CornerRadius = UDim.new(0, 8)
     else
-     e.entry.BackgroundColor3 = COLORS.SELECTED
+     e.entry.BackgroundColor3 = config.COLORS.SELECTED
      e.entry.BackgroundTransparency = 1
+     e.corner.CornerRadius = UDim.new(0, 0)
     end
-    e.corner.CornerRadius = UDim.new(0, 0)
     e.mask.Visible = false
     if data.clearMaskHover then data.clearMaskHover() end
    end
 
-   e.icon.Position = UDim2.new(0, Positions.ICON_X + indentation - config.ScrollHOffset, 0, (i-1)*config.ROW_H + (config.ROW_H - Positions.ICON_PX)/2)
+   e.icon.Position = UDim2.new(0, config.Positions.ICON_X + indentation - config.ScrollHOffset, 0, (i-1)*config.ROW_H + (config.ROW_H - config.Positions.ICON_PX)/2)
    local cls = inst.ClassName
    local userIcon = Explorer.UserIcons[cls]
    if data.iconCls ~= cls or data.iconUser ~= userIcon then
@@ -3437,8 +3604,8 @@ function RefreshTree()
     applyIcon(e.icon, cls)
    end
 
-   e.label.Position = UDim2.new(0, Positions.TEXT_X + indentation - config.ScrollHOffset, 0, (i-1)*config.ROW_H)
-   e.label.Size = UDim2.new(0, math.max(rowW, viewW) - Positions.TEXT_X - indentation - 8, 0, config.ROW_H)
+   e.label.Position = UDim2.new(0, config.Positions.TEXT_X + indentation - config.ScrollHOffset, 0, (i-1)*config.ROW_H)
+   e.label.Size = UDim2.new(0, math.max(rowW, viewW) - config.Positions.TEXT_X - indentation - 8, 0, config.ROW_H)
    local newText = escape(inst.Name):gsub("%s+", " ")
    if e.label.Text ~= newText then e.label.Text = newText end
 
@@ -3460,7 +3627,7 @@ function RefreshTree()
   lineCount += 1
   local line = GetGuideLine(lineCount)
   line.Visible = true
-  line.Position = UDim2.new(0, Positions.ARROW_X - 9 + depth*Positions.INDENT + 13 - config.ScrollHOffset, 0, startIdx*config.ROW_H)
+  line.Position = UDim2.new(0, config.Positions.ARROW_X - 9 + depth*config.Positions.INDENT + 13 - config.ScrollHOffset, 0, startIdx*config.ROW_H)
   line.Size = UDim2.new(0, 1, 0, (endIdx - startIdx)*config.ROW_H)
  end
 
@@ -3501,23 +3668,23 @@ function RefreshTree()
  end
 
  if totalRows * config.ROW_H > viewH then
-  vbar.Visible = true
+  config.vbar.Visible = true
   local thumbFrac = math.clamp(math.floor(viewH / config.ROW_H) / totalRows, 0.05, 0.85)
-  vthumb.Size = UDim2.new(1, 0, thumbFrac, 0)
+  config.vthumb.Size = UDim2.new(1, 0, thumbFrac, 0)
   local posFrac = maxIndex > 0 and math.clamp((config.ScrollIndex / maxIndex) * (1 - thumbFrac), 0, 1 - thumbFrac) or 0
-  vthumb.Position = UDim2.new(0, 0, posFrac, 0)
+  config.vthumb.Position = UDim2.new(0, 0, posFrac, 0)
  else
-  vbar.Visible = false
+  config.vbar.Visible = false
  end
 
  if config.TreeContentWidth > viewW then
-  hbar.Visible = true
+  config.hbar.Visible = true
   local thumbFrac = math.clamp(viewW / config.TreeContentWidth, 0.05, 0.85)
-  hthumb.Size = UDim2.new(thumbFrac, 0, 1, 0)
+  config.hthumb.Size = UDim2.new(thumbFrac, 0, 1, 0)
   local posFrac = maxHOffset > 0 and math.clamp((config.ScrollHOffset / maxHOffset) * (1 - thumbFrac), 0, 1 - thumbFrac) or 0
-  hthumb.Position = UDim2.new(posFrac, 0, 0, 0)
+  config.hthumb.Position = UDim2.new(posFrac, 0, 0, 0)
  else
-  hbar.Visible = false
+  config.hbar.Visible = false
  end
 
  local hi = config.HoverInst and Explorer.RowIndex and Explorer.RowIndex[config.HoverInst]
@@ -3525,20 +3692,20 @@ function RefreshTree()
  if hrow and hrow >= 1 and hrow <= #config.entries then
   placeInsertBtn(config.visiblerows[hi], hrow)
  elseif not config.OverInsert then
-  insertBtn.Visible = false
+  config.insertBtn.Visible = false
  end
 end
 
-SV.UserInput.InputChanged:Connect(function(input)
+config.SV.UserInput.InputChanged:Connect(function(input)
  if input.UserInputType ~= Enum.UserInputType.MouseWheel then return end
- if not main.Visible or config.IsMinimized then return end
+ if not config.main.Visible or config.IsMinimized then return end
  local delta = input.Position.Z
  if delta == 0 then return end
- local mp = SV.UserInput:GetMouseLocation()
- local ap = main.AbsolutePosition
- local as = main.AbsoluteSize
+ local mp = config.SV.UserInput:GetMouseLocation()
+ local ap = config.main.AbsolutePosition
+ local as = config.main.AbsoluteSize
  if mp.X < ap.X or mp.X > ap.X + as.X or mp.Y < ap.Y or mp.Y > ap.Y + as.Y then return end
- local viewH = scrolling.AbsoluteSize.Y
+ local viewH = config.scrolling.AbsoluteSize.Y
  local maxIdx = math.max(0, #config.visiblerows - math.floor(viewH / config.ROW_H))
  config.ScrollIndex = math.clamp(config.ScrollIndex - delta * 3, 0, maxIdx)
  RefreshTree()
@@ -3551,8 +3718,8 @@ local function Draggable(thumb, track, isHorizontal, vis)
   vis.BackgroundColor3 = (dragging or hovering) and Color3.fromRGB(140,140,140) or Color3.fromRGB(90,90,90)
  end
  local function maxScroll()
-  if isHorizontal then return math.max(0, config.TreeContentWidth - scrolling.AbsoluteSize.X) end
-  return math.max(0, #config.visiblerows - math.floor(scrolling.AbsoluteSize.Y / config.ROW_H))
+  if isHorizontal then return math.max(0, config.TreeContentWidth - config.scrolling.AbsoluteSize.X) end
+  return math.max(0, #config.visiblerows - math.floor(config.scrolling.AbsoluteSize.Y / config.ROW_H))
  end
  local function current() return isHorizontal and config.ScrollHOffset or config.ScrollIndex end
  local function apply(v)
@@ -3569,7 +3736,8 @@ local function Draggable(thumb, track, isHorizontal, vis)
  end
 
  thumb.Active = true
- thumb.InputBegan:Connect(function(inp)
+ config.WidenHit(thumb, isHorizontal).InputBegan:Connect(function(inp)
+  if not config.Fresh(inp) then return end
   if not isPress(inp) then return end
   if maxScroll() <= 0 then return end
   dragging = true
@@ -3580,8 +3748,9 @@ local function Draggable(thumb, track, isHorizontal, vis)
  track.MouseEnter:Connect(function() hovering = true paint() end)
  track.MouseLeave:Connect(function() hovering = false paint() end)
 
- SV.UserInput.InputChanged:Connect(function(inp)
+ config.SV.UserInput.InputChanged:Connect(function(inp)
   if not dragging then return end
+  if not config.Held(inp) then dragging = false paint() return end
   if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
   local m = maxScroll()
   local ts = track.AbsoluteSize
@@ -3593,7 +3762,7 @@ local function Draggable(thumb, track, isHorizontal, vis)
    apply(startScroll + delta / usable * m)
   end
  end)
- SV.UserInput.InputEnded:Connect(function(inp)
+ config.SV.UserInput.InputEnded:Connect(function(inp)
   if isPress(inp) and dragging then
    dragging = false
    paint()
@@ -3601,14 +3770,14 @@ local function Draggable(thumb, track, isHorizontal, vis)
  end)
 end
 
-Draggable(vthumb, vbar, false, vvis)
-Draggable(hthumb, hbar, true, hvis)
+Draggable(config.vthumb, config.vbar, false, config.vvis)
+Draggable(config.hthumb, config.hbar, true, config.hvis)
 
-scrolling:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
- if scrolling.Visible then RefreshTree() end
+config.scrolling:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+ if config.scrolling.Visible then RefreshTree() end
 end)
 
-local searchOptionsDropdown = Explorer.AddDropdown(function(Add)
+config.searchOptionsDropdown = Explorer.AddDropdown(function(Add)
  Add("Select instance after insert", "Toggle", function(v)
   config.SelectAfterInsert = v
  end, config.SelectAfterInsert)
@@ -3624,17 +3793,17 @@ local searchOptionsDropdown = Explorer.AddDropdown(function(Add)
  end, config.ShowHierarchyHighlights)
 end, { Studio = true, FullWidth = true, RowH = 40 })
 
-threedotmenu.Activated:Connect(function()
- searchOptionsDropdown:ToggleAt(threedotmenu)
+config.threedotmenu.Activated:Connect(function()
+ config.searchOptionsDropdown:ToggleAt(config.threedotmenu)
 end)
 
-local searchToken = 0
-searchbar:GetPropertyChangedSignal("Text"):Connect(function()
- searchToken += 1
- local my = searchToken
- local text = searchbar.Text
+config.searchToken = 0
+config.searchbar:GetPropertyChangedSignal("Text"):Connect(function()
+ config.searchToken += 1
+ local my = config.searchToken
+ local text = config.searchbar.Text
  local function apply()
-  if my ~= searchToken then return end
+  if my ~= config.searchToken then return end
   config.SearchQuery = text:match("^%s*(.-)%s*$")
   config.SearchPred = Explorer.CompileSearch(text)
   config.SearchCursor = 0
@@ -3646,11 +3815,17 @@ searchbar:GetPropertyChangedSignal("Text"):Connect(function()
  if text:match("^%s*$") then apply() else task.delay(0.15, apply) end
 end)
 
-local contextItems = {}
-local contextDropdown = Explorer.AddDropdown(function(Add)
- for _, it in ipairs(contextItems) do
+config.contextItems = {}
+config.contextDropdown = Explorer.AddDropdown(function(Add)
+ for _, it in ipairs(config.contextItems) do
   if it == "SEPARATOR" then
    Add(nil, "Separator")
+  elseif it.Options then
+   Add(it[1], "Options", function(SubAdd)
+    for _, o in ipairs(it.Options) do
+     SubAdd(o[1], "Button", o[2])
+    end
+   end)
   else
    Add(it[1], "Button", it[3])
   end
@@ -3661,9 +3836,37 @@ end, { Width = 240, RowH = 34, TextSize = 14, Screen = true, CloseOnClick = true
 end })
 
 local function CloseContextMenu()
- if contextDropdown then contextDropdown:Close() end
+ if config.contextDropdown then config.contextDropdown:Close() end
 end
 Explorer.CloseContextMenu = CloseContextMenu
+
+local function isRootNode(inst)
+ return inst == nil or inst.ClassName == "Root"
+end
+local function isServiceNode(inst)
+ return Explorer.Mode == "Game" and inst.Parent ~= nil
+  and inst.Parent.ClassName == "Root" and inst.Parent.Name == "game"
+end
+local function isArchivable(inst)
+ if not inst.Real then return true end
+ local ok, v = pcall(function() return inst.Real.Archivable end)
+ return not ok or v ~= false
+end
+Explorer.Can = {
+ Copy = function(inst) return not isRootNode(inst) and not isServiceNode(inst) and isArchivable(inst) end,
+ Cut = function(inst) return not isRootNode(inst) and not isServiceNode(inst) end,
+ Duplicate = function(inst) return not isRootNode(inst) and not isServiceNode(inst) and isArchivable(inst) end,
+ Rename = function(inst) return not isRootNode(inst) and not isServiceNode(inst) end,
+ Delete = function(inst) return not isRootNode(inst) and not isServiceNode(inst) end,
+ Group = function(inst) return not isRootNode(inst) and not isServiceNode(inst) end,
+ PasteInto = function(inst) return not (Explorer.Mode == "Game" and inst.ClassName == "Root" and inst.Name == "game") end,
+}
+local function anySelected(fn)
+ for _, i in ipairs(Explorer.GetSelection()) do
+  if fn(i) then return true end
+ end
+ return false
+end
 
 function OpenContextMenu(inst, x, y)
  if Explorer.Drag and (Explorer.Drag.active or Explorer.Drag.justDragged) then return end
@@ -3681,36 +3884,75 @@ function OpenContextMenu(inst, x, y)
  local function add(label, danger, fn)
   table.insert(items, { label, danger, fn })
  end
- add("Cut", false, Explorer.Cut)
- add("Copy", false, Explorer.Copy)
- if #Explorer.Clipboard > 0 then
-  add("Paste Into", false, function() Explorer.Paste(inst) end)
+ local C = Explorer.Can
+ if anySelected(C.Cut) then add("Cut", false, Explorer.Cut) end
+ if anySelected(C.Copy) then add("Copy", false, Explorer.Copy) end
+ if #Explorer.Clipboard > 0 and C.PasteInto(inst) then
+  local blocked = false
+  if Explorer.ClipboardCut then
+   for _, src in ipairs(Explorer.Clipboard) do
+    local cur = inst
+    while cur do
+     if cur == src then blocked = true break end
+     cur = cur.Parent
+    end
+   end
+  end
+  if not blocked then add("Paste Into", false, function() Explorer.Paste(inst) end) end
  end
- add("Duplicate", false, Explorer.Duplicate)
+ if anySelected(C.Duplicate) then add("Duplicate", false, Explorer.Duplicate) end
  add("Insert", false, function() Explorer.OpenInsertMenu(inst, x, y) end)
  if selCount == 1 then
-  add("Rename", false, function() Explorer.StartRename(inst) end)
+  if C.Rename(inst) then
+   add("Rename", false, function() Explorer.StartRename(inst) end)
+  end
+  if inst.Real and Explorer.ViewModel then
+   local okPV, isPV = pcall(function()
+    local real = inst.Real
+    if not real:IsA("Model") then return false end
+    return real:FindFirstChildWhichIsA("BasePart", true) ~= nil
+   end)
+   if okPV and isPV then
+    add("View 3D Model", false, function() Explorer.ViewModel(inst) end)
+   end
+  end
   if #inst.Children > 0 and (inst.ClassName == "Model" or inst.ClassName == "Folder") then
    add("Ungroup", false, function() Explorer.Ungroup(inst) end)
   end
  end
- add("Group", false, function() Explorer.GroupSelection("Model") end)
- add("Group As a Folder", false, function() Explorer.GroupSelection("Folder") end)
+ if anySelected(C.Group) then
+  add("Group", false, function() Explorer.GroupSelection("Model") end)
+  add("Group As a Folder", false, function() Explorer.GroupSelection("Folder") end)
+ end
+ if inst ~= Explorer.Root and not isRootNode(inst) and Explorer.HasChildren(inst) then
+  table.insert(items, "SEPARATOR")
+  local opt
+  if Explorer.GetExpanded(inst) then
+   opt = { "Collapse All", function() Explorer.CollapseAll(inst) end }
+  else
+   opt = { "Expand All", function() Explorer.ExpandAll(inst) end }
+  end
+  table.insert(items, { "Hierarchy", false, nil, Options = { opt } })
+ end
  table.insert(items, "SEPARATOR")
- add("Copy Name", false, function() if setclipboard then pcall(setclipboard, inst.Name) end end)
- add("Copy Path", false, function() if setclipboard then pcall(setclipboard, inst:GetFullName()) end end)
+ if not isRootNode(inst) and setclipboard then
+  add("Copy Name", false, function() pcall(setclipboard, inst.Name) end)
+  add("Copy Path", false, function() pcall(setclipboard, inst:GetFullName()) end)
+ end
  if #Explorer.ContextItems > 0 then
   table.insert(items, "SEPARATOR")
   for _, item in ipairs(Explorer.ContextItems) do
    table.insert(items, { item.label, item.danger or false, function() pcall(item.callback, inst) end })
   end
  end
- table.insert(items, "SEPARATOR")
- add("Delete", true, Explorer.DeleteSelection)
+ if anySelected(C.Delete) then
+  table.insert(items, "SEPARATOR")
+  add("Delete", true, Explorer.DeleteSelection)
+ end
 
- contextItems = items
- contextDropdown:Open(x, y)
- config.ContextMenu = contextDropdown.Frame
+ config.contextItems = items
+ config.contextDropdown:Open(x, y)
+ config.ContextMenu = config.contextDropdown.Frame
  config.ContextMenuTarget = inst
  config.MenuTime = tick()
 end
@@ -3724,7 +3966,7 @@ function Explorer.CreateInstance(className, name, parent)
   if not inst then return nil end
   if inst.Parent and inst.Parent ~= Explorer.Root then Explorer.Expanded[inst.Parent] = true end
  else
-  inst = VirtualInstance.new(className, Explorer.UniqueName(parent, name or className), parent)
+  inst = config.VirtualInstance.new(className, Explorer.UniqueName(parent, name or className), parent)
  end
  Explorer.ScanTree()
  RefreshTree()
@@ -3817,8 +4059,8 @@ function Explorer.SetSelection(list, primary)
 end
 
 function Explorer.ClickSelect(inst)
- local ctrl = SV.UserInput:IsKeyDown(Enum.KeyCode.LeftControl) or SV.UserInput:IsKeyDown(Enum.KeyCode.RightControl)
- local shift = SV.UserInput:IsKeyDown(Enum.KeyCode.LeftShift) or SV.UserInput:IsKeyDown(Enum.KeyCode.RightShift)
+ local ctrl = config.SV.UserInput:IsKeyDown(Enum.KeyCode.LeftControl) or config.SV.UserInput:IsKeyDown(Enum.KeyCode.RightControl)
+ local shift = config.SV.UserInput:IsKeyDown(Enum.KeyCode.LeftShift) or config.SV.UserInput:IsKeyDown(Enum.KeyCode.RightShift)
  local idx = Explorer.RowIndex and Explorer.RowIndex[inst]
  local aIdx = config.Anchor and Explorer.RowIndex and Explorer.RowIndex[config.Anchor]
  if shift and aIdx and idx then
@@ -3857,7 +4099,7 @@ end
 
 local function cloneVirtual(inst, parent)
  local kids = table.clone(inst.Children)
- local c = VirtualInstance.new(inst.ClassName, Explorer.UniqueName(parent, inst.Name), nil)
+ local c = config.VirtualInstance.new(inst.ClassName, Explorer.UniqueName(parent, inst.Name), nil)
  for k, v in pairs(inst.Properties) do c.Properties[k] = v end
  for k, v in pairs(inst.Attributes) do c.Attributes[k] = v end
  for k, v in pairs(inst.Metadata) do c.Metadata[k] = v end
@@ -3891,18 +4133,29 @@ local function reveal(inst)
  end
 end
 
+local function filterBy(list, fn)
+ local out = {}
+ for _, i in ipairs(list) do if fn(i) then out[#out + 1] = i end end
+ return out
+end
+
 function Explorer.Copy()
- Explorer.Clipboard = topLevel(Explorer.GetSelection())
+ local list = topLevel(filterBy(Explorer.GetSelection(), Explorer.Can.Copy))
+ if #list == 0 then return end
+ Explorer.Clipboard = list
  Explorer.ClipboardCut = false
 end
 
 function Explorer.Cut()
- Explorer.Clipboard = topLevel(Explorer.GetSelection())
+ local list = topLevel(filterBy(Explorer.GetSelection(), Explorer.Can.Cut))
+ if #list == 0 then return end
+ Explorer.Clipboard = list
  Explorer.ClipboardCut = true
 end
 
 function Explorer.Paste(target)
  local parent = target or Explorer.Root
+ if not Explorer.Can.PasteInto(parent) then return end
  local made = {}
  for _, src in ipairs(Explorer.Clipboard) do
   if Explorer.ClipboardCut then
@@ -3967,7 +4220,7 @@ end
 
 function Explorer.Duplicate()
  local made = {}
- for _, src in ipairs(topLevel(Explorer.GetSelection())) do
+ for _, src in ipairs(topLevel(filterBy(Explorer.GetSelection(), Explorer.Can.Duplicate))) do
   local G = Explorer.Game
   if G and G.isGame(src) then
    local c = G.clone(src, src.Parent or Explorer.Root)
@@ -3983,14 +4236,14 @@ function Explorer.Duplicate()
 end
 
 function Explorer.DeleteSelection()
- for _, inst in ipairs(topLevel(Explorer.GetSelection())) do
+ for _, inst in ipairs(topLevel(filterBy(Explorer.GetSelection(), Explorer.Can.Delete))) do
   Explorer.DestroyInstance(inst)
  end
 end
 
 function Explorer.GroupSelection(className)
  className = className or "Folder"
- local list = topLevel(Explorer.GetSelection())
+ local list = topLevel(filterBy(Explorer.GetSelection(), Explorer.Can.Group))
  if #list == 0 then return end
  local parent = list[1].Parent or Explorer.Root
  local G = Explorer.Game
@@ -4000,7 +4253,7 @@ function Explorer.GroupSelection(className)
   if not f then return end
   for _, i in ipairs(list) do G.move(i, f) end
  else
-  f = VirtualInstance.new(className, Explorer.UniqueName(parent, className), parent)
+  f = config.VirtualInstance.new(className, Explorer.UniqueName(parent, className), parent)
   for _, i in ipairs(list) do i:SetParent(f) end
  end
  Explorer.Expanded[f] = true
@@ -4036,13 +4289,14 @@ function Explorer.Ungroup(inst)
 end
 
 function Explorer.StartRename(inst)
+ if not inst or not Explorer.Can.Rename(inst) then return end
  local idx = Explorer.RowIndex and Explorer.RowIndex[inst]
  if not idx then return end
  local e = config.entries[idx - config.ScrollIndex]
  if not e or not e.label.Visible then return end
 
  local PAD = 6
- local textW = SV.TextSrv:GetTextSize(
+ local textW = config.SV.TextSrv:GetTextSize(
   inst.Name, e.label.TextSize, Enum.Font.SourceSans, Vector2.new(10000, 26)
  ).X
 
@@ -4058,13 +4312,13 @@ function Explorer.StartRename(inst)
  box.BorderSizePixel = 0
  box.Font = Enum.Font.SourceSans
  box.TextSize = e.label.TextSize
- box.TextColor3 = COLORS.TEXT_BRIGHT
+ box.TextColor3 = config.COLORS.TEXT_BRIGHT
  box.TextXAlignment = Enum.TextXAlignment.Left
  box.ClearTextOnFocus = false
  box.Text = inst.Name
  box.ZIndex = 8
  box.Archivable = false
- box.Parent = scrolling
+ box.Parent = config.scrolling
 
  RoundCorner(box, 0, 8)
  local boxStroke = BorderStroke(box, 1, 80, 80, 80)
@@ -4074,7 +4328,7 @@ function Explorer.StartRename(inst)
  pad.Parent = box
 
  box.Focused:Connect(function()
-  boxStroke.Color = COLORS.SELECTED
+  boxStroke.Color = config.COLORS.SELECTED
  end)
  box.FocusLost:Connect(function()
   boxStroke.Color = Color3.fromRGB(80, 80, 80)
@@ -4160,30 +4414,30 @@ function Explorer.ClearAll()
 end
 
 function Explorer.Open()
- if main.Visible then return end
+ if config.main.Visible then return end
  config.IsMinimized = false
- main.Visible = true
- searchbar.Visible = true
- threedotmenu.Visible = true
- if layoutDocks then layoutDocks() end
+ config.main.Visible = true
+ config.searchbar.Visible = true
+ config.threedotmenu.Visible = true
+ if config.layoutDocks then config.layoutDocks() end
  Explorer.ScanTree()
  RefreshTree()
 end
 
 function Explorer.Close()
- if not main.Visible then return end
+ if not config.main.Visible then return end
  config.IsMinimized = true
- main.Visible = false
- if layoutDocks then layoutDocks() end
+ config.main.Visible = false
+ if config.layoutDocks then config.layoutDocks() end
 end
 
 function Explorer.Toggle()
- if main.Visible then Explorer.Close() else Explorer.Open() end
+ if config.main.Visible then Explorer.Close() else Explorer.Open() end
 end
 
-function Explorer.IsOpen() return main.Visible end
+function Explorer.IsOpen() return config.main.Visible end
 
-close.Activated:Connect(function()
+config.close.Activated:Connect(function()
  Explorer.Close()
 end)
 
@@ -4198,13 +4452,13 @@ local function closeInsertMenu()
  end
 end
 
-local INSERT_CLASSES = {}
+config.INSERT_CLASSES = {}
 do
  local skip = { Instance = true, Service = true, Value = true, Workspace = true, Lighting = true, Chat = true, Backpack = true }
- for name in pairs(ICONS) do
-  if not skip[name] then INSERT_CLASSES[#INSERT_CLASSES + 1] = name end
+ for name in pairs(config.ICONS) do
+  if not skip[name] then config.INSERT_CLASSES[#config.INSERT_CLASSES + 1] = name end
  end
- table.sort(INSERT_CLASSES)
+ table.sort(config.INSERT_CLASSES)
 end
 
 function Explorer.OpenInsertMenu(parentInst, x, y)
@@ -4225,13 +4479,13 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
  local menu = Instance.new("Frame")
  menu.Name = randomString()
  menu.Size = UDim2.new(0, W, 0, H)
- menu.Position = UDim2.new(0, math.clamp(x, 4, math.max(4, window.AbsoluteSize.X - W - 4)), 0, math.clamp(y, 4, math.max(4, window.AbsoluteSize.Y - H - 4)))
- menu.BackgroundColor3 = COLORS.PRIMARY
+ menu.Position = UDim2.new(0, math.clamp(x, 4, math.max(4, config.window.AbsoluteSize.X - W - 4)), 0, math.clamp(y, 4, math.max(4, config.window.AbsoluteSize.Y - H - 4)))
+ menu.BackgroundColor3 = config.COLORS.PRIMARY
  menu.BorderSizePixel = 0
  menu.ZIndex = 60
  menu.Active = true
  menu.Archivable = false
- menu.Parent = window
+ menu.Parent = config.window
  DropStroke(menu)
  config.InsertMenu = menu
 
@@ -4242,9 +4496,9 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
  box.BackgroundColor3 = Color3.fromRGB(20, 21, 26)
  box.BorderSizePixel = 0
  box.PlaceholderText = "Search"
- box.PlaceholderColor3 = COLORS.TEXT
+ box.PlaceholderColor3 = config.COLORS.TEXT
  box.Text = ""
- box.TextColor3 = COLORS.TEXT_BRIGHT
+ box.TextColor3 = config.COLORS.TEXT_BRIGHT
  box.Font = Enum.Font.SourceSans
  box.TextSize = 15
  box.TextXAlignment = Enum.TextXAlignment.Left
@@ -4257,7 +4511,7 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
  local pad = Instance.new("UIPadding")
  pad.PaddingLeft = UDim.new(0, 8)
  pad.Parent = box
- box.Focused:Connect(function() boxStroke.Color = COLORS.SELECTED end)
+ box.Focused:Connect(function() boxStroke.Color = config.COLORS.SELECTED end)
  box.FocusLost:Connect(function() boxStroke.Color = Color3.fromRGB(80, 80, 80) end)
 
  local view = Instance.new("Frame")
@@ -4332,7 +4586,7 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
   local entry = Instance.new("TextButton")
   entry.Name = randomString()
   entry.Size = UDim2.new(0, viewW, 0, ROW)
-  entry.BackgroundColor3 = COLORS.SECONDARY
+  entry.BackgroundColor3 = config.COLORS.SECONDARY
   entry.BackgroundTransparency = 1
   entry.BorderSizePixel = 0
   entry.AutoButtonColor = false
@@ -4343,18 +4597,18 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
   entry.Parent = view
 
   local icon = Instance.new("ImageLabel")
-  icon.Size = UDim2.new(0, Positions.ICON_PX, 0, Positions.ICON_PX)
-  icon.Position = UDim2.new(0, 8, 0.5, -Positions.ICON_PX / 2)
+  icon.Size = UDim2.new(0, config.Positions.ICON_PX, 0, config.Positions.ICON_PX)
+  icon.Position = UDim2.new(0, 8, 0.5, -config.Positions.ICON_PX / 2)
   icon.BackgroundTransparency = 1
   icon.ZIndex = 63
   icon.Archivable = false
   icon.Parent = entry
 
   local label = Instance.new("TextLabel")
-  label.Size = UDim2.new(1, -(8 + Positions.ICON_PX + 14), 1, 0)
-  label.Position = UDim2.new(0, 8 + Positions.ICON_PX + 8, 0, 0)
+  label.Size = UDim2.new(1, -(8 + config.Positions.ICON_PX + 14), 1, 0)
+  label.Position = UDim2.new(0, 8 + config.Positions.ICON_PX + 8, 0, 0)
   label.BackgroundTransparency = 1
-  label.TextColor3 = COLORS.TEXT
+  label.TextColor3 = config.COLORS.TEXT
   label.TextXAlignment = Enum.TextXAlignment.Left
   label.TextYAlignment = Enum.TextYAlignment.Center
   label.Font = Enum.Font.SourceSans
@@ -4374,7 +4628,7 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
  local function populate()
   local q = box.Text:lower()
   items = {}
-  for _, name in ipairs(INSERT_CLASSES) do
+  for _, name in ipairs(config.INSERT_CLASSES) do
    if q == "" or name:lower():find(q, 1, true) then items[#items + 1] = name end
   end
   scrollIndex = 0
@@ -4386,7 +4640,7 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
   if enter and items[1] and config.InsertMenu == menu then insert(items[1]) end
  end)
 
- conns[#conns + 1] = SV.UserInput.InputChanged:Connect(function(input)
+ conns[#conns + 1] = config.SV.UserInput.InputChanged:Connect(function(input)
   if input.UserInputType ~= Enum.UserInputType.MouseWheel then return end
   local ap, as = menu.AbsolutePosition, menu.AbsoluteSize
   local mp = input.Position
@@ -4396,12 +4650,14 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
  end)
 
  local dragging, startY, startIndex = false, 0, 0
- thumb.InputBegan:Connect(function(inp)
+ config.WidenHit(thumb, false).InputBegan:Connect(function(inp)
+  if not config.Fresh(inp) then return end
   if inp.UserInputType ~= Enum.UserInputType.MouseButton1 and inp.UserInputType ~= Enum.UserInputType.Touch then return end
   dragging, startY, startIndex = true, inp.Position.Y, scrollIndex
  end)
- conns[#conns + 1] = SV.UserInput.InputChanged:Connect(function(inp)
+ conns[#conns + 1] = config.SV.UserInput.InputChanged:Connect(function(inp)
   if not dragging then return end
+  if not config.Held(inp) then dragging = false return end
   if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
   local maxIndex = math.max(0, #items - VISIBLE)
   local usable = listH * (1 - thumb.Size.Y.Scale)
@@ -4410,7 +4666,7 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
    refresh()
   end
  end)
- conns[#conns + 1] = SV.UserInput.InputEnded:Connect(function(inp)
+ conns[#conns + 1] = config.SV.UserInput.InputEnded:Connect(function(inp)
   if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
    dragging = false
   end
@@ -4421,28 +4677,28 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
  end)
 end
 
-insertBtn.MouseEnter:Connect(function() config.OverInsert = true end)
-insertBtn.MouseLeave:Connect(function()
+config.insertBtn.MouseEnter:Connect(function() config.OverInsert = true end)
+config.insertBtn.MouseLeave:Connect(function()
  config.OverInsert = false
  task.defer(function()
-  if not config.HoverInst then insertBtn.Visible = false end
+  if not config.HoverInst then config.insertBtn.Visible = false end
  end)
 end)
-insertBtn.Activated:Connect(function()
- local ap = insertBtn.AbsolutePosition
+config.insertBtn.Activated:Connect(function()
+ local ap = config.insertBtn.AbsolutePosition
  Explorer.OpenInsertMenu(config.InsertTarget, ap.X, ap.Y + 20)
 end)
 
 local function mouseInMain()
- local mp = SV.UserInput:GetMouseLocation()
- local ap, as = main.AbsolutePosition, main.AbsoluteSize
+ local mp = config.SV.UserInput:GetMouseLocation()
+ local ap, as = config.main.AbsolutePosition, config.main.AbsoluteSize
  return mp.X >= ap.X and mp.X <= ap.X + as.X and mp.Y >= ap.Y and mp.Y <= ap.Y + as.Y + 36
 end
 
 local function selectRowAt(idx)
  local row = config.visiblerows[idx]
  if not row then return end
- local viewRows = math.max(1, math.floor(scrolling.AbsoluteSize.Y / config.ROW_H))
+ local viewRows = math.max(1, math.floor(config.scrolling.AbsoluteSize.Y / config.ROW_H))
  if idx - 1 < config.ScrollIndex then
   config.ScrollIndex = idx - 1
  elseif idx > config.ScrollIndex + viewRows then
@@ -4452,14 +4708,14 @@ local function selectRowAt(idx)
  Explorer.SetSelection({ row.instance }, row.instance)
 end
 
-searchbar.FocusLost:Connect(function(enter)
+config.searchbar.FocusLost:Connect(function(enter)
  if not enter or config.SearchQuery == "" then return end
  local hits = {}
  for i, row in ipairs(config.visiblerows) do
   if row.match then hits[#hits + 1] = i end
  end
  if #hits == 0 then return end
- local back = SV.UserInput:IsKeyDown(Enum.KeyCode.LeftShift) or SV.UserInput:IsKeyDown(Enum.KeyCode.RightShift)
+ local back = config.SV.UserInput:IsKeyDown(Enum.KeyCode.LeftShift) or config.SV.UserInput:IsKeyDown(Enum.KeyCode.RightShift)
  if back then
   config.SearchCursor = ((config.SearchCursor - 2) % #hits) + 1
  else
@@ -4468,25 +4724,25 @@ searchbar.FocusLost:Connect(function(enter)
  selectRowAt(hits[config.SearchCursor])
 end)
 
-SV.UserInput.InputBegan:Connect(function(inp, gpe)
+config.SV.UserInput.InputBegan:Connect(function(inp, gpe)
  if inp.UserInputType ~= Enum.UserInputType.Keyboard then return end
- if not main.Visible then return end
- local ctrl = SV.UserInput:IsKeyDown(Enum.KeyCode.LeftControl) or SV.UserInput:IsKeyDown(Enum.KeyCode.RightControl)
- local shift = SV.UserInput:IsKeyDown(Enum.KeyCode.LeftShift) or SV.UserInput:IsKeyDown(Enum.KeyCode.RightShift)
- local alt = SV.UserInput:IsKeyDown(Enum.KeyCode.LeftAlt) or SV.UserInput:IsKeyDown(Enum.KeyCode.RightAlt)
+ if not config.main.Visible then return end
+ local ctrl = config.SV.UserInput:IsKeyDown(Enum.KeyCode.LeftControl) or config.SV.UserInput:IsKeyDown(Enum.KeyCode.RightControl)
+ local shift = config.SV.UserInput:IsKeyDown(Enum.KeyCode.LeftShift) or config.SV.UserInput:IsKeyDown(Enum.KeyCode.RightShift)
+ local alt = config.SV.UserInput:IsKeyDown(Enum.KeyCode.LeftAlt) or config.SV.UserInput:IsKeyDown(Enum.KeyCode.RightAlt)
  local key = inp.KeyCode
  if key == Enum.KeyCode.Escape and config.InsertMenu then
   closeInsertMenu()
   return
  end
  if ctrl and shift and key == Enum.KeyCode.X then
-  task.defer(function() searchbar:CaptureFocus() end)
+  task.defer(function() config.searchbar:CaptureFocus() end)
   return
  end
  if gpe or not mouseInMain() then return end
  local rows = config.visiblerows
  local cur = Explorer.Selected and Explorer.RowIndex and Explorer.RowIndex[Explorer.Selected]
- local pageRows = math.max(1, math.floor(scrolling.AbsoluteSize.Y / config.ROW_H))
+ local pageRows = math.max(1, math.floor(config.scrolling.AbsoluteSize.Y / config.ROW_H))
  if ctrl and key == Enum.KeyCode.A then
   local all = {}
   for _, row in ipairs(rows) do
@@ -4503,7 +4759,7 @@ SV.UserInput.InputBegan:Connect(function(inp, gpe)
   end
  elseif ctrl and key == Enum.KeyCode.I then
   local target = config.HoverInst or (config.OverInsert and config.InsertTarget) or Explorer.Selected
-  local mp = SV.UserInput:GetMouseLocation()
+  local mp = config.SV.UserInput:GetMouseLocation()
   Explorer.OpenInsertMenu(target, mp.X, mp.Y)
  elseif ctrl and key == Enum.KeyCode.X then
   Explorer.Cut()
@@ -4560,21 +4816,21 @@ local function pointIn(gui, pos)
  return pos.X >= ap.X and pos.X <= ap.X + as.X and pos.Y >= ap.Y and pos.Y <= ap.Y + as.Y
 end
 
-SV.UserInput.InputBegan:Connect(function(inp)
+config.SV.UserInput.InputBegan:Connect(function(inp)
  if inp.UserInputType ~= Enum.UserInputType.MouseButton1 and inp.UserInputType ~= Enum.UserInputType.MouseButton2 and inp.UserInputType ~= Enum.UserInputType.Touch then return end
  local pos = Vector2.new(inp.Position.X, inp.Position.Y)
  if config.InsertMenu and not pointIn(config.InsertMenu, pos) then closeInsertMenu() end
 end)
 
-SV.ContextAction:BindAction("OpenExplorer", function(_, state)
+config.SV.ContextAction:BindAction("OpenExplorer", function(_, state)
  if state ~= Enum.UserInputState.Begin then return end
  Explorer.Toggle()
 end, false, Enum.KeyCode.K)
 
-SV.UserInput.InputBegan:Connect(function(inp, gpe)
+config.SV.UserInput.InputBegan:Connect(function(inp, gpe)
  if gpe then return end
  if inp.KeyCode ~= Enum.KeyCode.X then return end
- if SV.UserInput:IsKeyDown(Enum.KeyCode.LeftAlt) or SV.UserInput:IsKeyDown(Enum.KeyCode.RightAlt) then
+ if config.SV.UserInput:IsKeyDown(Enum.KeyCode.LeftAlt) or config.SV.UserInput:IsKeyDown(Enum.KeyCode.RightAlt) then
   Explorer.Toggle()
  end
 end)
@@ -4593,7 +4849,7 @@ do
   Inst = nil,
  }
 
- SUBCLASS.guitext = { TextLabel = 1, TextButton = 1, TextBox = 1 }
+ config.SUBCLASS.guitext = { TextLabel = 1, TextButton = 1, TextBox = 1 }
 
  local function E(enumName, item)
   local ok, v = pcall(function() return Enum[enumName][item] end)
@@ -4705,7 +4961,7 @@ do
    end
    local data
    if body then
-    local ok, d = pcall(function() return SV.Http:JSONDecode(body) end)
+    local ok, d = pcall(function() return config.SV.Http:JSONDecode(body) end)
     if ok and type(d) == "table" and type(d.Classes) == "table" then data = d end
    end
    if not data then
@@ -5179,40 +5435,40 @@ do
   P.Rows = rows
  end
 
- pmain = Instance.new("Frame")
- pmain.Name = randomString()
- pmain.Size = UDim2.new(0, main.Size.X.Offset, 0, P.FloatH)
- pmain.Position = UDim2.new(0, 40, 0, 40)
- clampPanelTop(pmain)
- pmain.BackgroundColor3 = COLORS.PRIMARY
- pmain.BackgroundTransparency = config.NT
- pmain.Active = true
- pmain.BorderSizePixel = 0
- pmain.ZIndex = 2
- pmain.Archivable = false
- pmain.Parent = window
- RegisterWindow(pmain)
+ config.pmain = Instance.new("Frame")
+ config.pmain.Name = randomString()
+ config.pmain.Size = UDim2.new(0, config.main.Size.X.Offset, 0, P.FloatH)
+ config.pmain.Position = UDim2.new(0, 40, 0, 40)
+ clampPanelTop(config.pmain)
+ config.pmain.BackgroundColor3 = config.COLORS.PRIMARY
+ config.pmain.BackgroundTransparency = config.NT
+ config.pmain.Active = true
+ config.pmain.BorderSizePixel = 0
+ config.pmain.ZIndex = 2
+ config.pmain.Archivable = false
+ config.pmain.Parent = config.window
+ RegisterWindow(config.pmain)
 
- pdocksplitter = Instance.new("Frame")
- pdocksplitter.Name = randomString()
- pdocksplitter.Size = UDim2.new(0, 3, 1, 0)
- pdocksplitter.BackgroundColor3 = COLORS.RESIZER
- pdocksplitter.BorderSizePixel = 0
- pdocksplitter.ZIndex = 8
- pdocksplitter.Visible = false
- pdocksplitter.Active = true
- pdocksplitter.Archivable = false
- pdocksplitter.Parent = pmain
+ config.pdocksplitter = Instance.new("Frame")
+ config.pdocksplitter.Name = randomString()
+ config.pdocksplitter.Size = UDim2.new(0, 3, 1, 0)
+ config.pdocksplitter.BackgroundColor3 = config.COLORS.RESIZER
+ config.pdocksplitter.BorderSizePixel = 0
+ config.pdocksplitter.ZIndex = 8
+ config.pdocksplitter.Visible = false
+ config.pdocksplitter.Active = true
+ config.pdocksplitter.Archivable = false
+ config.pdocksplitter.Parent = config.pmain
 
  local hdr = Instance.new("Frame")
  hdr.Name = randomString()
  hdr.Size = UDim2.new(1, 0, 0, 65)
- hdr.BackgroundColor3 = COLORS.HEADER
+ hdr.BackgroundColor3 = config.COLORS.HEADER
  hdr.BorderSizePixel = 0
  hdr.Active = true
  hdr.ZIndex = 3
  hdr.Archivable = false
- hdr.Parent = pmain
+ hdr.Parent = config.pmain
 
  local hAccent = Instance.new("Frame")
  hAccent.Name = randomString()
@@ -5230,8 +5486,8 @@ do
  ptitle.Position = UDim2.new(0, 35, 0, 0)
  ptitle.BackgroundTransparency = 1
  ptitle.Text = "Properties"
- ptitle.TextColor3 = COLORS.TEXT_BRIGHT
- ptitle.FontFace = FONT.GothamRegular
+ ptitle.TextColor3 = config.COLORS.TEXT_BRIGHT
+ ptitle.FontFace = config.FONT.GothamRegular
  ptitle.TextSize = 12
  ptitle.TextTruncate = Enum.TextTruncate.AtEnd
  ptitle.TextXAlignment = Enum.TextXAlignment.Center
@@ -5275,17 +5531,17 @@ do
  searchRowP.BorderSizePixel = 0
  searchRowP.ZIndex = 3
  searchRowP.Archivable = false
- searchRowP.Parent = pmain
+ searchRowP.Parent = config.pmain
 
  local filterBox = Instance.new("TextBox")
  filterBox.Name = randomString()
  filterBox.Size = UDim2.new(1, -14, 0, 28)
  filterBox.Position = UDim2.new(0, 7, 0, 4)
- filterBox.BackgroundColor3 = COLORS.PRIMARY
+ filterBox.BackgroundColor3 = config.COLORS.PRIMARY
  filterBox.PlaceholderText = "Filter Properties (Ctrl+Shift+P)"
- filterBox.PlaceholderColor3 = COLORS.TEXT
+ filterBox.PlaceholderColor3 = config.COLORS.TEXT
  filterBox.Text = ""
- filterBox.TextColor3 = COLORS.TEXT_BRIGHT
+ filterBox.TextColor3 = config.COLORS.TEXT_BRIGHT
  filterBox.Font = Enum.Font.SourceSans
  filterBox.TextSize = 15
  filterBox.TextXAlignment = Enum.TextXAlignment.Left
@@ -5301,7 +5557,7 @@ do
  pbody.BackgroundTransparency = 1
  pbody.ZIndex = 3
  pbody.Archivable = false
- pbody.Parent = pmain
+ pbody.Parent = config.pmain
 
  local list = Instance.new("Frame")
  list.Name = randomString()
@@ -5374,7 +5630,7 @@ do
   blocker.AutoButtonColor = false
   blocker.ZIndex = 70
   blocker.Archivable = false
-  blocker.Parent = window
+  blocker.Parent = config.window
   blocker.Activated:Connect(closeMenu)
   P.MenuBlocker = blocker
 
@@ -5382,7 +5638,7 @@ do
   local ITEM_H = 26
   local w = math.max(minW or 0, as.X, 120)
   local h = math.min(#items * ITEM_H + 4, 240)
-  local scr = window.AbsoluteSize
+  local scr = config.window.AbsoluteSize
   local x = math.clamp(ap.X, 4, math.max(4, scr.X - w - 4))
   local y = ap.Y + as.Y + 2
   if y + h > scr.Y - 4 then y = math.max(4, ap.Y - h - 2) end
@@ -5391,7 +5647,7 @@ do
   m.Name = randomString()
   m.Size = UDim2.new(0, w, 0, h)
   m.Position = UDim2.new(0, x, 0, y)
-  m.BackgroundColor3 = COLORS.PRIMARY
+  m.BackgroundColor3 = config.COLORS.PRIMARY
   m.BorderSizePixel = 0
   m.CanvasSize = UDim2.new(0, 0, 0, #items * ITEM_H + 4)
   m.ScrollBarThickness = 6
@@ -5407,12 +5663,12 @@ do
    b.Name = randomString()
    b.Size = UDim2.new(1, -8, 0, ITEM_H - 2)
    b.Position = UDim2.new(0, 4, 0, 2 + (i - 1) * ITEM_H)
-   b.BackgroundColor3 = COLORS.SECONDARY
+   b.BackgroundColor3 = config.COLORS.SECONDARY
    b.BackgroundTransparency = 1
    b.BorderSizePixel = 0
    b.AutoButtonColor = false
    b.Text = it.label
-   b.TextColor3 = it.danger and COLORS.CLOSE_TEXT or COLORS.TEXT_BRIGHT
+   b.TextColor3 = it.danger and config.COLORS.CLOSE_TEXT or config.COLORS.TEXT_BRIGHT
    b.TextXAlignment = Enum.TextXAlignment.Left
    b.Font = Enum.Font.SourceSans
    b.TextSize = 18
@@ -5443,7 +5699,7 @@ do
   blocker.AutoButtonColor = false
   blocker.ZIndex = 50
   blocker.Archivable = false
-  blocker.Parent = window
+  blocker.Parent = config.window
   local function close() blocker:Destroy() end
   blocker.Activated:Connect(close)
 
@@ -5452,7 +5708,7 @@ do
   dlg.Size = UDim2.new(0, 270, 0, cfg.withType and 158 or 114)
   dlg.AnchorPoint = Vector2.new(0.5, 0.5)
   dlg.Position = UDim2.new(0.5, 0, 0.4, 0)
-  dlg.BackgroundColor3 = COLORS.PRIMARY
+  dlg.BackgroundColor3 = config.COLORS.PRIMARY
   dlg.BorderSizePixel = 0
   dlg.Active = true
   dlg.ZIndex = 51
@@ -5467,9 +5723,9 @@ do
   t.Position = UDim2.new(0, 12, 0, 6)
   t.BackgroundTransparency = 1
   t.Text = cfg.title
-  t.TextColor3 = COLORS.TEXT_BRIGHT
+  t.TextColor3 = config.COLORS.TEXT_BRIGHT
   t.TextXAlignment = Enum.TextXAlignment.Left
-  t.FontFace = FONT.GothamMedium
+  t.FontFace = config.FONT.GothamMedium
   t.TextSize = 13
   t.ZIndex = 52
   t.Archivable = false
@@ -5479,11 +5735,11 @@ do
   nameBox.Name = randomString()
   nameBox.Size = UDim2.new(1, -24, 0, 28)
   nameBox.Position = UDim2.new(0, 12, 0, 34)
-  nameBox.BackgroundColor3 = COLORS.SECONDARY
+  nameBox.BackgroundColor3 = config.COLORS.SECONDARY
   nameBox.PlaceholderText = "Name"
-  nameBox.PlaceholderColor3 = COLORS.TEXT_DIM
+  nameBox.PlaceholderColor3 = config.COLORS.TEXT_DIM
   nameBox.Text = cfg.name or ""
-  nameBox.TextColor3 = COLORS.TEXT_BRIGHT
+  nameBox.TextColor3 = config.COLORS.TEXT_BRIGHT
   nameBox.Font = Enum.Font.SourceSans
   nameBox.TextSize = 18
   nameBox.TextXAlignment = Enum.TextXAlignment.Left
@@ -5502,10 +5758,10 @@ do
    typeBtn.Name = randomString()
    typeBtn.Size = UDim2.new(1, -24, 0, 28)
    typeBtn.Position = UDim2.new(0, 12, 0, 68)
-   typeBtn.BackgroundColor3 = COLORS.SECONDARY
+   typeBtn.BackgroundColor3 = config.COLORS.SECONDARY
    typeBtn.AutoButtonColor = false
    typeBtn.Text = typeName
-   typeBtn.TextColor3 = COLORS.TEXT_BRIGHT
+   typeBtn.TextColor3 = config.COLORS.TEXT_BRIGHT
    typeBtn.Font = Enum.Font.SourceSans
    typeBtn.TextSize = 18
    typeBtn.TextXAlignment = Enum.TextXAlignment.Left
@@ -5537,7 +5793,7 @@ do
    b.AutoButtonColor = false
    b.Text = text
    b.TextColor3 = Color3.fromRGB(255, 255, 255)
-   b.FontFace = FONT.GothamMedium
+   b.FontFace = config.FONT.GothamMedium
    b.TextSize = 12
    b.ZIndex = 52
    b.Archivable = false
@@ -5553,15 +5809,15 @@ do
     local err = cfg.validate(n)
     if err then
      t.Text = err
-     t.TextColor3 = COLORS.CLOSE_TEXT
+     t.TextColor3 = config.COLORS.CLOSE_TEXT
      return
     end
    end
    close()
    cfg.onSave(n, typeName)
   end
-  mkBtn("Cancel", 0, 0.5, COLORS.SECONDARY, close)
-  mkBtn("Save", 0.5, 0.5, COLORS.SELECTED, save)
+  mkBtn("Cancel", 0, 0.5, config.COLORS.SECONDARY, close)
+  mkBtn("Save", 0.5, 0.5, config.COLORS.SELECTED, save)
   nameBox.FocusLost:Connect(function(enter) if enter then save() end end)
   task.defer(function() if nameBox.Parent then nameBox:CaptureFocus() end end)
  end
@@ -5580,7 +5836,7 @@ do
   local f = Instance.new("TextButton")
   f.Name = randomString()
   f.Size = UDim2.new(1, 0, 0, ROW)
-  f.BackgroundColor3 = COLORS.HEADER
+  f.BackgroundColor3 = config.COLORS.HEADER
   f.BackgroundTransparency = 1
   f.BorderSizePixel = 0
   f.AutoButtonColor = false
@@ -5616,7 +5872,7 @@ do
   arrow.Name = randomString()
   arrow.Size = UDim2.new(0, 16, 0, 16)
   arrow.BackgroundTransparency = 1
-  arrow.Image = "rbxassetid://81462102154124"
+  arrow.Image = Explorer.Images.Chevron
   arrow.AutoButtonColor = false
   arrow.ZIndex = 5
   arrow.Visible = false
@@ -5627,7 +5883,7 @@ do
   local name = Instance.new("TextLabel")
   name.Name = randomString()
   name.BackgroundTransparency = 1
-  name.TextColor3 = COLORS.TEXT
+  name.TextColor3 = config.COLORS.TEXT
   name.TextXAlignment = Enum.TextXAlignment.Left
   name.TextYAlignment = Enum.TextYAlignment.Center
   name.Font = Enum.Font.SourceSans
@@ -5643,7 +5899,7 @@ do
   value.BackgroundColor3 = Color3.fromRGB(20, 21, 26)
   value.BackgroundTransparency = 1
   value.BorderSizePixel = 0
-  value.TextColor3 = COLORS.TEXT_BRIGHT
+  value.TextColor3 = config.COLORS.TEXT_BRIGHT
   value.Font = Enum.Font.SourceSans
   value.TextSize = 19
   value.TextXAlignment = Enum.TextXAlignment.Left
@@ -5855,9 +6111,9 @@ do
    r.arrow.Visible = true
    r.arrow.Position = UDim2.new(0, 4, 0.5, -8)
    r.arrow.Rotation = d.collapsed and 0 or 90
-   r.name.FontFace = FONT.GothamMedium
+   r.name.FontFace = config.FONT.GothamMedium
    r.name.TextSize = 12
-   r.name.TextColor3 = COLORS.TEXT_BRIGHT
+   r.name.TextColor3 = config.COLORS.TEXT_BRIGHT
    r.name.Position = UDim2.new(0, 24, 0, 0)
    r.name.Size = UDim2.new(1, -52, 1, 0)
    r.name.Text = d.name
@@ -5872,7 +6128,7 @@ do
   r.line.Visible = true
   r.name.Font = Enum.Font.SourceSans
   r.name.TextSize = 19
-  r.name.TextColor3 = COLORS.TEXT
+  r.name.TextColor3 = config.COLORS.TEXT
   r.name.Text = d.name
 
   if d.kind == "tag" then
@@ -5925,7 +6181,7 @@ do
   r.value.Text = fmt(d.value)
   if t == "EnumItem" then
    r.value.TextEditable = false
-   r.value.TextColor3 = COLORS.TEXT_BRIGHT
+   r.value.TextColor3 = config.COLORS.TEXT_BRIGHT
    if editable then
     r.hit.Visible = true
     r.hit.Position = UDim2.new(0, vx, 0, 0)
@@ -5935,15 +6191,15 @@ do
    end
   elseif editable and EDITABLE[t] then
    r.value.TextEditable = true
-   r.value.TextColor3 = COLORS.TEXT_BRIGHT
+   r.value.TextColor3 = config.COLORS.TEXT_BRIGHT
   else
    r.value.TextEditable = false
-   r.value.TextColor3 = COLORS.TEXT_DIM
+   r.value.TextColor3 = config.COLORS.TEXT_DIM
   end
  end
 
  refreshList = function()
-  if not pmain.Visible then return end
+  if not config.pmain.Visible then return end
   local viewH = list.AbsoluteSize.Y
   local listW = list.AbsoluteSize.X
   if viewH <= 0 then return end
@@ -6020,7 +6276,8 @@ do
   end
   local dragging, startPos, startScroll
   pvthumb.Active = true
-  pvthumb.InputBegan:Connect(function(inp)
+  config.WidenHit(pvthumb, false).InputBegan:Connect(function(inp)
+   if not config.Fresh(inp) then return end
    if not isPress(inp) then return end
    if maxScroll() <= 0 then return end
    dragging = true
@@ -6030,8 +6287,9 @@ do
   end)
   pvbar.MouseEnter:Connect(function() if not dragging then pvvis.BackgroundColor3 = Color3.fromRGB(120, 120, 120) end end)
   pvbar.MouseLeave:Connect(function() if not dragging then pvvis.BackgroundColor3 = Color3.fromRGB(90, 90, 90) end end)
-  SV.UserInput.InputChanged:Connect(function(inp)
+  config.SV.UserInput.InputChanged:Connect(function(inp)
    if not dragging then return end
+   if not config.Held(inp) then dragging = false pvvis.BackgroundColor3 = Color3.fromRGB(90, 90, 90) return end
    if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
    local m = maxScroll()
    local trackH = pvbar.AbsoluteSize.Y
@@ -6041,7 +6299,7 @@ do
     refreshList()
    end
   end)
-  SV.UserInput.InputEnded:Connect(function(inp)
+  config.SV.UserInput.InputEnded:Connect(function(inp)
    if isPress(inp) and dragging then
     dragging = false
     pvvis.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
@@ -6052,51 +6310,53 @@ do
  do
   local dragging, startX, startDiv
   divHit.InputBegan:Connect(function(inp)
+   if not config.Fresh(inp) then return end
    if not isPress(inp) then return end
    dragging = true
    startX = inp.Position.X
    startDiv = P.Divider
   end)
-  SV.UserInput.InputChanged:Connect(function(inp)
+  config.SV.UserInput.InputChanged:Connect(function(inp)
    if not dragging then return end
+   if not config.Held(inp) then dragging = false return end
    if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
    local w = math.max(1, list.AbsoluteSize.X - 12)
    P.Divider = math.clamp(startDiv + (inp.Position.X - startX) / w, 0.2, 0.75)
    refreshList()
   end)
-  SV.UserInput.InputEnded:Connect(function(inp)
+  config.SV.UserInput.InputEnded:Connect(function(inp)
    if isPress(inp) then dragging = false end
   end)
  end
 
- SV.UserInput.InputChanged:Connect(function(input)
+ config.SV.UserInput.InputChanged:Connect(function(input)
   if input.UserInputType ~= Enum.UserInputType.MouseWheel then return end
-  if not pmain.Visible then return end
+  if not config.pmain.Visible then return end
   local delta = input.Position.Z
   if delta == 0 then return end
-  local mp = SV.UserInput:GetMouseLocation()
-  local ap, as = pmain.AbsolutePosition, pmain.AbsoluteSize
+  local mp = config.SV.UserInput:GetMouseLocation()
+  local ap, as = config.pmain.AbsolutePosition, config.pmain.AbsoluteSize
   if mp.X < ap.X or mp.X > ap.X + as.X or mp.Y < ap.Y or mp.Y > ap.Y + as.Y then return end
   P.Scroll = P.Scroll - delta * 3
   refreshList()
  end)
 
  local function dockProps(side, order)
-  PDock.Side = side
-  if order then PDock.Order = order end
-  layoutDocks()
+  config.PDock.Side = side
+  if order then config.PDock.Order = order end
+  config.layoutDocks()
  end
 
  local function undockProps()
-  if not PDock.Side then return end
-  local px, py = pmain.Position.X.Offset, pmain.Position.Y.Offset
-  local w = pmain.Size.X.Offset
-  PDock.Side = nil
-  pmain.AnchorPoint = Vector2.new(0, 0)
-  pmain.Position = UDim2.new(0, px, 0, py)
-  pmain.Size = UDim2.new(0, w, 0, P.FloatH)
-  pdocksplitter.Visible = false
-  layoutDocks()
+  if not config.PDock.Side then return end
+  local px, py = config.pmain.Position.X.Offset, config.pmain.Position.Y.Offset
+  local w = config.pmain.Size.X.Offset
+  config.PDock.Side = nil
+  config.pmain.AnchorPoint = Vector2.new(0, 0)
+  config.pmain.Position = UDim2.new(0, px, 0, py)
+  config.pmain.Size = UDim2.new(0, w, 0, P.FloatH)
+  config.pdocksplitter.Visible = false
+  config.layoutDocks()
  end
 
  function Explorer.DockProperties(side, order)
@@ -6104,21 +6364,21 @@ do
  end
 
  ppin.Activated:Connect(function()
-  if PDock.Side then undockProps() else dockProps(nearestSide(pmain)) end
+  if config.PDock.Side then undockProps() else dockProps(nearestSide(config.pmain)) end
  end)
 
- MakeDraggable(pmain, hdr, {
-  blockCheck = function() return Explorer.PanelResizing[pmain] end,
+ MakeDraggable(config.pmain, hdr, {
+  blockCheck = function() return Explorer.PanelResizing[config.pmain] end,
   threshold = 4,
-  onBegin = function() if PDock.Side then undockProps() end end,
+  onBegin = function() if config.PDock.Side then undockProps() end end,
   onDrag = function(cursor)
-   local side, zone = resolveDrop(pmain, main, config.DockSide, main.Visible, cursor)
-   showHint(pmain, main, side, zone)
+   local side, zone = resolveDrop(config.pmain, config.main, config.DockSide, config.main.Visible, cursor)
+   showHint(config.pmain, config.main, side, zone)
   end,
   onEnd = function(didDrag, cursor)
-   dockHint.Visible = false
+   config.dockHint.Visible = false
    if not didDrag then return end
-   local side, zone = resolveDrop(pmain, main, config.DockSide, main.Visible, cursor)
+   local side, zone = resolveDrop(config.pmain, config.main, config.DockSide, config.main.Visible, cursor)
    if not side then return end
    local order
    if zone then order = (zone == "top") and "above" or "below" end
@@ -6127,66 +6387,450 @@ do
  })
 
  local function onPropsResize(newSize)
-  if PDock.Side then
+  if config.PDock.Side then
    if isStacked() then
-    main.Size = UDim2.new(0, newSize.X.Offset, 0, main.Size.Y.Offset)
+    config.main.Size = UDim2.new(0, newSize.X.Offset, 0, config.main.Size.Y.Offset)
     config.NormalSize = UDim2.new(0, newSize.X.Offset, 0, config.NormalSize.Y.Offset)
    end
-   layoutDocks()
+   config.layoutDocks()
   else
    P.FloatH = newSize.Y.Offset
   end
  end
 
  local EDGE = config.EDGE
- local function notRight() return PDock.Side == "right" end
- local function notLeft() return PDock.Side == "left" end
- local function whenDocked() return PDock.Side ~= nil end
- MakeResizeHandler(220, 160, "right", 1, 0, 0, EDGE, 0, 1, EDGE * 2, -EDGE * 2, 8, pmain, notRight, onPropsResize)
- MakeResizeHandler(220, 160, "left", 0, 0, -EDGE * 2, EDGE, 0, 1, EDGE * 2, -EDGE * 2, 8, pmain, notLeft, onPropsResize)
- MakeResizeHandler(220, 160, "bottom", 0, 1, EDGE, 0, 1, 0, -EDGE * 2, EDGE * 2, 8, pmain, whenDocked, onPropsResize)
- MakeResizeHandler(220, 160, "top", 0, 0, EDGE, -EDGE * 2, 1, 0, -EDGE * 2, EDGE * 2, 8, pmain, whenDocked, onPropsResize)
- MakeResizeHandler(220, 160, "top_left", 0, 0, -EDGE * 2, -EDGE * 2, 0, 0, EDGE * 2, EDGE * 2, 9, pmain, whenDocked, onPropsResize)
- MakeResizeHandler(220, 160, "top_right", 1, 0, 0, -EDGE * 2, 0, 0, EDGE * 2, EDGE * 2, 9, pmain, whenDocked, onPropsResize)
- MakeResizeHandler(220, 160, "bottom_left", 0, 1, -EDGE * 2, 0, 0, 0, EDGE * 2, EDGE * 2, 9, pmain, whenDocked, onPropsResize)
- MakeResizeHandler(220, 160, "bottom_right", 1, 1, 0, 0, 0, 0, EDGE * 2, EDGE * 2, 9, pmain, whenDocked, onPropsResize)
+ local function notRight() return config.PDock.Side == "right" end
+ local function notLeft() return config.PDock.Side == "left" end
+ local function whenDocked() return config.PDock.Side ~= nil end
+ MakeResizeHandler(220, 160, "right", 1, 0, 3-EDGE*2, EDGE, 0, 1, EDGE * 2, -EDGE * 2, 8, config.pmain, notRight, onPropsResize)
+ MakeResizeHandler(220, 160, "left", 0, 0, -3, EDGE, 0, 1, EDGE * 2, -EDGE * 2, 8, config.pmain, notLeft, onPropsResize)
+ MakeResizeHandler(220, 160, "bottom", 0, 1, EDGE, 0, 1, 0, -EDGE * 2, EDGE * 2, 8, config.pmain, whenDocked, onPropsResize)
+ MakeResizeHandler(220, 160, "top", 0, 0, EDGE, -EDGE * 2, 1, 0, -EDGE * 2, EDGE * 2, 8, config.pmain, whenDocked, onPropsResize)
+ MakeResizeHandler(220, 160, "top_left", 0, 0, -3, -EDGE * 2, 0, 0, EDGE * 2, EDGE * 2, 9, config.pmain, whenDocked, onPropsResize)
+ MakeResizeHandler(220, 160, "top_right", 1, 0, 3-EDGE*2, -EDGE * 2, 0, 0, EDGE * 2, EDGE * 2, 9, config.pmain, whenDocked, onPropsResize)
+ MakeResizeHandler(220, 160, "bottom_left", 0, 1, -3, 0, 0, 0, EDGE * 2, EDGE * 2, 9, config.pmain, whenDocked, onPropsResize)
+ MakeResizeHandler(220, 160, "bottom_right", 1, 1, 3-EDGE*2, 0, 0, 0, EDGE * 2, EDGE * 2, 9, config.pmain, whenDocked, onPropsResize)
 
  function Explorer.OpenProperties()
-  if pmain.Visible then return end
-  pmain.Visible = true
-  layoutDocks()
+  if config.pmain.Visible then return end
+  config.pmain.Visible = true
+  config.layoutDocks()
   Explorer.RefreshProperties()
  end
  function Explorer.CloseProperties()
-  if not pmain.Visible then return end
+  if not config.pmain.Visible then return end
   closeMenu()
-  pmain.Visible = false
-  layoutDocks()
+  config.pmain.Visible = false
+  config.layoutDocks()
  end
  function Explorer.ToggleProperties()
-  if pmain.Visible then Explorer.CloseProperties() else Explorer.OpenProperties() end
+  if config.pmain.Visible then Explorer.CloseProperties() else Explorer.OpenProperties() end
  end
- function Explorer.IsPropertiesOpen() return pmain.Visible end
+ function Explorer.IsPropertiesOpen() return config.pmain.Visible end
  if config.SetPropertiesActive then
-  config.SetPropertiesActive(pmain.Visible)
-  pmain:GetPropertyChangedSignal("Visible"):Connect(function() config.SetPropertiesActive(pmain.Visible) end)
+  config.SetPropertiesActive(config.pmain.Visible)
+  config.pmain:GetPropertyChangedSignal("Visible"):Connect(function() config.SetPropertiesActive(config.pmain.Visible) end)
  end
 
  pclose.Activated:Connect(Explorer.CloseProperties)
 
- SV.UserInput.InputBegan:Connect(function(inp, gpe)
+ config.SV.UserInput.InputBegan:Connect(function(inp, gpe)
   if gpe then return end
-  local alt = SV.UserInput:IsKeyDown(Enum.KeyCode.LeftAlt) or SV.UserInput:IsKeyDown(Enum.KeyCode.RightAlt)
-  local ctrl = SV.UserInput:IsKeyDown(Enum.KeyCode.LeftControl) or SV.UserInput:IsKeyDown(Enum.KeyCode.RightControl)
-  local shift = SV.UserInput:IsKeyDown(Enum.KeyCode.LeftShift) or SV.UserInput:IsKeyDown(Enum.KeyCode.RightShift)
+  local alt = config.SV.UserInput:IsKeyDown(Enum.KeyCode.LeftAlt) or config.SV.UserInput:IsKeyDown(Enum.KeyCode.RightAlt)
+  local ctrl = config.SV.UserInput:IsKeyDown(Enum.KeyCode.LeftControl) or config.SV.UserInput:IsKeyDown(Enum.KeyCode.RightControl)
+  local shift = config.SV.UserInput:IsKeyDown(Enum.KeyCode.LeftShift) or config.SV.UserInput:IsKeyDown(Enum.KeyCode.RightShift)
   if inp.KeyCode == Enum.KeyCode.P then
    if alt then
     Explorer.ToggleProperties()
-   elseif ctrl and shift and pmain.Visible then
+   elseif ctrl and shift and config.pmain.Visible then
     filterBox:CaptureFocus()
    end
   end
  end)
+end
+
+do
+ local VState = {
+  RotationX = -0.26, RotationY = 0, Distance = 10,
+  Dragging = false, AutoRotation = true, CameraLocked = false,
+  Model = nil, OriginalInstance = nil,
+  LastPosition = Vector2.zero, Touches = {}, ZoomActive = false,
+  ZoomStartDistance = 10, ActiveInput = nil,
+  conn = nil,
+ }
+ local viewerPositioned = false
+
+ local viewerPanel = Instance.new("Frame")
+ viewerPanel.Name = randomString()
+ viewerPanel.Size = UDim2.new(0, 300, 0, 260)
+ viewerPanel.Position = UDim2.new(0, 60, 0, 60)
+ viewerPanel.BackgroundColor3 = config.COLORS.PRIMARY
+ viewerPanel.BackgroundTransparency = config.NT
+ viewerPanel.BorderSizePixel = 0
+ viewerPanel.Active = true
+ viewerPanel.Visible = false
+ viewerPanel.ZIndex = 2
+ viewerPanel.Archivable = false
+ viewerPanel.Parent = config.window
+ RegisterWindow(viewerPanel)
+
+ local vhdr = Instance.new("Frame")
+ vhdr.Name = randomString()
+ vhdr.Size = UDim2.new(1, 0, 0, 28)
+ vhdr.BackgroundColor3 = config.COLORS.HEADER
+ vhdr.BorderSizePixel = 0
+ vhdr.Active = true
+ vhdr.ZIndex = 3
+ vhdr.Archivable = false
+ vhdr.Parent = viewerPanel
+
+ local vAccent = Instance.new("Frame")
+ vAccent.Name = randomString()
+ vAccent.Size = UDim2.new(1, 0, 0, 1.5)
+ vAccent.Position = UDim2.new(0, 0, 1, -1.5)
+ vAccent.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ vAccent.BorderSizePixel = 0
+ vAccent.ZIndex = 3
+ vAccent.Archivable = false
+ vAccent.Parent = vhdr
+
+ local vtitle = Instance.new("TextLabel")
+ vtitle.Name = randomString()
+ vtitle.Size = UDim2.new(1, -100, 1, 0)
+ vtitle.Position = UDim2.new(0, 35, 0, 0)
+ vtitle.BackgroundTransparency = 1
+ vtitle.Text = "3D Preview"
+ vtitle.TextColor3 = config.COLORS.TEXT_BRIGHT
+ vtitle.FontFace = config.FONT.GothamRegular
+ vtitle.TextSize = 12
+ vtitle.TextTruncate = Enum.TextTruncate.AtEnd
+ vtitle.TextXAlignment = Enum.TextXAlignment.Center
+ vtitle.ZIndex = 3
+ vtitle.Archivable = false
+ vtitle.Parent = vhdr
+
+ local vclose = Instance.new("TextButton")
+ vclose.Name = randomString()
+ vclose.Size = UDim2.new(0, 28, 0, 28)
+ vclose.Position = UDim2.new(1, -30, 0, 0)
+ vclose.BackgroundTransparency = 1
+ vclose.Text = ""
+ vclose.AutoButtonColor = false
+ vclose.BorderSizePixel = 0
+ vclose.ZIndex = 3
+ vclose.Archivable = false
+ vclose.Parent = vhdr
+ MakeCloseIcon(vclose, 8, 4, Color3.fromRGB(210, 210, 210))
+
+ local vrotate = Instance.new("ImageButton")
+ vrotate.Name = randomString()
+ vrotate.Size = UDim2.new(0, 22, 0, 22)
+ vrotate.Position = UDim2.new(1, -58, 0, 3)
+ vrotate.BackgroundColor3 = Color3.fromRGB(40, 80, 60)
+ vrotate.BackgroundTransparency = 0.7
+ vrotate.AutoButtonColor = false
+ vrotate.Image = ""
+ vrotate.ImageColor3 = Color3.fromRGB(140, 220, 180)
+ vrotate.BorderSizePixel = 0
+ vrotate.ZIndex = 3
+ vrotate.Archivable = false
+ vrotate.Parent = vhdr
+ RoundCorner(vrotate, 0, 6)
+
+ Explorer.ApplyImage(vrotate, "Rotation")
+
+ local vbody = Instance.new("Frame")
+ vbody.Name = randomString()
+ vbody.Size = UDim2.new(1, 0, 1, -28)
+ vbody.Position = UDim2.new(0, 0, 0, 28)
+ vbody.BackgroundTransparency = 1
+ vbody.ZIndex = 3
+ vbody.Archivable = false
+ vbody.Parent = viewerPanel
+
+ local viewport = Instance.new("ViewportFrame")
+ viewport.Name = randomString()
+ viewport.Size = UDim2.new(1, -16, 1, -44)
+ viewport.Position = UDim2.new(0, 8, 0, 8)
+ viewport.BackgroundColor3 = Color3.fromRGB(14, 14, 14)
+ viewport.BorderSizePixel = 0
+ viewport.Active = true
+ viewport.ZIndex = 3
+ viewport.Archivable = false
+ viewport.Parent = vbody
+ RoundCorner(viewport, 0, 6)
+
+ local vpath = Instance.new("TextLabel")
+ vpath.Name = randomString()
+ vpath.Size = UDim2.new(1, -16, 0, 18)
+ vpath.Position = UDim2.new(0, 8, 1, -26)
+ vpath.BackgroundTransparency = 1
+ vpath.Text = ""
+ vpath.TextColor3 = config.COLORS.TEXT_DIM
+ vpath.FontFace = config.FONT.GothamMedium
+ vpath.TextSize = 10
+ vpath.TextXAlignment = Enum.TextXAlignment.Left
+ vpath.TextTruncate = Enum.TextTruncate.AtEnd
+ vpath.ZIndex = 3
+ vpath.Archivable = false
+ vpath.Parent = vbody
+
+ local function SafeClone(inst)
+  local was = true
+  pcall(function() was = inst.Archivable end)
+  if was == false then pcall(function() inst.Archivable = true end) end
+  local ok, c = pcall(function() return inst:Clone() end)
+  if was == false then pcall(function() inst.Archivable = false end) end
+  if ok and c then return c end
+  return nil
+ end
+
+ local StopViewer
+ StopViewer = function()
+  if VState.conn then VState.conn:Disconnect() VState.conn = nil end
+  if VState.Model then VState.Model:Destroy() VState.Model = nil end
+  viewport:ClearAllChildren()
+  VState.OriginalInstance = nil
+  vtitle.Text = "3D Preview"
+  vpath.Text = ""
+  viewerPanel.Visible = false
+ end
+
+ local function ShowViewerError(msg)
+  VState.Model = nil
+  viewport:ClearAllChildren()
+  vtitle.Text = "3D Preview - Error"
+  vpath.Text = msg
+  viewerPanel.Visible = true
+  BringToFront(viewerPanel)
+ end
+
+ local function SmartPosition()
+  if viewerPositioned then return end
+  viewerPositioned = true
+  local scr = config.window.AbsoluteSize
+  local w, h = viewerPanel.Size.X.Offset, viewerPanel.Size.Y.Offset
+  local leftBound, rightBound = 0, scr.X
+  local function claim(gui, side)
+   if not gui or not gui.Visible then return end
+   if side == "left" then
+    leftBound = math.max(leftBound, gui.AbsolutePosition.X + gui.AbsoluteSize.X)
+   elseif side == "right" then
+    rightBound = math.min(rightBound, gui.AbsolutePosition.X)
+   end
+  end
+  claim(config.main, config.DockSide)
+  claim(config.pmain, config.PDock.Side)
+  local availableW = rightBound - leftBound
+  local x
+  if availableW >= w + 20 then
+   x = leftBound + (availableW - w) / 2
+  else
+   x = scr.X - w - 40
+  end
+  x = math.clamp(x, 4, math.max(4, scr.X - w - 4))
+  local y = math.clamp(scr.Y / 2 - h / 2, topInset() + 4, math.max(topInset() + 4, scr.Y - h - 4))
+  viewerPanel.Position = UDim2.new(0, x, 0, y)
+  clampPanelTop(viewerPanel)
+ end
+
+ local function ViewModel(inst)
+  if not inst or not inst.Real then return end
+  StopViewer()
+  SmartPosition()
+  local real = inst.Real
+
+  local ok, err = pcall(function()
+   local isBasePart, isModel = false, false
+   pcall(function() isBasePart = real:IsA("BasePart") end)
+   pcall(function() isModel = real:IsA("Model") end)
+
+   local built
+   if isBasePart and not isModel then
+    built = Instance.new("Model")
+    local clone = SafeClone(real)
+    if not clone then error("could not clone (Archivable blocked)") end
+    clone.Parent = built
+    built.PrimaryPart = clone
+    built:SetPrimaryPartCFrame(CFrame.new(0, 0, 0))
+   elseif isModel then
+    built = SafeClone(real)
+    if not built then error("could not clone (Archivable blocked)") end
+    if #built:GetChildren() == 0 then
+     built:Destroy()
+     error("Model has no children")
+    end
+    if not built.PrimaryPart then
+     local found = false
+     for _, child in ipairs(built:GetDescendants()) do
+      if child:IsA("BasePart") then
+       built.PrimaryPart = child
+       found = true
+       break
+      end
+     end
+     if not found then
+      built:Destroy()
+      error("no BasePart found")
+     end
+    end
+    built:SetPrimaryPartCFrame(CFrame.new(0, 0, 0))
+   else
+    error("unsupported type: " .. real.ClassName)
+   end
+
+   built.Parent = viewport
+   VState.Model = built
+   VState.OriginalInstance = inst
+   VState.RotationX, VState.RotationY = -0.26, 0
+   VState.Distance = 10
+
+   local camera = Instance.new("Camera")
+   camera.FieldOfView = 60
+   camera.Parent = viewport
+   viewport.CurrentCamera = camera
+
+   vtitle.Text = inst.Name .. " - 3D Preview"
+   pcall(function() vpath.Text = "path: " .. inst:GetFullName() end)
+
+   VState.conn = config.SV.RunSrv.RenderStepped:Connect(function(dt)
+    if not VState.Model or not VState.Model.PrimaryPart or not camera.Parent then return end
+    if not VState.Dragging and VState.AutoRotation then
+     VState.RotationY = VState.RotationY + 0.4 * dt
+    end
+    local center = VState.Model.PrimaryPart.Position
+    local rotation = CFrame.Angles(0, VState.RotationY, 0) * CFrame.Angles(VState.RotationX, 0, 0)
+    local camCF = CFrame.new(center) * rotation * CFrame.new(0, 0, VState.Distance)
+    camera.CFrame = CFrame.lookAt(camCF.Position, center)
+   end)
+
+   viewerPanel.Visible = true
+   BringToFront(viewerPanel)
+  end)
+
+  if not ok then
+   ShowViewerError(tostring(err):match(":%d+:%s*(.*)$") or tostring(err))
+  end
+ end
+
+ viewport.InputBegan:Connect(function(inp)
+  if not config.Fresh(inp) then return end
+  if VState.CameraLocked then return end
+  if inp.UserInputType == Enum.UserInputType.Touch then
+   table.insert(VState.Touches, inp)
+   if #VState.Touches == 2 then
+    VState.ZoomActive = true
+    local t1, t2 = VState.Touches[1], VState.Touches[2]
+    local dx = t1.Position.X - t2.Position.X
+    local dy = t1.Position.Y - t2.Position.Y
+    VState.ZoomStartDistance = math.sqrt(dx*dx + dy*dy)
+    VState.zoomStartDistance = VState.Distance
+    VState.Dragging = false
+   else
+    VState.Dragging = true
+    VState.ActiveInput = inp
+    VState.LastPosition = inp.Position
+   end
+  elseif inp.UserInputType == Enum.UserInputType.MouseButton1 then
+   VState.Dragging = true
+   VState.ActiveInput = inp
+   VState.LastPosition = inp.Position
+  end
+ end)
+
+ viewport.InputChanged:Connect(function(inp)
+  if VState.CameraLocked then return end
+  if VState.ZoomActive then
+   local t1, t2 = VState.Touches[1], VState.Touches[2]
+   if t1 and t2 then
+    local dx = t1.Position.X - t2.Position.X
+    local dy = t1.Position.Y - t2.Position.Y
+    local cur = math.sqrt(dx*dx + dy*dy)
+    if cur > 0 then
+     local scale = cur / VState.ZoomStartDistance
+     VState.Distance = math.clamp(VState.zoomStartDistance / scale, 1, 300)
+    end
+   end
+  elseif VState.Dragging and inp == VState.ActiveInput then
+   if inp.UserInputType == Enum.UserInputType.Touch or inp.UserInputType == Enum.UserInputType.MouseMovement then
+    local delta = inp.Position - VState.LastPosition
+    VState.LastPosition = inp.Position
+    VState.RotationY = VState.RotationY - delta.X * 0.01
+    VState.RotationX = math.clamp(VState.RotationX - delta.Y * 0.01, -math.pi/2 + 0.1, math.pi/2 - 0.1)
+   end
+  end
+ end)
+
+ viewport.InputEnded:Connect(function(inp)
+  if VState.CameraLocked then return end
+  if inp.UserInputType == Enum.UserInputType.Touch then
+   for i = #VState.Touches, 1, -1 do
+    if VState.Touches[i] == inp then
+     table.remove(VState.Touches, i)
+     break
+    end
+   end
+   if #VState.Touches < 2 then VState.ZoomActive = false end
+   if #VState.Touches == 0 then
+    VState.Dragging = false
+    VState.ActiveInput = nil
+   else
+    VState.Dragging = true
+    VState.ActiveInput = VState.Touches[1]
+    VState.LastPosition = VState.ActiveInput.Position
+   end
+  elseif inp.UserInputType == Enum.UserInputType.MouseButton1 then
+   VState.Dragging = false
+   VState.ActiveInput = nil
+  end
+ end)
+
+ config.SV.UserInput.InputChanged:Connect(function(inp)
+  if not VState.Dragging or VState.CameraLocked or inp ~= VState.ActiveInput then return end
+  if not config.Held(inp) then VState.Dragging = false VState.ActiveInput = nil return end
+  if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
+  local delta = inp.Position - VState.LastPosition
+  VState.LastPosition = inp.Position
+  VState.RotationY = VState.RotationY - delta.X * 0.01
+  VState.RotationX = math.clamp(VState.RotationX - delta.Y * 0.01, -math.pi/2 + 0.1, math.pi/2 - 0.1)
+ end)
+
+ viewport.MouseWheelForward:Connect(function()
+  VState.Distance = math.max(1, VState.Distance - VState.Distance * 0.15)
+ end)
+ viewport.MouseWheelBackward:Connect(function()
+  VState.Distance = math.min(300, VState.Distance + VState.Distance * 0.15)
+ end)
+
+ vrotate.Activated:Connect(function()
+  VState.AutoRotation = not VState.AutoRotation
+  if VState.AutoRotation then
+   vrotate.BackgroundColor3 = Color3.fromRGB(40, 80, 60)
+   vrotate.ImageColor3 = Color3.fromRGB(140, 220, 180)
+  else
+   vrotate.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+   vrotate.ImageColor3 = Color3.fromRGB(120, 120, 120)
+  end
+ end)
+
+ vclose.Activated:Connect(StopViewer)
+
+ MakeDraggable(viewerPanel, vhdr, { threshold = 4 })
+
+ local EDGE = config.EDGE
+ MakeResizeHandler(200, 180, "right", 1, 0, 0, EDGE, 0, 1, EDGE * 2, -EDGE * 2, 8, viewerPanel)
+ MakeResizeHandler(200, 180, "left", 0, 0, -EDGE * 2, EDGE, 0, 1, EDGE * 2, -EDGE * 2, 8, viewerPanel)
+ MakeResizeHandler(200, 180, "bottom", 0, 1, EDGE, 0, 1, 0, -EDGE * 2, EDGE * 2, 8, viewerPanel)
+ MakeResizeHandler(200, 180, "top", 0, 0, EDGE, -EDGE * 2, 1, 0, -EDGE * 2, EDGE * 2, 8, viewerPanel)
+ MakeResizeHandler(200, 180, "top_left", 0, 0, -EDGE * 2, -EDGE * 2, 0, 0, EDGE * 2, EDGE * 2, 9, viewerPanel)
+ MakeResizeHandler(200, 180, "top_right", 1, 0, 0, -EDGE * 2, 0, 0, EDGE * 2, EDGE * 2, 9, viewerPanel)
+ MakeResizeHandler(200, 180, "bottom_left", 0, 1, -EDGE * 2, 0, 0, 0, EDGE * 2, EDGE * 2, 9, viewerPanel)
+ MakeResizeHandler(200, 180, "bottom_right", 1, 1, 0, 0, 0, 0, EDGE * 2, EDGE * 2, 9, viewerPanel)
+
+ Explorer.ViewModel = ViewModel
+ Explorer.StopViewer = StopViewer
+ Explorer.IsViewerOpen = function() return viewerPanel.Visible end
+ Explorer.ViewerPanel = viewerPanel
 end
 
 function Explorer.DumpFunctions(scr)
@@ -6376,15 +7020,15 @@ Explorer.SourceProvider = nil
 Explorer.Highlighter = nil
 Explorer.HighlighterUrl = "https://raw.githubusercontent.com/lqdxt/Scripts/refs/heads/main/Highlighter.lua"
 
-local SCRIPT_CLASSES = { Script = true, LocalScript = true, ModuleScript = true }
-local srcOpen = false
-local reloadSource
+config.SCRIPT_CLASSES = { Script = true, LocalScript = true, ModuleScript = true }
+config.srcOpen = false
+config.reloadSource = nil
 
 function Explorer.IsScript(inst)
- return inst ~= nil and SCRIPT_CLASSES[inst.ClassName] == true
+ return inst ~= nil and config.SCRIPT_CLASSES[inst.ClassName] == true
 end
 
-function Explorer.IsSourceOpen() return srcOpen end
+function Explorer.IsSourceOpen() return config.srcOpen end
 
 function Explorer.SetSource(target, source)
  if type(target) == "function" then
@@ -6392,7 +7036,7 @@ function Explorer.SetSource(target, source)
  elseif target ~= nil then
   Explorer.Sources[target] = source
  end
- if reloadSource then reloadSource(target) end
+ if config.reloadSource then config.reloadSource(target) end
 end
 
 function Explorer.GetSource(inst)
@@ -6528,7 +7172,7 @@ do
 
  local panel = Instance.new("Frame")
  panel.Name = randomString()
- panel.BackgroundColor3 = COLORS.PRIMARY
+ panel.BackgroundColor3 = config.COLORS.PRIMARY
  panel.BackgroundTransparency = config.NT
  panel.BorderSizePixel = 0
  panel.Active = true
@@ -6536,12 +7180,12 @@ do
  panel.Visible = false
  panel.ClipsDescendants = true
  panel.Archivable = false
- panel.Parent = window
+ panel.Parent = config.window
 
  local hdr = Instance.new("Frame")
  hdr.Name = randomString()
  hdr.Size = UDim2.new(1, 0, 0, 28)
- hdr.BackgroundColor3 = COLORS.HEADER
+ hdr.BackgroundColor3 = config.COLORS.HEADER
  hdr.BorderSizePixel = 0
  hdr.ZIndex = 3
  hdr.Archivable = false
@@ -6558,13 +7202,13 @@ do
 
  local htitle = Instance.new("TextLabel")
  htitle.Name = randomString()
- htitle.Size = UDim2.new(1, -210, 1, 0)
+ htitle.Size = UDim2.new(1, -236, 1, 0)
  htitle.Position = UDim2.new(0, 32, 0, 0)
  htitle.BackgroundTransparency = 1
  htitle.RichText = true
  htitle.Text = ""
- htitle.TextColor3 = COLORS.TEXT_BRIGHT
- htitle.FontFace = FONT.GothamRegular
+ htitle.TextColor3 = config.COLORS.TEXT_BRIGHT
+ htitle.FontFace = config.FONT.GothamRegular
  htitle.TextSize = 12
  htitle.TextXAlignment = Enum.TextXAlignment.Left
  htitle.TextTruncate = Enum.TextTruncate.AtEnd
@@ -6589,12 +7233,12 @@ do
  hcopy.Name = randomString()
  hcopy.Size = UDim2.new(0, 52, 0, 20)
  hcopy.Position = UDim2.new(1, -88, 0.5, -10)
- hcopy.BackgroundColor3 = COLORS.SECONDARY
+ hcopy.BackgroundColor3 = config.COLORS.SECONDARY
  hcopy.BackgroundTransparency = 0.5
  hcopy.AutoButtonColor = true
  hcopy.Text = "Copy"
- hcopy.TextColor3 = COLORS.TEXT_BRIGHT
- hcopy.FontFace = FONT.GothamMedium
+ hcopy.TextColor3 = config.COLORS.TEXT_BRIGHT
+ hcopy.FontFace = config.FONT.GothamMedium
  hcopy.TextSize = 11
  hcopy.BorderSizePixel = 0
  hcopy.ZIndex = 4
@@ -6606,18 +7250,44 @@ local hdump = Instance.new("TextButton")
 hdump.Name = randomString()
 hdump.Size = UDim2.new(0, 52, 0, 20)
 hdump.Position = UDim2.new(1, -144, 0.5, -10)
-hdump.BackgroundColor3 = COLORS.SECONDARY
+hdump.BackgroundColor3 = config.COLORS.SECONDARY
 hdump.BackgroundTransparency = 0.5
 hdump.AutoButtonColor = true
 hdump.Text = "Dump"
-hdump.TextColor3 = COLORS.TEXT_BRIGHT
-hdump.FontFace = FONT.GothamMedium
+hdump.TextColor3 = config.COLORS.TEXT_BRIGHT
+hdump.FontFace = config.FONT.GothamMedium
 hdump.TextSize = 11
 hdump.BorderSizePixel = 0
 hdump.ZIndex = 4
 hdump.Archivable = false
 hdump.Parent = hdr
 RoundCorner(hdump, 0, 6)
+
+ local function makeZoomBtn(xOff, imageName)
+  local b = Instance.new("ImageButton")
+  b.Name = randomString()
+  b.Size = UDim2.new(0, 22, 0, 20)
+  b.Position = UDim2.new(1, xOff, 0.5, -10)
+  b.BackgroundColor3 = config.COLORS.SECONDARY
+  b.BackgroundTransparency = 0.5
+  b.AutoButtonColor = true
+  b.Image = ""
+  b.ImageColor3 = config.COLORS.TEXT_BRIGHT
+  b.ScaleType = Enum.ScaleType.Fit
+  b.BorderSizePixel = 0
+  b.ZIndex = 4
+  b.Archivable = false
+  b.Parent = hdr
+  RoundCorner(b, 0, 6)
+  local pad = Instance.new("UIPadding")
+  pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 3), UDim.new(0, 3)
+  pad.PaddingLeft, pad.PaddingRight = UDim.new(0, 3), UDim.new(0, 3)
+  pad.Parent = b
+  Explorer.ApplyImage(b, imageName)
+  return b
+ end
+ local hzoomin = makeZoomBtn(-196, "ZoomIn")
+ local hzoomout = makeZoomBtn(-170, "ZoomOut")
 
  local sBody = Instance.new("Frame")
  sBody.Name = randomString()
@@ -6650,7 +7320,7 @@ RoundCorner(hdump, 0, 6)
 
  local sGutter = Instance.new("Frame")
  sGutter.Name = randomString()
- sGutter.BackgroundColor3 = COLORS.HEADER
+ sGutter.BackgroundColor3 = config.COLORS.HEADER
  sGutter.BackgroundTransparency = 0.5
  sGutter.BorderSizePixel = 0
  sGutter.ClipsDescendants = true
@@ -6703,7 +7373,7 @@ RoundCorner(hdump, 0, 6)
 
  local charW = 8
  pcall(function()
-  local w = SV.TextSrv:GetTextSize("WWWWWWWWWW", TS, CODE_FONT, Vector2.new(10000, 100)).X / 10
+  local w = config.SV.TextSrv:GetTextSize("WWWWWWWWWW", TS, CODE_FONT, Vector2.new(10000, 100)).X / 10
   if w > 2 then charW = w end
  end)
 
@@ -6749,7 +7419,7 @@ RoundCorner(hdump, 0, 6)
   num.BackgroundTransparency = 1
   num.Font = CODE_FONT
   num.TextSize = TS
-  num.TextColor3 = COLORS.TEXT_DIM
+  num.TextColor3 = config.COLORS.TEXT_DIM
   num.TextXAlignment = Enum.TextXAlignment.Right
   num.Size = UDim2.new(1, -8, 0, LH)
   num.ZIndex = 5
@@ -6780,7 +7450,7 @@ RoundCorner(hdump, 0, 6)
    local f = Instance.new("Frame")
    f.Name = randomString()
    f.BorderSizePixel = 0
-   f.BackgroundColor3 = COLORS.WHITE
+   f.BackgroundColor3 = config.COLORS.WHITE
    f.BackgroundTransparency = GUIDE_TRANSPARENCY
    f.Size = UDim2.new(0, 1, 0, LH)
    f.ZIndex = 2
@@ -6876,14 +7546,14 @@ RoundCorner(hdump, 0, 6)
   return mp.X >= ap.X and mp.X <= ap.X + as.X and mp.Y >= ap.Y and mp.Y <= ap.Y + as.Y
  end
 
- SV.UserInput.InputChanged:Connect(function(input)
+ config.SV.UserInput.InputChanged:Connect(function(input)
   if input.UserInputType ~= Enum.UserInputType.MouseWheel then return end
   if not panel.Visible then return end
   local delta = input.Position.Z
   if delta == 0 then return end
   local mp = Vector2.new(input.Position.X, input.Position.Y)
   if not pointIn(panel, mp) then return end
-  if main.Visible and pointIn(main, mp) then return end
+  if config.main.Visible and pointIn(config.main, mp) then return end
   local viewH = sScroll.AbsoluteSize.Y
   local maxIdx = math.max(0, #st.lines - math.floor(viewH / LH))
   st.index = math.clamp(st.index - delta * 3, 0, maxIdx)
@@ -6892,14 +7562,16 @@ RoundCorner(hdump, 0, 6)
 
  local function draggable(thumb, track, isHorizontal)
   local dragging, startPos, startScroll
-  thumb.InputBegan:Connect(function(inp)
+  config.WidenHit(thumb, isHorizontal).InputBegan:Connect(function(inp)
+   if not config.Fresh(inp) then return end
    if inp.UserInputType ~= Enum.UserInputType.MouseButton1 and inp.UserInputType ~= Enum.UserInputType.Touch then return end
    dragging = true
    startPos = inp.Position
    startScroll = isHorizontal and st.hoff or st.index
   end)
-  SV.UserInput.InputChanged:Connect(function(inp)
+  config.SV.UserInput.InputChanged:Connect(function(inp)
    if not dragging then return end
+   if not config.Held(inp) then dragging = false return end
    if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
    if isHorizontal then
     local trackW = track.AbsoluteSize.X
@@ -6920,7 +7592,7 @@ RoundCorner(hdump, 0, 6)
    end
    refresh()
   end)
-  SV.UserInput.InputEnded:Connect(function(inp)
+  config.SV.UserInput.InputEnded:Connect(function(inp)
    if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
     dragging = false
    end
@@ -6982,52 +7654,103 @@ RoundCorner(hdump, 0, 6)
  end
 
  local function layout()
-  local scr = window.AbsoluteSize
+  local scr = config.window.AbsoluteSize
   local x0, x1 = 0, scr.X
+  local pad = 3
   local function claim(gui, side)
    if not gui or not gui.Visible then return end
    if side == "left" then
-    x0 = math.max(x0, gui.AbsolutePosition.X + gui.AbsoluteSize.X)
+    x0 = math.max(x0, gui.AbsolutePosition.X + gui.AbsoluteSize.X + pad)
    elseif side == "right" then
-    x1 = math.min(x1, gui.AbsolutePosition.X)
+    x1 = math.min(x1, gui.AbsolutePosition.X - pad)
    end
   end
-  claim(main, config.DockSide)
-  claim(pmain, PDock.Side)
+  claim(config.main, config.DockSide)
+  claim(config.pmain, config.PDock.Side)
   local w = x1 - x0
   local inset = topInset()
   panel.Position = UDim2.new(0, x0, 0, inset)
   panel.Size = UDim2.new(0, math.max(0, w), 1, -inset)
-  panel.Visible = srcOpen and main.Visible and w > 0
+  panel.Visible = config.srcOpen and w > 0
   refresh()
  end
- layoutSource = layout
+ config.layoutSource = layout
+ config.main:GetPropertyChangedSignal("Visible"):Connect(layout)
 
  function Explorer.OpenSource(inst)
   if not inst then return end
-  srcOpen = true
+  config.srcOpen = true
   layout()
   load(inst, st.inst == inst)
  end
 
  function Explorer.CloseSource()
-  srcOpen = false
+  config.srcOpen = false
   layout()
  end
 
  function Explorer.SetHighlighter(mod)
   if mod ~= nil and (type(mod) ~= "table" or type(mod.Tokenize) ~= "function") then return false end
   Explorer.Highlighter = mod
-  if srcOpen and st.inst then load(st.inst, true) end
+  if config.srcOpen and st.inst then load(st.inst, true) end
   return true
  end
 
- reloadSource = function(target)
-  if not srcOpen or not st.inst then return end
+ config.reloadSource = function(target)
+  if not config.srcOpen or not st.inst then return end
   if type(target) == "function" or target == st.inst then load(st.inst, true) end
  end
 
+ local MIN_TS, MAX_TS = 8, 28
+ local function setFontSize(n)
+  n = math.clamp(n, MIN_TS, MAX_TS)
+  if n == TS then return end
+  TS = n
+  LH = n + 4
+  pcall(function()
+   local w = config.SV.TextSrv:GetTextSize("WWWWWWWWWW", TS, CODE_FONT, Vector2.new(10000, 100)).X / 10
+   if w > 2 then charW = w end
+  end)
+  for _, e in ipairs(entries) do
+   e.num.TextSize = TS
+   e.code.TextSize = TS
+   e.num.Size = UDim2.new(1, -8, 0, LH)
+   for _, g in ipairs(e.guides) do g.Size = UDim2.new(0, 1, 0, LH) end
+  end
+  local maxLen = 0
+  for _, line in ipairs(st.lines) do
+   if #line > maxLen then maxLen = #line end
+  end
+  st.gW = #tostring(#st.lines) * charW + 20
+  st.contentW = maxLen * charW + 40
+  refresh()
+ end
+
+ local function mouseOverSource()
+  if not panel.Visible then return false end
+  local ml = config.SV.UserInput:GetMouseLocation()
+  local gi = Vector2.new(0, 0)
+  pcall(function() gi = config.SV.Gui:GetGuiInset() end)
+  local function inside(gui, m)
+   return gui.Visible and pointIn(gui, m)
+  end
+  local over = inside(panel, ml) or inside(panel, ml - gi)
+  if not over then return false end
+  if config.main.Visible and (inside(config.main, ml) or inside(config.main, ml - gi)) then return false end
+  return true
+ end
+
+ config.SV.ContextAction:BindActionAtPriority("ExplorerSourceFontSize", function(_, state, inp)
+  if not mouseOverSource() then return Enum.ContextActionResult.Pass end
+  if state == Enum.UserInputState.Begin then
+   setFontSize(TS + (inp.KeyCode == Enum.KeyCode.I and 1 or -1))
+  end
+  return Enum.ContextActionResult.Sink
+ end, false, Enum.ContextActionPriority.High.Value, Enum.KeyCode.I, Enum.KeyCode.O)
+
  hclose.Activated:Connect(Explorer.CloseSource)
+ hzoomin.Activated:Connect(function() setFontSize(TS + 1) end)
+ hzoomout.Activated:Connect(function() setFontSize(TS - 1) end)
  hcopy.Activated:Connect(function()
   if setclipboard then
    pcall(setclipboard, st.raw)
@@ -7040,13 +7763,13 @@ RoundCorner(hdump, 0, 6)
  	if not st.inst then return end
  	if hdump.Text == "..." then return end
  	hdump.Text = "..."
- 	hdump.TextColor3 = COLORS.TEXT_DIM
+ 	hdump.TextColor3 = config.COLORS.TEXT_DIM
 
  	local inst = st.inst
  	task.spawn(function()
  		local dumpText = Explorer.DumpFunctions(inst)
  		hdump.Text = "Dump"
- 		hdump.TextColor3 = COLORS.TEXT_BRIGHT
+ 		hdump.TextColor3 = config.COLORS.TEXT_BRIGHT
 
  		if not dumpText then
  			hdump.Text = "No Dump"
@@ -7098,13 +7821,13 @@ RoundCorner(hdump, 0, 6)
  	end)
  end)
 
- main:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
- main:GetPropertyChangedSignal("AbsolutePosition"):Connect(layout)
- main:GetPropertyChangedSignal("Visible"):Connect(layout)
- window:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
- pmain:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
- pmain:GetPropertyChangedSignal("AbsolutePosition"):Connect(layout)
- pmain:GetPropertyChangedSignal("Visible"):Connect(layout)
+ config.main:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
+ config.main:GetPropertyChangedSignal("AbsolutePosition"):Connect(layout)
+ config.main:GetPropertyChangedSignal("Visible"):Connect(layout)
+ config.window:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
+ config.pmain:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
+ config.pmain:GetPropertyChangedSignal("AbsolutePosition"):Connect(layout)
+ config.pmain:GetPropertyChangedSignal("Visible"):Connect(layout)
 
  task.spawn(function()
   local ok, mod = pcall(function()
@@ -7155,14 +7878,14 @@ do
   ClassName = "Root",
   Parent = nil,
   Children = {},
- }, VirtualInstance)
+ }, config.VirtualInstance)
 
  local nilRoot = setmetatable({
   Name = "nil",
   ClassName = "Root",
   Parent = nil,
   Children = {},
- }, VirtualInstance)
+ }, config.VirtualInstance)
 
  Explorer.Mode = "Game"
  Explorer.Root = gameRoot
@@ -7211,7 +7934,7 @@ do
    Parent = parent,
    Children = {},
    Real = real,
-  }, VirtualInstance)
+  }, config.VirtualInstance)
   local ch = parent.Children
   ch[#ch + 1] = v
   parent._sorted = nil
@@ -7256,7 +7979,7 @@ do
    for j = 1, #top do
     local kid = top[j]
     local okN, nm = pcall(readNameOf, kid)
-    if okN and not have[nm] and kid ~= folder then
+    if okN and not have[nm] and kid ~= config.folder then
      local v = mirrorOne(cloneref(kid), gameRoot)
      if v then
       have[nm] = true
@@ -7596,7 +8319,7 @@ do
     addQ[addHead] = nil
     addHead += 1
     count += 1
-    if inst ~= folder then
+    if inst ~= config.folder then
      local pv = vOf(inst.Parent)
      if pv then
       if not pv.Loaded then
@@ -7614,7 +8337,7 @@ do
          Parent = pv,
          Children = {},
          Real = inst,
-        }, VirtualInstance)
+        }, config.VirtualInstance)
         sortedInsert(pv, v)
         realToV[inst] = v
         added = true
@@ -7638,7 +8361,7 @@ do
    for i = 1, #kids do
     local kid = kids[i]
     present[kid] = true
-    if kid ~= folder and not realToV[kid] then
+    if kid ~= config.folder and not realToV[kid] then
      local okI, name, class = pcall(readInfo, kid)
      if okI then
       local v = setmetatable({
@@ -7647,7 +8370,7 @@ do
        Parent = pv,
        Children = {},
        Real = kid,
-      }, VirtualInstance)
+      }, config.VirtualInstance)
       sortedInsert(pv, v)
       realToV[kid] = v
       changed = true
@@ -7697,7 +8420,7 @@ do
   local function viewNames()
    local rows = config.visiblerows
    local from = config.ScrollIndex + 1
-   local to = math.min(#rows, from + math.ceil(body.AbsoluteSize.Y / config.ROW_H) + 2)
+   local to = math.min(#rows, from + math.ceil(config.body.AbsoluteSize.Y / config.ROW_H) + 2)
    for i = from, to do checkRow(rows[i]) end
   end
 
@@ -7734,7 +8457,7 @@ do
    local rows, index = b.rows, b.index
    local sK, sI, sD = b.sK, b.sI, b.sD
    local Expanded = Explorer.Expanded
-   local INDENT = Positions.INDENT
+   local INDENT = config.Positions.INDENT
    local n, count, t0 = b.n, 0, os.clock()
    while b.top > 0 do
     local top = b.top
@@ -7783,8 +8506,8 @@ do
    Explorer.RowIndex = b.index
    local br = b.bestRow
    config.TreeWidthRow = br
-   config.TreeWidthBase = br and (br.depth * Positions.INDENT + 44 + nameWidth(br.instance) + 60) or 0
-   emptyLabel.Visible = (b.n == 0)
+   config.TreeWidthBase = br and (br.depth * config.Positions.INDENT + 44 + nameWidth(br.instance) + 60) or 0
+   config.emptyLabel.Visible = (b.n == 0)
    drawDirty = false
    lastDraw = os.clock()
    RefreshTree()
@@ -7874,7 +8597,7 @@ do
     Parent = pv,
     Children = {},
     Real = real,
-   }, VirtualInstance)
+   }, config.VirtualInstance)
    sortedInsert(pv, v)
    realToV[real] = v
    return v
@@ -7959,13 +8682,13 @@ do
   local gm = cloneref(game)
   pcall(function() gm.DescendantAdded:Connect(onAdded) end)
   pcall(function() gm.DescendantRemoving:Connect(onRemoving) end)
-  SV.RunSrv.Heartbeat:Connect(function()
+  config.SV.RunSrv.Heartbeat:Connect(function()
    pcall(step)
   end)
  end
 
  task.spawn(function()
-  repeat task.wait() until window.AbsoluteSize.X > 0
+  repeat task.wait() until config.window.AbsoluteSize.X > 0
   if Explorer.Mode == "Game" and not scanned then
    ScanGame()
    ScanNilInstances()
@@ -7973,22 +8696,22 @@ do
  end)
 end
 
-for _, v in ipairs(folder:GetDescendants()) do
+for _, v in ipairs(config.folder:GetDescendants()) do
  if v.RobloxLocked == false then v.RobloxLocked = true end
 end
 
 task.spawn(function()
- repeat task.wait() until window.AbsoluteSize.X > 0
- PDock.Side = "right"
- PDock.Order = "below"
+ repeat task.wait() until config.window.AbsoluteSize.X > 0
+ config.PDock.Side = "right"
+ config.PDock.Order = "below"
  ApplyDock("right")
  Explorer.ScanTree()
  RefreshTree()
  Explorer.RefreshProperties()
 end)
 
-window:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
- if layoutDocks then layoutDocks() end
+config.window:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+ if config.layoutDocks then config.layoutDocks() end
 end)
 
 getgenv().Explorer = Explorer
