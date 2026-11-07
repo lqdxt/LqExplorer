@@ -1,1 +1,0 @@
-return game:HttpGet("https://files.catbox.moe/wnft2n.png")
