@@ -1039,7 +1039,6 @@ config.window = Instance.new("ScreenGui")
 config.window.Name = randomString()
 config.window.ResetOnSpawn = false
 config.window.IgnoreGuiInset = true
-config.window.DisplayOrder = 10
 config.window.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 config.window.Archivable = false
 config.window.ClipToDeviceSafeArea = true
@@ -1763,7 +1762,6 @@ config.menuGui = Instance.new("ScreenGui")
 config.menuGui.Name = randomString()
 config.menuGui.ResetOnSpawn = false
 config.menuGui.IgnoreGuiInset = true
-config.menuGui.DisplayOrder = 11
 config.menuGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 config.menuGui.ClipToDeviceSafeArea = false
 config.menuGui.Archivable = false
@@ -7109,8 +7107,14 @@ do
  local TEXT_PLAIN = Color3.fromRGB(204, 204, 204)
 
  local function esc(s)
+  if not s:find("[&<>]") then return s end
   return (s:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"))
  end
+ local openTag = setmetatable({}, {__index = function(t, c)
+  local v = '<font color="' .. c .. '">'
+  t[c] = v
+  return v
+ end})
 
  local function highlightWithModule(H, line, state)
   local cc = state ~= nil and state.kind == "comment"
@@ -7121,7 +7125,7 @@ do
   local out = {}
   for k, tok in ipairs(tokens) do
    local c = tok.type ~= "plain" and colors[tok.type] or nil
-   if c then out[k] = '<font color="' .. c .. '">' .. esc(tok.value) .. "</font>"
+   if c then out[k] = openTag[c] .. esc(tok.value) .. "</font>"
    else out[k] = esc(tok.value) end
   end
   local ns = nil
@@ -7140,7 +7144,7 @@ do
   local out, n, i = {}, #line, 1
   local function push(text, c)
    if text == "" then return end
-   if c then out[#out + 1] = '<font color="' .. c .. '">' .. esc(text) .. "</font>"
+   if c then out[#out + 1] = openTag[c] .. esc(text) .. "</font>"
    else out[#out + 1] = esc(text) end
   end
   if state then
@@ -7192,7 +7196,8 @@ do
     local ws = line:match("^%s+", i)
     push(ws) i += #ws
    else
-    push(ch) i += 1
+    local run = line:match("^[^%w_%s\"'`%[%-%.]+", i)
+    if run then push(run) i += #run else push(ch) i += 1 end
    end
   end
   return table.concat(out), nil
@@ -7366,6 +7371,26 @@ RoundCorner(hdump, 0, 6)
  sGutter.Archivable = false
  sGutter.Parent = sScroll
 
+ local gInner = Instance.new("Frame")
+ gInner.Name = randomString()
+ gInner.BackgroundTransparency = 1
+ gInner.BorderSizePixel = 0
+ gInner.Size = UDim2.new(1, 0, 1, 0)
+ gInner.ZIndex = 4
+ gInner.Active = false
+ gInner.Archivable = false
+ gInner.Parent = sGutter
+
+ local cInner = Instance.new("Frame")
+ cInner.Name = randomString()
+ cInner.BackgroundTransparency = 1
+ cInner.BorderSizePixel = 0
+ cInner.Size = UDim2.new(1, 0, 1, 0)
+ cInner.ZIndex = 3
+ cInner.Active = false
+ cInner.Archivable = false
+ cInner.Parent = sCode
+
  local sVbar = Instance.new("Frame")
  sVbar.Name = randomString()
  sVbar.Size = UDim2.new(0, 10, 1, 0)
@@ -7414,40 +7439,60 @@ RoundCorner(hdump, 0, 6)
   if w and w > 2 then charW = w end
  end
 
- local st = { inst = nil, raw = "", lines = {}, rich = {}, ind = {}, gen = 0, index = 0, hoff = 0, contentW = 0, gW = 40 }
+ local st = { inst = nil, raw = "", lines = {}, rich = {}, ind = {}, gen = 0, index = 0, hoff = 0, contentW = 0, gW = 40,
+  base = 0, pool = 0, maxLen = 0, hlDone = 0, hlState = nil, hlBusy = false, loaded = false }
  local entries = {}
 
  local INDENT_SIZE = 4
  local MAX_GUIDES = 48
  local GUIDE_TRANSPARENCY = 0.88
+ local BLANK_SCAN = 1000
+ local HL_AHEAD = 1500
+ local HL_BUDGET = 0.006
+ local REBASE = 400
 
- local function computeIndents()
-  local lines, ind = st.lines, {}
-  local n = #lines
-  local blank = {}
-  for i = 1, n do
-   local ws = lines[i]:match("^( *)")
-   if lines[i]:match("^%s*$") then
-    blank[i] = true
-    ind[i] = 0
-   else
-    ind[i] = math.floor(#ws / INDENT_SIZE)
+ local appliedRowW, appliedLH, appliedGW = -1, -1, -1
+ local appliedCY, appliedHX = nil, nil
+ local vVis, vF, vP, hVis, hF, hP, hGW = nil, nil, nil, nil, nil, nil, nil
+ local pending = false
+ local pumpHighlight
+
+ local function isBlank(l) return l:find("^%s*$") ~= nil end
+
+ local function indentOf(ln)
+  local v = st.ind[ln]
+  if v then return v end
+  local lines = st.lines
+  local line = lines[ln]
+  if isBlank(line) then
+   local prevI, nextI = 0, 0
+   for j = ln - 1, math.max(1, ln - BLANK_SCAN), -1 do
+    local l = lines[j]
+    if not isBlank(l) then
+     local _, e = l:find("^ *")
+     prevI = math.floor(e / INDENT_SIZE)
+     break
+    end
    end
-  end
-  local nextInd = 0
-  local nxt = {}
-  for i = n, 1, -1 do
-   if blank[i] then nxt[i] = nextInd else nextInd = ind[i] nxt[i] = nextInd end
-  end
-  local prevInd = 0
-  for i = 1, n do
-   if blank[i] then
-    ind[i] = math.min(prevInd, nxt[i])
-   else
-    prevInd = ind[i]
+   for j = ln + 1, math.min(#lines, ln + BLANK_SCAN) do
+    local l = lines[j]
+    if not isBlank(l) then
+     local _, e = l:find("^ *")
+     nextI = math.floor(e / INDENT_SIZE)
+     break
+    end
    end
+   v = math.min(prevI, nextI)
+  else
+   local _, e = line:find("^ *")
+   v = math.floor(e / INDENT_SIZE)
   end
-  st.ind = ind
+  st.ind[ln] = v
+  return v
+ end
+
+ local function guideX(k)
+  return math.floor(8 + (k - 1) * INDENT_SIZE * charW + 0.5)
  end
 
  local function createEntry()
@@ -7462,7 +7507,7 @@ RoundCorner(hdump, 0, 6)
   num.ZIndex = 5
   num.Visible = false
   num.Archivable = false
-  num.Parent = sGutter
+  num.Parent = gInner
 
   local code = Instance.new("TextLabel")
   code.Name = randomString()
@@ -7473,15 +7518,27 @@ RoundCorner(hdump, 0, 6)
   code.TextColor3 = TEXT_PLAIN
   code.TextXAlignment = Enum.TextXAlignment.Left
   code.TextWrapped = false
+  code.Size = UDim2.new(0, math.max(appliedRowW, 0), 0, LH)
   code.ZIndex = 3
   code.Visible = false
   code.Archivable = false
-  code.Parent = sCode
-  return { num = num, code = code, guides = {}, shown = 0 }
+  code.Parent = cInner
+
+  local gf = Instance.new("Frame")
+  gf.Name = randomString()
+  gf.BackgroundTransparency = 1
+  gf.BorderSizePixel = 0
+  gf.Size = UDim2.new(0, 0, 0, LH)
+  gf.ZIndex = 2
+  gf.Active = false
+  gf.Archivable = false
+  gf.Parent = cInner
+
+  return { num = num, code = code, gf = gf, guides = {}, shown = 0, line = nil, vis = false, hl = false }
  end
 
- local function setGuides(e, count, y)
-  count = math.min(count, MAX_GUIDES)
+ local function setGuides(e, count)
+  if count > MAX_GUIDES then count = MAX_GUIDES end
   local g = e.guides
   for k = #g + 1, count do
    local f = Instance.new("Frame")
@@ -7490,31 +7547,61 @@ RoundCorner(hdump, 0, 6)
    f.BackgroundColor3 = config.COLORS.WHITE
    f.BackgroundTransparency = GUIDE_TRANSPARENCY
    f.Size = UDim2.new(0, 1, 0, LH)
+   f.Position = UDim2.new(0, guideX(k), 0, 0)
    f.ZIndex = 2
    f.Active = false
    f.Archivable = false
    f.Visible = false
-   f.Parent = sCode
+   f.Parent = e.gf
    g[k] = f
   end
-  local step = INDENT_SIZE * charW
-  local x0 = 8 - st.hoff
-  for k = 1, count do
-   local f = g[k]
-   f.Position = UDim2.new(0, math.floor(x0 + (k - 1) * step + 0.5), 0, y)
-   f.Visible = true
-  end
-  for k = count + 1, e.shown do
-   if g[k] then g[k].Visible = false end
+  local shown = e.shown
+  if count == shown then return end
+  if count > shown then
+   for k = shown + 1, count do g[k].Visible = true end
+  else
+   for k = count + 1, shown do g[k].Visible = false end
   end
   e.shown = count
+ end
+
+ local function hideEntry(e)
+  e.line = nil
+  if e.vis then
+   e.vis = false
+   e.num.Visible = false
+   e.code.Visible = false
+  end
+  if e.shown > 0 then setGuides(e, 0) end
+ end
+
+ local function bindEntry(e, ln)
+  e.line = ln
+  local y = (ln - 1 - st.base) * LH
+  local r = st.rich[ln]
+  e.hl = r ~= nil
+  e.num.Text = tostring(ln)
+  e.num.Position = UDim2.new(0, 0, 0, y)
+  e.code.Position = UDim2.new(0, 8, 0, y)
+  e.code.Text = r or esc(st.lines[ln])
+  e.gf.Position = UDim2.new(0, 0, 0, y)
+  setGuides(e, indentOf(ln))
+  if not e.vis then
+   e.vis = true
+   e.num.Visible = true
+   e.code.Visible = true
+  end
  end
 
  local function ensurePoolSize(n)
   for i = #entries + 1, n do entries[i] = createEntry() end
  end
 
- local function refresh()
+ local function invalidateAll()
+  for i = 1, #entries do entries[i].line = nil end
+ end
+
+ local function refreshNow()
   if not panel.Visible then return end
   local total = #st.lines
   local viewH = sScroll.AbsoluteSize.Y
@@ -7522,60 +7609,104 @@ RoundCorner(hdump, 0, 6)
   local codeW = math.max(0, viewW - st.gW)
 
   local visibleCount = math.max(1, math.ceil(viewH / LH) + 1)
-  ensurePoolSize(visibleCount)
-
   local maxIndex = math.max(0, total - math.floor(viewH / LH))
   st.index = math.clamp(st.index, 0, maxIndex)
   local maxHOffset = math.max(0, st.contentW - codeW)
   st.hoff = math.clamp(st.hoff, 0, maxHOffset)
   local rowW = math.max(codeW, st.contentW)
 
-  sGutter.Size = UDim2.new(0, st.gW, 1, 0)
-  sCode.Position = UDim2.new(0, st.gW, 0, 0)
-  sCode.Size = UDim2.new(1, -st.gW, 1, 0)
+  if st.gW ~= appliedGW then
+   appliedGW = st.gW
+   sGutter.Size = UDim2.new(0, st.gW, 1, 0)
+   sCode.Position = UDim2.new(0, st.gW, 0, 0)
+   sCode.Size = UDim2.new(1, -st.gW, 1, 0)
+  end
 
-  for i = 1, #entries do
-   local e = entries[i]
-   local ln = st.index + i
-   if i <= visibleCount and ln <= total then
-    e.num.Visible = true
-    e.code.Visible = true
-    e.num.Position = UDim2.new(0, 0, 0, (i - 1) * LH)
-    e.code.Position = UDim2.new(0, 8 - st.hoff, 0, (i - 1) * LH)
-    e.code.Size = UDim2.new(0, rowW, 0, LH)
-    local txt = st.rich[ln]
-    if e.code.Text ~= txt then e.code.Text = txt end
-    local ns = tostring(ln)
-    if e.num.Text ~= ns then e.num.Text = ns end
-    setGuides(e, st.ind[ln] or 0, (i - 1) * LH)
-   else
-    e.num.Visible = false
-    e.code.Visible = false
-    if e.shown > 0 then setGuides(e, 0, 0) end
+  if visibleCount ~= st.pool then
+   ensurePoolSize(visibleCount)
+   st.pool = visibleCount
+   for i = 1, #entries do
+    entries[i].line = nil
+    if i > visibleCount then hideEntry(entries[i]) end
+   end
+  end
+
+  if rowW ~= appliedRowW or LH ~= appliedLH then
+   appliedRowW, appliedLH = rowW, LH
+   local sz = UDim2.new(0, rowW, 0, LH)
+   for i = 1, #entries do entries[i].code.Size = sz end
+  end
+
+  if math.abs(st.index - st.base) > REBASE then
+   st.base = st.index
+   invalidateAll()
+  end
+
+  local cy = -(st.index - st.base) * LH
+  local hx = -st.hoff
+  if cy ~= appliedCY then gInner.Position = UDim2.new(0, 0, 0, cy) end
+  if cy ~= appliedCY or hx ~= appliedHX then cInner.Position = UDim2.new(0, hx, 0, cy) end
+  appliedCY, appliedHX = cy, hx
+
+  local first = st.index + 1
+  local off = first - 1
+  local pool = st.pool
+  local rich = st.rich
+  for s = 1, pool do
+   local ln = first + (s - 1 - off) % pool
+   local e = entries[s]
+   if ln <= total then
+    if e.line ~= ln then
+     bindEntry(e, ln)
+    elseif not e.hl then
+     local r = rich[ln]
+     if r ~= nil then
+      e.hl = true
+      e.code.Text = r
+     end
+    end
+   elseif e.line ~= nil or e.vis then
+    hideEntry(e)
    end
   end
 
   if total * LH > viewH then
-   sVbar.Visible = true
    local thumbFrac = math.clamp(viewH / (total * LH), 0.05, 1)
-   sVthumb.Size = UDim2.new(1, 0, thumbFrac, 0)
    local posFrac = maxIndex > 0 and (st.index / maxIndex) * (1 - thumbFrac) or 0
-   sVthumb.Position = UDim2.new(0, 0, posFrac, 0)
-  else
+   if vVis ~= true then vVis = true sVbar.Visible = true end
+   if thumbFrac ~= vF then vF = thumbFrac sVthumb.Size = UDim2.new(1, 0, thumbFrac, 0) end
+   if posFrac ~= vP then vP = posFrac sVthumb.Position = UDim2.new(0, 0, posFrac, 0) end
+  elseif vVis ~= false then
+   vVis = false
    sVbar.Visible = false
   end
 
   if st.contentW > codeW then
-   sHbar.Visible = true
-   sHbar.Position = UDim2.new(0, st.gW, 1, -10)
-   sHbar.Size = UDim2.new(1, -st.gW - 10, 0, 10)
    local thumbFrac = math.clamp(codeW / st.contentW, 0.05, 1)
-   sHthumb.Size = UDim2.new(thumbFrac, 0, 1, 0)
    local posFrac = maxHOffset > 0 and (st.hoff / maxHOffset) * (1 - thumbFrac) or 0
-   sHthumb.Position = UDim2.new(posFrac, 0, 0, 0)
-  else
+   if hVis ~= true then hVis = true sHbar.Visible = true end
+   if hGW ~= st.gW then
+    hGW = st.gW
+    sHbar.Position = UDim2.new(0, st.gW, 1, -10)
+    sHbar.Size = UDim2.new(1, -st.gW - 10, 0, 10)
+   end
+   if thumbFrac ~= hF then hF = thumbFrac sHthumb.Size = UDim2.new(thumbFrac, 0, 1, 0) end
+   if posFrac ~= hP then hP = posFrac sHthumb.Position = UDim2.new(posFrac, 0, 0, 0) end
+  elseif hVis ~= false then
+   hVis = false
    sHbar.Visible = false
   end
+
+  if st.hlDone < total and not st.hlBusy then pumpHighlight() end
+ end
+
+ local function refresh()
+  if pending then return end
+  pending = true
+  config.SV.RunSrv.RenderStepped:Once(function()
+   pending = false
+   refreshNow()
+  end)
  end
 
  local function pointIn(gui, mp)
@@ -7645,49 +7776,71 @@ RoundCorner(hdump, 0, 6)
   htitle.Text = escape(inst.Name)
  end
 
- local function load(inst, keepScroll)
+ pumpHighlight = function()
+  if st.hlBusy then return end
+  local lines = st.lines
+  if st.hlDone >= #lines then return end
+  st.hlBusy = true
+  local gen = st.gen
+  task.spawn(function()
+   local rich = st.rich
+   local i, state = st.hlDone, st.hlState
+   while st.gen == gen and panel.Visible do
+    local total = #lines
+    local viewRows = math.ceil(sScroll.AbsoluteSize.Y / LH) + 1
+    local target = math.min(total, st.index + viewRows + HL_AHEAD)
+    if i >= target then break end
+    local t0 = os.clock()
+    while i < target and os.clock() - t0 < HL_BUDGET do
+     i += 1
+     local ok, r, ns = pcall(highlightLine, lines[i], state)
+     if ok then rich[i] = r state = ns else state = nil end
+    end
+    if st.gen ~= gen then return end
+    st.hlDone, st.hlState = i, state
+    refresh()
+    if i < target then task.wait() end
+   end
+   if st.gen == gen then
+    st.hlDone, st.hlState = i, state
+    st.hlBusy = false
+   end
+  end)
+ end
+
+ local function load(inst, keepScroll, force)
   local src = Explorer.GetSource(inst)
   if src == nil then
    src = ""
   end
+  if not force and st.loaded and st.inst == inst and st.raw == src then
+   setHeader(inst)
+   refresh()
+   return
+  end
   st.inst, st.raw = inst, src
   st.gen += 1
-  local gen = st.gen
+  st.loaded = true
 
   local s = src:gsub("\r\n", "\n")
   s = s:gsub("\r", "\n")
   s = s:gsub("\t", "    ")
-  local lines, rich, maxLen = {}, {}, 0
+  local lines, maxLen = {}, 0
   for line in (s .. "\n"):gmatch("(.-)\n") do
-   if #line > 4000 then line = line:sub(1, 4000) .. " ..." end
    lines[#lines + 1] = line
-   rich[#rich + 1] = esc(line)
    if #line > maxLen then maxLen = #line end
   end
-  st.lines, st.rich = lines, rich
-  computeIndents()
+  st.lines, st.rich, st.ind = lines, {}, {}
+  st.maxLen = maxLen
+  st.hlDone, st.hlState, st.hlBusy = 0, nil, false
 
-  local total = #lines
-  st.gW = #tostring(total) * charW + 20
+  st.gW = #tostring(#lines) * charW + 20
   st.contentW = maxLen * charW + 40
   if not keepScroll then st.index, st.hoff = 0, 0 end
+  st.base = st.index
+  invalidateAll()
   setHeader(inst)
   refresh()
-
-  if #src > 600000 then return end
-  task.spawn(function()
-   local state = nil
-   for i = 1, total do
-    local ok, r, ns = pcall(highlightLine, lines[i], state)
-    if ok then rich[i] = r state = ns else state = nil end
-    if i % 400 == 0 then
-     refresh()
-     task.wait()
-     if st.gen ~= gen then return end
-    end
-   end
-   if st.gen == gen then refresh() end
-  end)
  end
 
  local function layout()
@@ -7729,7 +7882,7 @@ RoundCorner(hdump, 0, 6)
  function Explorer.SetHighlighter(mod)
   if mod ~= nil and (type(mod) ~= "table" or type(mod.Tokenize) ~= "function") then return false end
   Explorer.Highlighter = mod
-  if config.srcOpen and st.inst then load(st.inst, true) end
+  if config.srcOpen and st.inst then load(st.inst, true, true) end
   return true
  end
 
@@ -7754,14 +7907,15 @@ RoundCorner(hdump, 0, 6)
    e.num.TextSize = TS
    e.code.TextSize = TS
    e.num.Size = UDim2.new(1, -8, 0, LH)
-   for _, g in ipairs(e.guides) do g.Size = UDim2.new(0, 1, 0, LH) end
-  end
-  local maxLen = 0
-  for _, line in ipairs(st.lines) do
-   if #line > maxLen then maxLen = #line end
+   e.gf.Size = UDim2.new(0, 0, 0, LH)
+   for k, g in ipairs(e.guides) do
+    g.Size = UDim2.new(0, 1, 0, LH)
+    g.Position = UDim2.new(0, guideX(k), 0, 0)
+   end
+   e.line = nil
   end
   st.gW = #tostring(#st.lines) * charW + 20
-  st.contentW = maxLen * charW + 40
+  st.contentW = st.maxLen * charW + 40
   refresh()
  end
 
@@ -7849,38 +8003,19 @@ RoundCorner(hdump, 0, 6)
  		local s = append:gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\t", "    ")
  		local newLines = {}
  		for line in (s .. "\n"):gmatch("(.-)\n") do
- 			if #line > 4000 then line = line:sub(1, 4000) .. " ..." end
  			newLines[#newLines + 1] = line
  		end
 
- 		local baseLen = #st.lines
+ 		local lines = st.lines
  		for _, line in ipairs(newLines) do
- 			st.lines[#st.lines + 1] = line
- 			st.rich[#st.rich + 1] = esc(line)
+ 			lines[#lines + 1] = line
+ 			if #line > st.maxLen then st.maxLen = #line end
  		end
-
- 		computeIndents()
- 		st.gW = #tostring(#st.lines) * charW + 20
- 		local maxLen = 0
- 		for _, line in ipairs(st.lines) do
- 			if #line > maxLen then maxLen = #line end
- 		end
- 		st.contentW = maxLen * charW + 40
-
- 		local gen = st.gen
- 		task.spawn(function()
- 			local state = nil
- 			for i = baseLen + 1, #st.lines do
- 				local ok, r, ns = pcall(highlightLine, st.lines[i], state)
- 				if ok then st.rich[i] = r state = ns else state = nil end
- 				if i % 400 == 0 then
- 					refresh()
- 					task.wait()
- 					if st.gen ~= gen then return end
- 				end
- 			end
- 			if st.gen == gen then refresh() end
- 		end)
+ 		st.ind = {}
+ 		st.gW = #tostring(#lines) * charW + 20
+ 		st.contentW = st.maxLen * charW + 40
+ 		invalidateAll()
+ 		refresh()
  	end)
  end)
 
