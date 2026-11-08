@@ -45,7 +45,6 @@ MakeFolder({
  "LqExplorer/images",
 })
 
-
 config.ServiceCache = {}
 local function GetService(name)
  if config.ServiceCache[name] then return config.ServiceCache[name] end
@@ -350,15 +349,19 @@ Explorer = {
  ContextItems = {},
  UserIcons = {},
  Settings = {},
- Images = {
-  ClassIcons = "rbxassetid://135148380892747",
-  Chevron = "rbxassetid://81462102154124",
-  Colon = "rbxassetid://18569843302",
-  History = "rbxassetid://101905359759779",
-  Rotation = { Url = "https://files.catbox.moe/wnft2n.png", File = "rotation.png" },
-  ZoomIn = { Url = "https://files.catbox.moe/ai8l1e.png", File = "zoom_in.png" },
-  ZoomOut = { Url = "https://files.catbox.moe/cxkixh.png", File = "zoom_out.png" },
- },
+ Images = (function()
+  local base = "https://raw.githubusercontent.com/lqdxt/LqExplorer/main/images/"
+  local function img(file) return { Url = base .. file, File = file } end
+  return {
+   ClassIcons = img("IconMap.png"),
+   Caret = img("Caret.png"),
+   Options = img("Options.png"),
+   History = img("History.png"),
+   Rotation = img("Rotation.png"),
+   ZoomIn = img("ZoomIn.png"),
+   ZoomOut = img("ZoomOut.png"),
+  }
+ end)(),
  OnSelectCb = nil,
  OnDoubleClickCb = nil,
  OnRightClickCb = nil,
@@ -712,7 +715,12 @@ local function MakeDots(parent, z)
  return b
 end
 
-config.ICON_ID = Explorer.Images.ClassIcons
+config.IMG = {}
+for _, key in ipairs({ "ClassIcons", "Caret", "Options", "History", "Rotation", "ZoomIn", "ZoomOut" }) do
+ local ok, asset = pcall(Explorer.GetImage, key)
+ config.IMG[key] = (ok and asset) or ""
+end
+config.ICON_ID = config.IMG.ClassIcons
 config.ICON_SIZE = Vector2.new(32, 32)
 config.ICONS = {
  ["Accessory"]={1,1},
@@ -940,7 +948,7 @@ config.ICONS = {
  ["TextChatService"]={14,18},
  ["TextLabel"]={15,1},
  ["Texture"]={15,3},
- ["Tools"]={15,4},
+ ["Tool"]={15,4},
  ["Torque"]={15,5},
  ["TorsionSpringConstraint"]={15,6},
  ["Trail"]={15,7},
@@ -1335,7 +1343,7 @@ Explorer.AddDropdown = function(builder, opts)
     chev.AnchorPoint = Vector2.new(0.5, 0.5)
     chev.Position = UDim2.new(1, -14, 0.5, 0)
     chev.BackgroundTransparency = 1
-    chev.Image = Explorer.Images.Chevron
+    chev.Image = config.IMG.Caret
     chev.Rotation = 0
     chev.ZIndex = 15 + ZB
     chev.Archivable = false
@@ -1624,7 +1632,7 @@ config.colonimage.Name = randomString()
 config.colonimage.Size = UDim2.new(0, 24, 0, 24)
 config.colonimage.Position = UDim2.new(0, 2, 0, 2)
 config.colonimage.BackgroundTransparency = 1
-config.colonimage.Image = Explorer.Images.Colon
+config.colonimage.Image = config.IMG.Options
 config.colonimage.BorderSizePixel = 0
 config.colonimage.ZIndex = 5
 config.colonimage.Archivable = false
@@ -1638,7 +1646,7 @@ config.historybtn.Size = UDim2.new(0, 28, 0, 28)
 config.historybtn.Position = UDim2.new(1, -68, 0.5, -13)
 config.historybtn.BackgroundColor3 = config.COLORS.SECONDARY
 config.historybtn.BackgroundTransparency = 0
-config.historybtn.Image = Explorer.Images.History
+config.historybtn.Image = config.IMG.History
 config.historybtn.BorderSizePixel = 0
 config.historybtn.ZIndex = 5
 config.historybtn.Archivable = false
@@ -2815,7 +2823,7 @@ local function CreatePoolEntry(poolIndex)
  toggle.Name = randomString()
  toggle.Size = UDim2.new(0, 16, 0, 16)
  toggle.BackgroundTransparency = 1
- toggle.Image = Explorer.Images.Chevron
+ toggle.Image = config.IMG.Caret
  toggle.ZIndex = 5
  toggle.Active = true
  toggle.AutoButtonColor = false
@@ -5872,7 +5880,7 @@ do
   arrow.Name = randomString()
   arrow.Size = UDim2.new(0, 16, 0, 16)
   arrow.BackgroundTransparency = 1
-  arrow.Image = Explorer.Images.Chevron
+  arrow.Image = config.IMG.Caret
   arrow.AutoButtonColor = false
   arrow.ZIndex = 5
   arrow.Visible = false
@@ -7069,6 +7077,35 @@ end
 
 do
  local LH, TS, CODE_FONT = 18, 14, Enum.Font.Code
+ local CODE_FACE = nil
+ local function applyCodeFont(obj)
+  if CODE_FACE then
+   obj.FontFace = CODE_FACE
+  else
+   obj.Font = CODE_FONT
+  end
+ end
+ local function measureCharW()
+  local w
+  if CODE_FACE then
+   local ok, res = pcall(function()
+    local p = Instance.new("GetTextBoundsParams")
+    p.Text = "WWWWWWWWWW"
+    p.Font = CODE_FACE
+    p.Size = TS
+    p.Width = 10000
+    return config.SV.TextSrv:GetTextBoundsAsync(p).X / 10
+   end)
+   if ok then w = res end
+  end
+  if not w then
+   local ok, res = pcall(function()
+    return config.SV.TextSrv:GetTextSize("WWWWWWWWWW", TS, CODE_FONT, Vector2.new(10000, 100)).X / 10
+   end)
+   if ok then w = res end
+  end
+  return w
+ end
  local TEXT_PLAIN = Color3.fromRGB(204, 204, 204)
 
  local function esc(s)
@@ -7372,10 +7409,10 @@ RoundCorner(hdump, 0, 6)
  RoundCorner(sHthumb, 1, 0)
 
  local charW = 8
- pcall(function()
-  local w = config.SV.TextSrv:GetTextSize("WWWWWWWWWW", TS, CODE_FONT, Vector2.new(10000, 100)).X / 10
-  if w > 2 then charW = w end
- end)
+ do
+  local w = measureCharW()
+  if w and w > 2 then charW = w end
+ end
 
  local st = { inst = nil, raw = "", lines = {}, rich = {}, ind = {}, gen = 0, index = 0, hoff = 0, contentW = 0, gW = 40 }
  local entries = {}
@@ -7417,7 +7454,7 @@ RoundCorner(hdump, 0, 6)
   local num = Instance.new("TextLabel")
   num.Name = randomString()
   num.BackgroundTransparency = 1
-  num.Font = CODE_FONT
+  applyCodeFont(num)
   num.TextSize = TS
   num.TextColor3 = config.COLORS.TEXT_DIM
   num.TextXAlignment = Enum.TextXAlignment.Right
@@ -7431,7 +7468,7 @@ RoundCorner(hdump, 0, 6)
   code.Name = randomString()
   code.BackgroundTransparency = 1
   code.RichText = true
-  code.Font = CODE_FONT
+  applyCodeFont(code)
   code.TextSize = TS
   code.TextColor3 = TEXT_PLAIN
   code.TextXAlignment = Enum.TextXAlignment.Left
@@ -7605,7 +7642,7 @@ RoundCorner(hdump, 0, 6)
 
  local function setHeader(inst)
   applyIcon(hicon, inst.ClassName)
-  htitle.Text = escape(inst.Name) .. '  <font color="#646464">' .. escape(inst.ClassName) .. "</font>"
+  htitle.Text = escape(inst.Name)
  end
 
  local function load(inst, keepScroll)
@@ -7702,16 +7739,18 @@ RoundCorner(hdump, 0, 6)
  end
 
  local MIN_TS, MAX_TS = 8, 28
- local function setFontSize(n)
+ local function setFontSize(n, force)
   n = math.clamp(n, MIN_TS, MAX_TS)
-  if n == TS then return end
+  if n == TS and not force then return end
   TS = n
   LH = n + 4
-  pcall(function()
-   local w = config.SV.TextSrv:GetTextSize("WWWWWWWWWW", TS, CODE_FONT, Vector2.new(10000, 100)).X / 10
-   if w > 2 then charW = w end
-  end)
+  do
+   local w = measureCharW()
+   if w and w > 2 then charW = w end
+  end
   for _, e in ipairs(entries) do
+   applyCodeFont(e.num)
+   applyCodeFont(e.code)
    e.num.TextSize = TS
    e.code.TextSize = TS
    e.num.Size = UDim2.new(1, -8, 0, LH)
@@ -7725,6 +7764,30 @@ RoundCorner(hdump, 0, 6)
   st.contentW = maxLen * charW + 40
   refresh()
  end
+
+ task.spawn(function()
+  if not (isfile and writefile and readfile and getcustomasset and makefolder) then return end
+  local ok, face = pcall(function()
+   MakeFolder({ "LqExplorer", "LqExplorer/fonts" })
+   local ttfPath = "LqExplorer/fonts/FiraMono-Regular.ttf"
+   local jsonPath = "LqExplorer/fonts/FiraMono.json"
+   if not isfile(ttfPath) then
+    writefile(ttfPath, game:HttpGet("https://raw.githubusercontent.com/google/fonts/main/ofl/firamono/FiraMono-Regular.ttf"))
+   end
+   local ttfAsset = getcustomasset(ttfPath)
+   writefile(jsonPath, game:GetService("HttpService"):JSONEncode({
+    name = "Fira Mono",
+    faces = {
+     { name = "Regular", weight = 400, style = "normal", assetId = ttfAsset },
+    },
+   }))
+   return Font.new(getcustomasset(jsonPath), Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+  end)
+  if ok and face then
+   CODE_FACE = face
+   setFontSize(TS, true)
+  end
+ end)
 
  local function mouseOverSource()
   if not panel.Visible then return false end
