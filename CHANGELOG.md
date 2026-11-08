@@ -1,3 +1,6 @@
+# Version 1.3
+- Significantly improved source viewer's performance
+
 # Version 1.2
 - Other minor changes to source viewer
 - Changed source viewer's font to Fira Mono
