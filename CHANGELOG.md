@@ -1,6 +1,8 @@
 Updates almost everyday!
 
 ---
+# Version 1.6
+- Changed SpringConstraint's map position to the right one since it was the same as Decal
 
 # Version 1.5
 - Added 'Show Hidden Services' toggle in menu
