@@ -220,10 +220,10 @@ local function ComputeResponsiveWidth(w)
 end
 
 local Explorer
-config.VirtualInstance = {}
+local VirtualInstance = {}
 config.LAZY_TABLES = { Attributes = true, Properties = true, Metadata = true }
-config.VirtualInstance.__index = function(t, k)
- local m = config.VirtualInstance[k]
+VirtualInstance.__index = function(t, k)
+ local m = VirtualInstance[k]
  if m ~= nil then return m end
  if config.LAZY_TABLES[k] then
   local n = {}
@@ -233,18 +233,18 @@ config.VirtualInstance.__index = function(t, k)
  return nil
 end
 
-function config.VirtualInstance.new(className, name, parent)
+function VirtualInstance.new(className, name, parent)
  local self = setmetatable({
   Name = name or className or "Instance",
   ClassName = className or "Instance",
   Parent = nil,
   Children = {},
- }, config.VirtualInstance)
+ }, VirtualInstance)
  if parent then self:SetParent(parent) end
  return self
 end
 
-function config.VirtualInstance:SetParent(parent)
+function VirtualInstance:SetParent(parent)
  local old = self.Parent
  if old then
   local ch = old.Children
@@ -260,7 +260,7 @@ function config.VirtualInstance:SetParent(parent)
  end
 end
 
-function config.VirtualInstance:Destroy()
+function VirtualInstance:Destroy()
  self:SetParent(nil)
  for _, c in ipairs(self.Children) do c.Parent = nil end
  self.Children = {}
@@ -268,7 +268,7 @@ function config.VirtualInstance:Destroy()
  Explorer.Expanded[self] = nil
 end
 
-function config.VirtualInstance:GetFullName()
+function VirtualInstance:GetFullName()
  local parts, cur = {}, self
  while cur and cur ~= Explorer.Root do
   table.insert(parts, 1, cur.Name)
@@ -282,7 +282,7 @@ config.Root = setmetatable({
  ClassName = "Root",
  Parent = nil,
  Children = {},
-}, config.VirtualInstance)
+}, VirtualInstance)
 
 config.NATURAL_SORT = false
 config.CLASS_PRIORITY = { Camera = 1, Terrain = 2 }
@@ -3040,11 +3040,19 @@ config.SUBCLASS = {
  pvinstance = {Model=1,Part=1,MeshPart=1,UnionOperation=1,WedgePart=1,CornerWedgePart=1,TrussPart=1,SpawnLocation=1,Seat=1,VehicleSeat=1,WorldModel=1},
 }
 
+config.LCLS = {}
+local function lcls(c)
+ local l = config.LCLS[c]
+ if not l then l = c:lower() config.LCLS[c] = l end
+ return l
+end
+
 local function isA(inst, cls)
- local c = inst.ClassName:lower()
+ local cn = inst.ClassName
+ local c = lcls(cn)
  if c == cls or cls == "instance" then return true end
  local set = config.SUBCLASS[cls]
- if set and set[inst.ClassName] then return true end
+ if set and set[cn] then return true end
  if cls == "valuebase" and c:match("value$") then return true end
  if cls == "constraint" and c:match("constraint$") then return true end
  if cls == "soundeffect" and c:match("soundeffect$") then return true end
@@ -3053,33 +3061,13 @@ local function isA(inst, cls)
 end
 
 local function hasTag(inst, tag)
- local t = inst.Tags
+ local t = rawget(inst, "Tags")
  if type(t) ~= "table" then return false end
  for k, v in pairs(t) do
   if type(k) == "string" and v == true and k:lower() == tag then return true end
   if type(v) == "string" and v:lower() == tag then return true end
  end
  return false
-end
-
-local function getProp(inst, key)
- local k = key:lower()
- if k == "name" then return inst.Name end
- if k == "classname" then return inst.ClassName end
- for pk, pv in pairs(inst.Properties) do
-  if tostring(pk):lower() == k then return pv end
- end
- for ak, av in pairs(inst.Attributes) do
-  if tostring(ak):lower() == k then return av end
- end
- return nil
-end
-
-config.LCLS = {}
-local function lcls(c)
- local l = config.LCLS[c]
- if not l then l = c:lower() config.LCLS[c] = l end
- return l
 end
 
 local function lname(inst)
@@ -3094,24 +3082,39 @@ end
 local function normVal(v) return (tostring(v):lower():gsub("%s", "")) end
 local function unquote(v) return (v:gsub('"', "")) end
 
+config.PredMeta = config.PredMeta or setmetatable({}, { __mode = "k" })
+local PM = config.PredMeta
+local function tagPred(f, cost, stable)
+ PM[f] = { cost = cost, stable = stable }
+ return f
+end
+
 local function tokenize(str)
  str = str:gsub("%s*([<>=!~]+)%s*", "%1")
- local toks, cur, inQ = {}, "", false
- local function push() if cur ~= "" then toks[#toks + 1] = cur cur = "" end end
+ local toks, n, cur, inQ = {}, 0, {}, false
+ local cn = 0
+ local function push()
+  if cn > 0 then
+   n += 1
+   toks[n] = table.concat(cur, "", 1, cn)
+   cn = 0
+  end
+ end
  for i = 1, #str do
   local ch = str:sub(i, i)
   if ch == '"' then
    inQ = not inQ
-   cur = cur .. ch
+   cn += 1 cur[cn] = ch
   elseif inQ then
-   cur = cur .. ch
+   cn += 1 cur[cn] = ch
   elseif ch == "(" or ch == ")" then
    push()
-   toks[#toks + 1] = ch
+   n += 1
+   toks[n] = ch
   elseif ch:match("%s") then
    push()
   else
-   cur = cur .. ch
+   cn += 1 cur[cn] = ch
   end
  end
  push()
@@ -3124,25 +3127,64 @@ local function parentOf(n)
  return p
 end
 
+local function makeGetter(key)
+ local k = key:lower()
+ if k == "name" then return function(inst) return inst.Name end end
+ if k == "classname" then return function(inst) return inst.ClassName end end
+ local pKey, aKey
+ return function(inst)
+  local props = rawget(inst, "Properties")
+  if props then
+   if pKey ~= nil then
+    local v = props[pKey]
+    if v ~= nil then return v end
+   end
+   for pk, pv in pairs(props) do
+    if tostring(pk):lower() == k then pKey = pk return pv end
+   end
+  end
+  local attrs = rawget(inst, "Attributes")
+  if attrs then
+   if aKey ~= nil then
+    local v = attrs[aKey]
+    if v ~= nil then return v end
+   end
+   for ak, av in pairs(attrs) do
+    if tostring(ak):lower() == k then aKey = ak return av end
+   end
+  end
+  return nil
+ end
+end
+
 local function makeAtom(t)
  local key, op, val = t:match('^([%w_]+)([<>=!~]+)(.+)$')
  if key and not t:find('^"') then
   val = unquote(val)
-  return function(inst)
-   local pv = getProp(inst, key)
-   if op == "=" or op == "==" then
-    return pv ~= nil and normVal(pv):find(normVal(val), 1, true) ~= nil
-   elseif op == "!=" or op == "~=" then
-    return pv == nil or normVal(pv):find(normVal(val), 1, true) == nil
-   end
-   local a, b = tonumber(pv), tonumber(val)
-   if not a or not b then return false end
-   if op == "<" then return a < b
-   elseif op == ">" then return a > b
-   elseif op == "<=" then return a <= b
-   elseif op == ">=" then return a >= b end
-   return false
+  local get = makeGetter(key)
+  local nval = normVal(val)
+  local nnum = tonumber(val)
+  if op == "=" or op == "==" then
+   return tagPred(function(inst)
+    local pv = get(inst)
+    return pv ~= nil and normVal(pv):find(nval, 1, true) ~= nil
+   end, 4, false)
+  elseif op == "!=" or op == "~=" then
+   return tagPred(function(inst)
+    local pv = get(inst)
+    return pv == nil or normVal(pv):find(nval, 1, true) == nil
+   end, 4, false)
   end
+  local cmp
+  if op == "<" then cmp = function(a, b) return a < b end
+  elseif op == ">" then cmp = function(a, b) return a > b end
+  elseif op == "<=" then cmp = function(a, b) return a <= b end
+  elseif op == ">=" then cmp = function(a, b) return a >= b end end
+  return tagPred(function(inst)
+   local a = tonumber(get(inst))
+   if not a or not nnum or not cmp then return false end
+   return cmp(a, nnum)
+  end, 4, false)
  end
 
  local pfx, rest = t:match('^(%a+):(.*)$')
@@ -3150,13 +3192,19 @@ local function makeAtom(t)
   local p = pfx:lower()
   rest = unquote(rest):lower()
   if p == "classname" or p == "class" then
-   return function(inst) return lcls(inst.ClassName):find(rest, 1, true) ~= nil end
+   return tagPred(function(inst) return lcls(inst.ClassName):find(rest, 1, true) ~= nil end, 1, true)
   elseif p == "is" then
-   return function(inst) return isA(inst, rest) end
+   local memo = {}
+   return tagPred(function(inst)
+    local cn = inst.ClassName
+    local r = memo[cn]
+    if r == nil then r = isA(inst, rest) memo[cn] = r end
+    return r
+   end, 1, true)
   elseif p == "tag" then
-   return function(inst) return hasTag(inst, rest) end
+   return tagPred(function(inst) return hasTag(inst, rest) end, 2, false)
   elseif p == "name" then
-   return function(inst) return lname(inst):find(rest, 1, true) ~= nil end
+   return tagPred(function(inst) return lname(inst):find(rest, 1, true) ~= nil end, 1, true)
   end
  end
 
@@ -3181,13 +3229,58 @@ local function makeAtom(t)
     if sg ~= "*" and not lname(node):find(sg, 1, true) then return false end
     return m(parentOf(node), i - 1)
    end
-   return function(inst) return m(inst, #segs) end
+   local n = #segs
+   return tagPred(function(inst) return m(inst, n) end, 3, false)
   end
  end
 
  local q = unquote(t):lower()
- return function(inst) return lname(inst):find(q, 1, true) ~= nil end
+ return tagPred(function(inst) return lname(inst):find(q, 1, true) ~= nil end, 1, true)
 end
+
+local function combine(list, isAnd)
+ local n = #list
+ if n == 1 then return list[1] end
+ for i = 2, n do
+  local f = list[i]
+  local c = PM[f].cost
+  local j = i - 1
+  while j >= 1 and PM[list[j]].cost > c do
+   list[j + 1] = list[j]
+   j -= 1
+  end
+  list[j + 1] = f
+ end
+ local cost, stable = 0, true
+ for i = 1, n do
+  local m = PM[list[i]]
+  cost += m.cost
+  if not m.stable then stable = false end
+ end
+ local f
+ if n == 2 then
+  local a, b = list[1], list[2]
+  if isAnd then f = function(i) return a(i) and b(i) end
+  else f = function(i) return a(i) or b(i) end end
+ elseif isAnd then
+  f = function(inst)
+   for i = 1, n do
+    if not list[i](inst) then return false end
+   end
+   return true
+  end
+ else
+  f = function(inst)
+   for i = 1, n do
+    if list[i](inst) then return true end
+   end
+   return false
+  end
+ end
+ return tagPred(f, cost, stable)
+end
+
+config.PredCounter = config.PredCounter or 0
 
 function Explorer.CompileSearch(str)
  str = str:match("^%s*(.-)%s*$")
@@ -3207,34 +3300,38 @@ function Explorer.CompileSearch(str)
   return makeAtom(t)
  end
  local function parseAnd()
-  local left = parsePrimary()
-  if not left then return nil end
+  local first = parsePrimary()
+  if not first then return nil end
+  local list = { first }
   while true do
    local t = toks[pos]
    if not t or t == ")" or isKw(t, "or") then break end
    if isKw(t, "and") then pos += 1 end
    local right = parsePrimary()
    if not right then break end
-   local l, r = left, right
-   left = function(i) return l(i) and r(i) end
+   list[#list + 1] = right
   end
-  return left
+  return combine(list, true)
  end
  parseOr = function()
-  local left = parseAnd() or function() return true end
+  local first = parseAnd() or tagPred(function() return true end, 0, true)
+  local list = { first }
   while isKw(toks[pos], "or") do
    pos += 1
    local right = parseAnd()
    if not right then break end
-   local l, r = left, right
-   left = function(i) return l(i) or r(i) end
+   list[#list + 1] = right
   end
-  return left
+  return combine(list, false)
  end
  local ok, pred = pcall(parseOr)
- if ok then return pred end
- local q = str:lower()
- return function(inst) return lname(inst):find(q, 1, true) ~= nil end
+ if not ok then
+  local q = str:lower()
+  pred = tagPred(function(inst) return lname(inst):find(q, 1, true) ~= nil end, 1, true)
+ end
+ config.PredCounter += 1
+ PM[pred].id = config.PredCounter
+ return pred
 end
 
 local function readInfo(i) return i.Name, i.ClassName end
@@ -3260,7 +3357,7 @@ function Explorer.LoadChildren(v)
      Parent = v,
      Children = {},
      Real = c,
-    }, config.VirtualInstance)
+    }, VirtualInstance)
    end
   end
  end
@@ -3303,12 +3400,24 @@ function Explorer.ScanTree()
  local searching = q ~= ""
 
  local matchMemo, ancMemo = {}, {}
+ local meta = searching and pred and config.PredMeta[pred] or nil
+ local pid = meta and meta.stable and meta.id or nil
 
  local function matches(inst)
   if not searching or not pred then return true end
   local m = matchMemo[inst]
   if m == nil then
-   m = pred(inst) == true
+   if pid then
+    local nm = inst.Name
+    if rawget(inst, "_mId") == pid and rawget(inst, "_mName") == nm then
+     m = rawget(inst, "_mV")
+    else
+     m = pred(inst) == true
+     inst._mId, inst._mName, inst._mV = pid, nm, m
+    end
+   else
+    m = pred(inst) == true
+   end
    matchMemo[inst] = m
   end
   return m
@@ -3810,7 +3919,10 @@ config.searchbar:GetPropertyChangedSignal("Text"):Connect(function()
  local text = config.searchbar.Text
  local function apply()
   if my ~= config.searchToken then return end
-  config.SearchQuery = text:match("^%s*(.-)%s*$")
+  local trimmed = text:match("^%s*(.-)%s*$")
+  if trimmed == config.SearchAppliedText then return end
+  config.SearchAppliedText = trimmed
+  config.SearchQuery = trimmed
   config.SearchPred = Explorer.CompileSearch(text)
   config.SearchCursor = 0
   Explorer.SearchOpen = setmetatable({}, {__mode="k"})
@@ -3972,7 +4084,7 @@ function Explorer.CreateInstance(className, name, parent)
   if not inst then return nil end
   if inst.Parent and inst.Parent ~= Explorer.Root then Explorer.Expanded[inst.Parent] = true end
  else
-  inst = config.VirtualInstance.new(className, Explorer.UniqueName(parent, name or className), parent)
+  inst = VirtualInstance.new(className, Explorer.UniqueName(parent, name or className), parent)
  end
  Explorer.ScanTree()
  RefreshTree()
@@ -4105,7 +4217,7 @@ end
 
 local function cloneVirtual(inst, parent)
  local kids = table.clone(inst.Children)
- local c = config.VirtualInstance.new(inst.ClassName, Explorer.UniqueName(parent, inst.Name), nil)
+ local c = VirtualInstance.new(inst.ClassName, Explorer.UniqueName(parent, inst.Name), nil)
  for k, v in pairs(inst.Properties) do c.Properties[k] = v end
  for k, v in pairs(inst.Attributes) do c.Attributes[k] = v end
  for k, v in pairs(inst.Metadata) do c.Metadata[k] = v end
@@ -4259,7 +4371,7 @@ function Explorer.GroupSelection(className)
   if not f then return end
   for _, i in ipairs(list) do G.move(i, f) end
  else
-  f = config.VirtualInstance.new(className, Explorer.UniqueName(parent, className), parent)
+  f = VirtualInstance.new(className, Explorer.UniqueName(parent, className), parent)
   for _, i in ipairs(list) do i:SetParent(f) end
  end
  Explorer.Expanded[f] = true
@@ -8076,14 +8188,14 @@ do
   ClassName = "Root",
   Parent = nil,
   Children = {},
- }, config.VirtualInstance)
+ }, VirtualInstance)
 
  local nilRoot = setmetatable({
   Name = "nil",
   ClassName = "Root",
   Parent = nil,
   Children = {},
- }, config.VirtualInstance)
+ }, VirtualInstance)
 
  Explorer.Mode = "Game"
  Explorer.Root = gameRoot
@@ -8132,7 +8244,7 @@ do
    Parent = parent,
    Children = {},
    Real = real,
-  }, config.VirtualInstance)
+  }, VirtualInstance)
   local ch = parent.Children
   ch[#ch + 1] = v
   parent._sorted = nil
@@ -8288,6 +8400,7 @@ do
    for i = #roots, 1, -1 do top += 1 stack[top] = roots[i] end
    local t0 = os.clock()
    local lastRefresh = t0
+   local refreshGap = 0.6
    while top > 0 do
     if myToken ~= deepToken then return end
     local n = stack[top]
@@ -8301,10 +8414,12 @@ do
      task.wait()
      if myToken ~= deepToken then return end
      t0 = os.clock()
-     if config.SearchQuery ~= "" and Explorer.Mode == "Game" and t0 - lastRefresh > 0.6 then
-      lastRefresh = t0
+     if config.SearchQuery ~= "" and Explorer.Mode == "Game" and t0 - lastRefresh > refreshGap then
       Explorer.ScanTree()
       RefreshTree()
+      local done = os.clock()
+      refreshGap = math.max(0.6, (done - t0) * 6)
+      lastRefresh, t0 = done, done
      end
     end
    end
@@ -8535,7 +8650,7 @@ do
          Parent = pv,
          Children = {},
          Real = inst,
-        }, config.VirtualInstance)
+        }, VirtualInstance)
         sortedInsert(pv, v)
         realToV[inst] = v
         added = true
@@ -8568,7 +8683,7 @@ do
        Parent = pv,
        Children = {},
        Real = kid,
-      }, config.VirtualInstance)
+      }, VirtualInstance)
       sortedInsert(pv, v)
       realToV[kid] = v
       changed = true
@@ -8795,7 +8910,7 @@ do
     Parent = pv,
     Children = {},
     Real = real,
-   }, config.VirtualInstance)
+   }, VirtualInstance)
    sortedInsert(pv, v)
    realToV[real] = v
    return v
