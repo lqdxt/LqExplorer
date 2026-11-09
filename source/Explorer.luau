@@ -16,6 +16,7 @@ local config = {
  ExpandOnSelect = true,
  SelectAfterInsert = true,
  ShowHierarchyHighlights = true,
+ ShowHiddenServices = true,
  ContextMenu = nil,
  ContextMenuTarget = nil,
  NormalSize = UDim2.new(0, 340, 0, 280),
@@ -1444,7 +1445,7 @@ Explorer.AddDropdown = function(builder, opts)
  end
 
  function handle:Open(x, y)
-  local parent = opts.Screen and config.window or config.main
+  local parent = opts.Parent or (opts.Screen and config.window or config.main)
   if not parent then return self end
   close()
   build()
@@ -1506,7 +1507,7 @@ Explorer.AddDropdown = function(builder, opts)
   if not gui or not config.main then return self end
   local ap = gui.AbsolutePosition
   local as = gui.AbsoluteSize
-  local mainAp = config.main.AbsolutePosition
+  local mainAp = (opts.Parent or config.main).AbsolutePosition
   local x
   if opts.FullWidth then
    DROPDOWN_WIDTH = math.max(180, config.main.AbsoluteSize.X - 14)
@@ -8174,6 +8175,7 @@ do
   "TestService",
  }
 
+ local HIDDEN_SERVICES = { CoreGui = true, CorePackages = true }
  local YIELD_BUDGET = 0.008
  local scanning = false
  local scanned = false
@@ -8272,20 +8274,23 @@ do
   if scanning then return end
   scanning = true
   clearGameRoot()
+  local showHidden = config.ShowHiddenServices ~= false
   for i, svcName in ipairs(Services) do
-   local svc = safe(GetService, svcName)
-   if svc then
-    local v = mirrorOne(cloneref(svc), gameRoot)
-    if v then
-     v.Name = svcName
-     v.Metadata.Order = i
+   if showHidden or not HIDDEN_SERVICES[svcName] then
+    local svc = safe(GetService, svcName)
+    if svc then
+     local v = mirrorOne(cloneref(svc), gameRoot)
+     if v then
+      v.Name = svcName
+      v.Metadata.Order = i
+     end
     end
    end
   end
   local have = {}
   for _, c in ipairs(gameRoot.Children) do have[c.Name] = true end
   local okC, top = pcall(game.GetChildren, game)
-  if okC and type(top) == "table" then
+  if showHidden and okC and type(top) == "table" then
    for j = 1, #top do
     local kid = top[j]
     local okN, nm = pcall(readNameOf, kid)
@@ -8455,6 +8460,38 @@ do
   end
  end)
 
+ local settingsDirty = false
+ local function rescanGame()
+  if scanning then return end
+  for _, c in ipairs(gameRoot.Children) do unregister(c) end
+  ScanGame()
+ end
+
+ local settingsBtn
+ config.settingsDropdown = Explorer.AddDropdown(function(Add)
+  Add("Show Hidden Services", "Toggle", function(v)
+   config.ShowHiddenServices = v
+   if Explorer.Mode == "Game" then
+    rescanGame()
+   else
+    settingsDirty = true
+   end
+  end, config.ShowHiddenServices)
+ end, {
+  Studio = true,
+  RowH = 34,
+  Width = 210,
+  Parent = config.menuGui,
+  ZBase = config.MENU_Z + 10,
+ })
+
+ settingsBtn = Explorer.AddMenuButton("Settings", function()
+  config.settingsDropdown:ToggleAt(settingsBtn, false, 6)
+ end)
+ config.OnMenuToggle = function(open)
+  if not open and config.settingsDropdown then config.settingsDropdown:Close() end
+ end
+
  function Explorer.SetMode(mode)
   if mode ~= "Game" and mode ~= "Virtual" then return false end
   if Explorer.Mode == mode then return true end
@@ -8466,6 +8503,9 @@ do
   nilBtn.Visible = (mode == "Game")
   if mode == "Game" and not scanned then
    task.spawn(function() ScanGame() ScanNilInstances() end)
+  elseif mode == "Game" and settingsDirty then
+   settingsDirty = false
+   rescanGame()
   end
   finish()
   if Explorer.PropsOnSelect then Explorer.PropsOnSelect() end
