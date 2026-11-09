@@ -2,6 +2,9 @@ Updates almost everyday!
 
 ---
 
+# Version 1.5
+- Added 'Show Hidden Services' toggle in menu
+
 # Version 1.4
 - Improved search performance
 
