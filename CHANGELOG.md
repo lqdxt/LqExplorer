@@ -2,6 +2,9 @@ Updates almost everyday!
 
 ---
 
+# Version 1.4
+- Improved search performance
+
 # Version 1.3
 - Significantly improved source viewer's performance
 
