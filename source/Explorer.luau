@@ -76,7 +76,7 @@ cloneref = cloneref or function(ref)
   end
  end
  local f = {}
- function f.invalidate(g: any): any
+ function f.Invalidate(g: any): any
   if not InstanceList then
    return
   end
@@ -88,7 +88,7 @@ cloneref = cloneref or function(ref)
   end
   return nil
  end
- return f.invalidate
+ return f.Invalidate
 end
 
 config.SV = {
@@ -102,7 +102,7 @@ config.SV = {
  Http = cloneref(GetService("HttpService")),
 }
 
-local function randomString()
+local function RandomString()
  local n = math.random(35, 45)
  local t = {}
  for i = 1, n do t[i] = string.char(math.random(32, 126)) end
@@ -126,7 +126,7 @@ config.Fresh = function(inp)
 end
 config.WidenHit = function(thumb, horizontal)
  local hit = Instance.new("TextButton")
- hit.Name = randomString()
+ hit.Name = RandomString()
  hit.Text = ""
  hit.AutoButtonColor = false
  hit.BackgroundTransparency = 1
@@ -173,11 +173,11 @@ config.Held = function(inp)
  end
  return true
 end
-local function isPress(inp)
+local function IsPress(inp)
  return inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch
 end
 
-local function absOf(inp, gui)
+local function AbsOf(inp, gui)
  local p = Vector2.new(inp.Position.X, inp.Position.Y)
  local gi = Vector2.new(0, 0)
  if config.SV.Gui then
@@ -288,11 +288,11 @@ config.Root = setmetatable({
 config.NATURAL_SORT = false
 config.CLASS_PRIORITY = { Camera = 1, Terrain = 2 }
 
-local function padNum(d)
+local function PadNum(d)
  return string.rep("0", 10 - #d) .. d
 end
 
-local function refreshKey(n)
+local function RefreshKey(n)
  local name, cls = n.Name, n.ClassName
  local md = rawget(n, "Metadata")
  local o = md and md.Order
@@ -303,7 +303,7 @@ local function refreshKey(n)
   else
    local nm = tostring(name):lower()
    if config.NATURAL_SORT then
-    nm = nm:gsub("%d+", function(d) return #d <= 10 and padNum(d) or d end)
+    nm = nm:gsub("%d+", function(d) return #d <= 10 and PadNum(d) or d end)
    end
    n._sk = tostring(config.CLASS_PRIORITY[cls] or 3) .. nm
   end
@@ -311,7 +311,7 @@ local function refreshKey(n)
  return n._sk
 end
 
-local function sortedChildren(inst)
+local function SortedChildren(inst)
  local kids = inst.Children
  local n = #kids
  local cache = inst._sorted
@@ -319,7 +319,7 @@ local function sortedChildren(inst)
  if cache and #cache == n then
   local ok, prev = true, nil
   for i = 1, n do
-   local k = refreshKey(cache[i])
+   local k = RefreshKey(cache[i])
    if prev and k < prev then ok = false break end
    prev = k
   end
@@ -328,7 +328,7 @@ local function sortedChildren(inst)
  local keys, map = table.create(n), {}
  for i = 1, n do
   local c = kids[i]
-  local k = refreshKey(c) .. "\0" .. string.format("%08d", i)
+  local k = RefreshKey(c) .. "\0" .. string.format("%08d", i)
   keys[i] = k
   map[k] = c
  end
@@ -352,15 +352,15 @@ Explorer = {
  Settings = {},
  Images = (function()
   local base = "https://raw.githubusercontent.com/lqdxt/LqExplorer/main/images/"
-  local function img(file) return { Url = base .. file, File = file } end
+  local function Img(file) return { Url = base .. file, File = file } end
   return {
-   ClassIcons = img("IconMap.png"),
-   Caret = img("Caret.png"),
-   Options = img("Options.png"),
-   History = img("History.png"),
-   Rotation = img("Rotation.png"),
-   ZoomIn = img("ZoomIn.png"),
-   ZoomOut = img("ZoomOut.png"),
+   ClassIcons = Img("IconMap.png"),
+   Caret = Img("Caret.png"), -- faces right
+   Options = Img("Options.png"),
+   History = Img("History.png"),
+   Rotation = Img("Rotation.png"),
+   ZoomIn = Img("ZoomIn.png"),
+   ZoomOut = Img("ZoomOut.png"),
   }
  end)(),
  OnSelectCb = nil,
@@ -379,7 +379,7 @@ config.Positions = {
 
 local function RoundCorner(inst, scale, radius)
  local c = Instance.new("UICorner")
- c.Name = randomString()
+ c.Name = RandomString()
  c.CornerRadius = UDim.new(scale, radius)
  c.Archivable = false
  c.Parent = inst
@@ -388,7 +388,7 @@ end
 
 local function BorderStroke(inst, thickness, R, G, B)
  local s = Instance.new("UIStroke")
- s.Name = randomString()
+ s.Name = RandomString()
  s.Thickness = thickness or 1.5
  s.Color = (R and G and B) and Color3.fromRGB(R, G, B) or Color3.fromRGB(60, 60, 60)
  s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -451,7 +451,7 @@ end
 
 local function MakeCheckBox(parent, size, z)
  local box = Instance.new("Frame")
- box.Name = randomString()
+ box.Name = RandomString()
  box.Size = UDim2.new(0, size, 0, size)
  box.BackgroundColor3 = Color3.fromRGB(20, 21, 26)
  box.BorderSizePixel = 0
@@ -461,9 +461,9 @@ local function MakeCheckBox(parent, size, z)
  BorderStroke(box, 1, 90, 90, 90)
  local arms = {}
  local s = size / 16
- local function arm(len, cx, cy, rot)
+ local function Arm(len, cx, cy, rot)
   local f = Instance.new("Frame")
-  f.Name = randomString()
+  f.Name = RandomString()
   f.Size = UDim2.new(0, math.max(1, math.floor(2 * s + 0.5)), 0, len * s)
   f.AnchorPoint = Vector2.new(0.5, 0.5)
   f.Position = UDim2.new(0, cx * s, 0, cy * s)
@@ -476,18 +476,18 @@ local function MakeCheckBox(parent, size, z)
   f.Parent = box
   arms[#arms + 1] = f
  end
- arm(5.5, 4.75, 10, -45)
- arm(10, 9.75, 8.5, 45)
- local function set(on)
+ Arm(5.5, 4.75, 10, -45)
+ Arm(10, 9.75, 8.5, 45)
+ local function Set(on)
   box.BackgroundColor3 = on and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(20, 21, 26)
   for _, a in ipairs(arms) do a.Visible = on and true or false end
  end
- return box, set
+ return box, Set
 end
 
 local function MakeStudioCheckBox(parent, size, z)
  local box = Instance.new("Frame")
- box.Name = randomString()
+ box.Name = RandomString()
  box.Size = UDim2.new(0, size, 0, size)
  box.BackgroundColor3 = Color3.fromRGB(59, 91, 243)
  box.BackgroundTransparency = 1
@@ -499,9 +499,9 @@ local function MakeStudioCheckBox(parent, size, z)
  local stroke = BorderStroke(box, 1.5, 215, 215, 220)
  local arms = {}
  local s = size / 16
- local function arm(len, cx, cy, rot)
+ local function Arm(len, cx, cy, rot)
   local f = Instance.new("Frame")
-  f.Name = randomString()
+  f.Name = RandomString()
   f.Size = UDim2.new(0, 2, 0, math.floor(len * s + 0.5))
   f.AnchorPoint = Vector2.new(0.5, 0.5)
   f.Position = UDim2.new(0, math.floor(cx * s + 0.5), 0, math.floor(cy * s + 0.5))
@@ -514,20 +514,20 @@ local function MakeStudioCheckBox(parent, size, z)
   f.Parent = box
   arms[#arms + 1] = f
  end
- arm(4.8, 5.1, 10.1, -45)
- arm(9.8, 9.6, 8, 40.6)
- local function set(on)
+ Arm(4.8, 5.1, 10.1, -45)
+ Arm(9.8, 9.6, 8, 40.6)
+ local function Set(on)
   on = on and true or false
   box.BackgroundTransparency = on and 0 or 1
   stroke.Color = on and Color3.fromRGB(59, 91, 243) or Color3.fromRGB(215, 215, 220)
   for _, a in ipairs(arms) do a.Visible = on end
  end
- return box, set
+ return box, Set
 end
 
 local function MakePinIcon(parent, size, z, color)
  local box = Instance.new("Frame")
- box.Name = randomString()
+ box.Name = RandomString()
  box.Size = UDim2.new(0, size, 0, size)
  box.AnchorPoint = Vector2.new(0.5, 0.5)
  box.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -537,10 +537,10 @@ local function MakePinIcon(parent, size, z, color)
  box.Archivable = false
  box.Parent = parent
  local s = size / 16
- local function px(v) return math.floor(v * s + 0.5) end
- local function rect(x, y, w, h, rot, anchored)
+ local function Px(v) return math.floor(v * s + 0.5) end
+ local function MakeRect(x, y, w, h, rot, anchored)
   local f = Instance.new("Frame")
-  f.Name = randomString()
+  f.Name = RandomString()
   f.Size = UDim2.new(0, w, 0, h)
   if anchored then
    f.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -555,27 +555,27 @@ local function MakePinIcon(parent, size, z, color)
   f.Parent = box
  end
  local t = math.max(1, math.floor(1.5 * s))
- local bl, bt, bb = px(0), px(6.5), px(16)
- local br, bTopEnd, bRightTop = px(9.5), px(5), px(11)
- rect(bl, bt, t, bb - bt)
- rect(bl, bb - t, br - bl, t)
- rect(bl, bt, bTopEnd - bl, t)
- rect(br - t, bRightTop, t, bb - bRightTop)
- local hl, ht, hp = px(6), px(2), px(8)
+ local bl, bt, bb = Px(0), Px(6.5), Px(16)
+ local br, bTopEnd, bRightTop = Px(9.5), Px(5), Px(11)
+ MakeRect(bl, bt, t, bb - bt)
+ MakeRect(bl, bb - t, br - bl, t)
+ MakeRect(bl, bt, bTopEnd - bl, t)
+ MakeRect(br - t, bRightTop, t, bb - bRightTop)
+ local hl, ht, hp = Px(6), Px(2), Px(8)
  for j = 0, hp - 1 do
-  rect(hl, ht + j, j + 1, 1)
+  MakeRect(hl, ht + j, j + 1, 1)
  end
  local len = 7 * s
  local mx, my = hl + hp / 2, ht + hp / 2
  local k = 0.70710678 * len / 2
- rect(mx + k, my - k, t, len, 45, true)
+ MakeRect(mx + k, my - k, t, len, 45, true)
  return box
 end
 
 local function MakeCloseIcon(parent, size, z, color)
  size = size - (size % 2)
  local box = Instance.new("Frame")
- box.Name = randomString()
+ box.Name = RandomString()
  box.Size = UDim2.new(0, size, 0, size)
  box.AnchorPoint = Vector2.new(0.5, 0.5)
  box.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -588,7 +588,7 @@ local function MakeCloseIcon(parent, size, z, color)
  local arms = {}
  for _, rot in ipairs({ 45, -45 }) do
   local f = Instance.new("Frame")
-  f.Name = randomString()
+  f.Name = RandomString()
   f.Size = UDim2.new(0, len, 0, 2)
   f.AnchorPoint = Vector2.new(0.5, 0.5)
   f.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -606,7 +606,7 @@ end
 
 local function MakeChevron(parent, z)
  local c = Instance.new("Frame")
- c.Name = randomString()
+ c.Name = RandomString()
  c.Size = UDim2.new(0, 12, 0, 8)
  c.BackgroundTransparency = 1
  c.ZIndex = z
@@ -614,7 +614,7 @@ local function MakeChevron(parent, z)
  c.Parent = parent
  for _, d in ipairs({ { 3.5, -45 }, { 8.5, 45 } }) do
   local f = Instance.new("Frame")
-  f.Name = randomString()
+  f.Name = RandomString()
   f.Size = UDim2.new(0, 2, 0, 6)
   f.AnchorPoint = Vector2.new(0.5, 0.5)
   f.Position = UDim2.new(0, d[1], 0, 3.5)
@@ -630,7 +630,7 @@ end
 
 local function MakePlus(parent, z)
  local b = Instance.new("TextButton")
- b.Name = randomString()
+ b.Name = RandomString()
  b.Size = UDim2.new(0, 18, 0, 18)
  b.BackgroundTransparency = 1
  b.BorderSizePixel = 0
@@ -640,7 +640,7 @@ local function MakePlus(parent, z)
  b.Archivable = false
  b.Parent = parent
  local ring = Instance.new("Frame")
- ring.Name = randomString()
+ ring.Name = RandomString()
  ring.Size = UDim2.new(0, 14, 0, 14)
  ring.Position = UDim2.new(0.5, -7, 0.5, -7)
  ring.BackgroundColor3 = Color3.fromRGB(190, 190, 190)
@@ -651,7 +651,7 @@ local function MakePlus(parent, z)
  RoundCorner(ring, 1, 0)
  for _, d in ipairs({ { 8, 2 }, { 2, 8 } }) do
   local bar = Instance.new("Frame")
-  bar.Name = randomString()
+  bar.Name = RandomString()
   bar.Size = UDim2.new(0, d[1], 0, d[2])
   bar.Position = UDim2.new(0.5, -d[1] / 2, 0.5, -d[2] / 2)
   bar.BackgroundColor3 = config.COLORS.PRIMARY
@@ -665,7 +665,7 @@ end
 
 local function MakeCross(parent, z)
  local b = Instance.new("TextButton")
- b.Name = randomString()
+ b.Name = RandomString()
  b.Size = UDim2.new(0, 18, 0, 18)
  b.BackgroundTransparency = 1
  b.BorderSizePixel = 0
@@ -676,7 +676,7 @@ local function MakeCross(parent, z)
  b.Parent = parent
  for _, rot in ipairs({ 45, -45 }) do
   local f = Instance.new("Frame")
-  f.Name = randomString()
+  f.Name = RandomString()
   f.Size = UDim2.new(0, 2, 0, 11)
   f.AnchorPoint = Vector2.new(0.5, 0.5)
   f.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -692,7 +692,7 @@ end
 
 local function MakeDots(parent, z)
  local b = Instance.new("TextButton")
- b.Name = randomString()
+ b.Name = RandomString()
  b.Size = UDim2.new(0, 18, 0, 18)
  b.BackgroundTransparency = 1
  b.BorderSizePixel = 0
@@ -703,7 +703,7 @@ local function MakeDots(parent, z)
  b.Parent = parent
  for i = 0, 2 do
   local d = Instance.new("Frame")
-  d.Name = randomString()
+  d.Name = RandomString()
   d.Size = UDim2.new(0, 3, 0, 3)
   d.Position = UDim2.new(0.5, -1.5, 0.5, -7 + i * 5.5)
   d.BackgroundColor3 = Color3.fromRGB(190, 190, 190)
@@ -996,7 +996,7 @@ config.ICONS = {
  ["WrapTarget"]={17,18},
 }
 
-local function getIconOffset(classname)
+local function GetIconOffset(classname)
  local c = config.ICONS[classname]
  if not c and classname:match("Value$") then c = config.ICONS["Value"] end
  if not c and (classname:match("Service$") or classname:match("Provider$")) then c = config.ICONS["Service"] end
@@ -1004,7 +1004,7 @@ local function getIconOffset(classname)
  return Vector2.new((c[2] - 1) * 32, (c[1] - 1) * 32)
 end
 
-local function applyIcon(iconLabel, className)
+local function ApplyIcon(iconLabel, className)
  if not iconLabel then return end
  if Explorer.UserIcons[className] then
   local u = Explorer.UserIcons[className]
@@ -1015,29 +1015,29 @@ local function applyIcon(iconLabel, className)
  end
  iconLabel.Image = config.ICON_ID
  iconLabel.ImageRectSize = config.ICON_SIZE
- iconLabel.ImageRectOffset = getIconOffset(className)
+ iconLabel.ImageRectOffset = GetIconOffset(className)
 end
 
-local function escape(s)
+local function Escape(s)
  return (s:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"))
 end
 
 config.ADBP = loadstring(game:HttpGet("https://raw.githubusercontent.com/lqdxt/Scripts/refs/heads/main/ADBP.lua"))()
 config.main = nil
 config.docksplitter = nil
-config.layoutSource = nil
-config.layoutDocks, config.pmain, config.pdocksplitter = nil
+config.LayoutSource = nil
+config.LayoutDocks, config.pmain, config.pdocksplitter = nil
 config.PDock = { Side = nil, Order = "below", Split = nil }
 
 config.folder = Instance.new("Folder")
-config.folder.Name = randomString()
+config.folder.Name = RandomString()
 config.folder.Archivable = false
 config.folder.RobloxLocked = true
 config.folder.Parent = (gethui and gethui()) or config.SV.CoreGui
 config.ADBP(config.folder)
 
 config.window = Instance.new("ScreenGui")
-config.window.Name = randomString()
+config.window.Name = RandomString()
 config.window.ResetOnSpawn = false
 config.window.IgnoreGuiInset = true
 config.window.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -1045,14 +1045,14 @@ config.window.Archivable = false
 config.window.ClipToDeviceSafeArea = true
 config.window.Parent = config.folder
 
-local function topInset()
+local function TopInset()
  local ok, v = pcall(function() return config.SV.Gui:GetGuiInset() end)
  return (ok and v and v.Y) or 0
 end
 
-local function clampPanelTop(panel)
+local function ClampPanelTop(panel)
  local H = config.window.AbsoluteSize.Y
- local inset = topInset()
+ local inset = TopInset()
  local p, sz, ap = panel.Position, panel.Size, panel.AnchorPoint
  local top = p.Y.Scale * H + p.Y.Offset - ap.Y * (sz.Y.Scale * H + sz.Y.Offset)
  if top < inset then
@@ -1060,7 +1060,7 @@ local function clampPanelTop(panel)
  end
 end
 
-local function nearestSide(gui)
+local function NearestSide(gui)
  local ap, as = gui.AbsolutePosition, gui.AbsoluteSize
  return (ap.X + as.X / 2 < config.window.AbsoluteSize.X / 2) and "left" or "right"
 end
@@ -1073,13 +1073,13 @@ local function ApplyDock(side)
  if side == "left" then
   config.docksplitter.Position = UDim2.new(1, 0, 0, 0)
  else
-  config.docksplitter.Position = UDim2.new(0, -3, 0, 0)
+  config.docksplitter.Position = UDim2.new(0, -6, 0, 0)
  end
- if config.layoutDocks then config.layoutDocks() end
- if config.layoutSource then config.layoutSource() end
+ if config.LayoutDocks then config.LayoutDocks() end
+ if config.LayoutSource then config.LayoutSource() end
 end
 
-local function undock()
+local function Undock()
  if not config.DockSide then return end
  local px, py = config.main.Position.X.Offset, config.main.Position.Y.Offset
  local w, h = config.main.Size.X.Offset, config.NormalSize.Y.Offset
@@ -1088,11 +1088,11 @@ local function undock()
  config.main.Position = UDim2.new(0, px + w / 2, 0, py + h / 2)
  config.main.Size = UDim2.new(0, w, 0, h)
  config.docksplitter.Visible = false
- if config.layoutDocks then config.layoutDocks() end
- if config.layoutSource then config.layoutSource() end
+ if config.LayoutDocks then config.LayoutDocks() end
+ if config.LayoutSource then config.LayoutSource() end
 end
 
-local function applyResponsiveWidth()
+local function ApplyResponsiveWidth()
  local vpX = config.window.AbsoluteSize.X
  if vpX <= 0 then return end
  local newDT = ComputeResponsiveWidth(vpX)
@@ -1106,10 +1106,10 @@ local function applyResponsiveWidth()
  if config.pmain and config.pmain.Parent and config.PDock.Side then
   config.pmain.Size = UDim2.new(0, config.DT, 0, config.pmain.Size.Y.Offset)
  end
- if config.layoutDocks and (config.DockSide or config.PDock.Side) then config.layoutDocks() end
+ if config.LayoutDocks and (config.DockSide or config.PDock.Side) then config.LayoutDocks() end
 end
 config.DT = ComputeResponsiveWidth(config.window.AbsoluteSize.X > 0 and config.window.AbsoluteSize.X or 1000)
-config.window:GetPropertyChangedSignal("AbsoluteSize"):Connect(applyResponsiveWidth)
+config.window:GetPropertyChangedSignal("AbsoluteSize"):Connect(ApplyResponsiveWidth)
 
 config.WinOrder = {}
 local function BringToFront(w)
@@ -1162,7 +1162,7 @@ Explorer.AddDropdown = function(builder, opts)
   Connection = nil,
  }
 
- local function close()
+ local function Close()
   if handle.Connection then
    handle.Connection:Disconnect()
    handle.Connection = nil
@@ -1180,22 +1180,34 @@ Explorer.AddDropdown = function(builder, opts)
   if opts.OnClose then pcall(opts.OnClose) end
  end
 
- local function closeSub()
+ local function FadeIn(group)
+  group.GroupTransparency = 1
+  config.SV.Tween:Create(group, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+   GroupTransparency = 0,
+  }):Play()
+ end
+
+ local function CloseSub()
+  local owner = handle.SubOwner
   if handle.Sub then
    handle.Sub:Destroy()
    handle.Sub = nil
   end
   handle.SubOwner = nil
+  handle.SubByHover = false
+  if owner and owner.hoverTarget and not owner.hovered then
+   owner.hoverTarget.BackgroundTransparency = 1
+  end
  end
 
- local function build()
+ local function Build()
   local prev = {}
   local prevItems = handle.Items
   for _, item in ipairs(prevItems) do
    if item.name then prev[item.name] = item.state end
   end
   handle.Items = {}
-  local function makeAdd(list, allowOptions, prevStates)
+  local function MakeAdd(list, allowOptions, prevStates)
    return function(name, kind, callback, defaultState, itemOpts)
     if kind == "Separator" then
      table.insert(list, { kind = "Separator" })
@@ -1216,7 +1228,7 @@ Explorer.AddDropdown = function(builder, opts)
      for _, p in ipairs(prevStates.__sub and prevStates.__sub[name] or {}) do
       subPrev[p.name] = p.state
      end
-     local ok2, err2 = pcall(callback, makeAdd(item.children, false, subPrev))
+     local ok2, err2 = pcall(callback, MakeAdd(item.children, false, subPrev))
      if not ok2 then warn(err2) end
      table.insert(list, item)
      return
@@ -1243,16 +1255,16 @@ Explorer.AddDropdown = function(builder, opts)
   for _, item in ipairs(prevItems) do
    if item.kind == "Options" then prev.__sub[item.name] = item.children end
   end
-  local Add = makeAdd(handle.Items, true, prev)
+  local Add = MakeAdd(handle.Items, true, prev)
   local ok, err = pcall(builder, Add)
   if not ok then
    warn(err)
   end
  end
 
- local openSub
+ local OpenSub
 
- local function renderInto(frame, items, isSub)
+ local function RenderInto(frame, items, isSub)
   for _, c in ipairs(frame:GetChildren()) do
    if not c:IsA("UICorner") and not c:IsA("UIStroke") then c:Destroy() end
   end
@@ -1276,7 +1288,7 @@ Explorer.AddDropdown = function(builder, opts)
   for _, item in ipairs(items) do
    if item.kind == "Separator" then
     local sep = Instance.new("Frame")
-    sep.Name = randomString()
+    sep.Name = RandomString()
     sep.Size = UDim2.new(1, STUDIO and -8 or -32, 0, 1)
     sep.Position = UDim2.new(0, STUDIO and 4 or 28, 0, y + 3)
     sep.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -1289,7 +1301,7 @@ Explorer.AddDropdown = function(builder, opts)
     continue
    end
    local row = Instance.new("Frame")
-   row.Name = randomString()
+   row.Name = RandomString()
    row.Size = UDim2.new(1, -PAD * 2, 0, ROW_H - 4)
    row.Position = UDim2.new(0, PAD, 0, y)
    row.BackgroundTransparency = 1
@@ -1327,18 +1339,30 @@ Explorer.AddDropdown = function(builder, opts)
    btn.Parent = row
    if STUDIO then RoundCorner(row, 0, 6) end
    local hoverTarget = STUDIO and row or btn
+   item.hoverTarget = hoverTarget
    btn.MouseEnter:Connect(function()
+    item.hovered = true
     hoverTarget.BackgroundColor3 = config.COLORS.SECONDARY
     hoverTarget.BackgroundTransparency = 0
+    if isSub then return end
+    if item.kind == "Options" then
+     if handle.SubOwner ~= item then
+      OpenSub(item, row, frame)
+      handle.SubByHover = true
+     end
+    elseif handle.SubOwner then
+     CloseSub()
+    end
    end)
    btn.MouseLeave:Connect(function()
+    item.hovered = false
     if handle.SubOwner == item then return end
     hoverTarget.BackgroundTransparency = 1
    end)
 
    if item.kind == "Options" then
     local chev = Instance.new("ImageLabel")
-    chev.Name = randomString()
+    chev.Name = RandomString()
     chev.Size = UDim2.new(0, 16, 0, 16)
     chev.AnchorPoint = Vector2.new(0.5, 0.5)
     chev.Position = UDim2.new(1, -14, 0.5, 0)
@@ -1349,11 +1373,13 @@ Explorer.AddDropdown = function(builder, opts)
     chev.Archivable = false
     chev.Parent = btn
     btn.Activated:Connect(function()
-     if handle.SubOwner == item then
-      closeSub()
-      btn.BackgroundTransparency = 1
+     if handle.SubOwner ~= item then
+      OpenSub(item, row, frame)
+      handle.SubByHover = false
+     elseif handle.SubByHover then
+      handle.SubByHover = false
      else
-      openSub(item, row, frame)
+      CloseSub()
      end
     end)
    elseif item.kind == "Toggle" then
@@ -1375,7 +1401,7 @@ Explorer.AddDropdown = function(builder, opts)
     end)
    else
     btn.Activated:Connect(function()
-     if opts.CloseOnClick then close() end
+     if opts.CloseOnClick then Close() end
      if item.callback then pcall(item.callback) end
     end)
    end
@@ -1386,28 +1412,27 @@ Explorer.AddDropdown = function(builder, opts)
   frame.Size = UDim2.new(0, DROPDOWN_WIDTH, 0, y + PAD)
  end
 
- local function render()
+ local function Render()
   if not handle.Frame then return end
-  closeSub()
-  renderInto(handle.Frame, handle.Items, false)
+  CloseSub()
+  RenderInto(handle.Frame, handle.Items, false)
  end
 
- openSub = function(item, row, parentFrame)
+ OpenSub = function(item, row, parentFrame)
   local parent = parentFrame.Parent
   if not parent then return end
-  closeSub()
+  CloseSub()
   handle.SubOwner = item
 
-  local sub = Instance.new("Frame")
-  sub.Name = randomString()
+  local sub = Instance.new("CanvasGroup")
+  sub.Name = RandomString()
   sub.BackgroundColor3 = config.COLORS.PRIMARY
   sub.BorderSizePixel = 0
   sub.ZIndex = 11 + ZB
   sub.Archivable = false
   sub.Parent = parent
-  DropStroke(sub)
   handle.Sub = sub
-  renderInto(sub, item.children, true)
+  RenderInto(sub, item.children, true)
   if opts.Screen then sub.BackgroundTransparency = config.NT end
 
   local pAbs = parent.AbsolutePosition
@@ -1428,6 +1453,7 @@ Explorer.AddDropdown = function(builder, opts)
   local y = rAp.Y - pAbs.Y - PAD
   y = math.clamp(y, 4, math.max(4, pSize.Y - h - 4))
   sub.Position = UDim2.new(0, x, 0, y)
+  FadeIn(sub)
 
   for _, c in ipairs(row:GetChildren()) do
    if c:IsA("TextButton") then
@@ -1447,24 +1473,22 @@ Explorer.AddDropdown = function(builder, opts)
  function handle:Open(x, y)
   local parent = opts.Parent or (opts.Screen and config.window or config.main)
   if not parent then return self end
-  close()
-  build()
+  Close()
+  Build()
   lastOpen = tick()
 
-  local frame = Instance.new("Frame")
-  frame.Name = randomString()
+  local frame = Instance.new("CanvasGroup")
+  frame.Name = RandomString()
   frame.BackgroundColor3 = config.COLORS.PRIMARY
   frame.BorderSizePixel = 0
   frame.ZIndex = 11 + ZB
   frame.Archivable = false
   frame.Parent = parent
-  local frameStroke = DropStroke(frame)
   if STUDIO then
    RoundCorner(frame, 0, 10)
-   frameStroke.Color = Color3.fromRGB(75, 78, 88)
   end
   handle.Frame = frame
-  render()
+  Render()
   if opts.Screen then frame.BackgroundTransparency = config.NT end
 
   local maxX = math.max(4, parent.AbsoluteSize.X - frame.Size.X.Offset - 4)
@@ -1473,6 +1497,7 @@ Explorer.AddDropdown = function(builder, opts)
    0, math.clamp(x or 0, 4, maxX),
    0, math.clamp(y or 0, 4, maxY)
   )
+  FadeIn(frame)
 
   handle.Connection = config.SV.UserInput.InputBegan:Connect(function(inp)
    if inp.UserInputType ~= Enum.UserInputType.MouseButton1
@@ -1497,7 +1522,7 @@ Explorer.AddDropdown = function(builder, opts)
      return
     end
    end
-   close()
+   Close()
   end)
 
   return self
@@ -1523,26 +1548,26 @@ Explorer.AddDropdown = function(builder, opts)
   return self
  end
 
- function handle:Close() close() return self end
+ function handle:Close() Close() return self end
  function handle:Toggle(x, y)
-  if handle.Frame then close() else self:Open(x, y) end
+  if handle.Frame then Close() else self:Open(x, y) end
   return self
  end
  function handle:ToggleAt(gui, alignRight, offsetY)
-  if handle.Frame then close() else self:OpenAt(gui, alignRight, offsetY) end
+  if handle.Frame then Close() else self:OpenAt(gui, alignRight, offsetY) end
   return self
  end
  function handle:Refresh()
-  if handle.Frame then build() render() end
+  if handle.Frame then Build() Render() end
   return self
  end
- function handle:Destroy() close() return self end
+ function handle:Destroy() Close() return self end
 
  return handle
 end
 
 config.main = Instance.new("Frame")
-config.main.Name = randomString()
+config.main.Name = RandomString()
 config.main.Size = UDim2.new(0, config.DT, 0, 280)
 config.main.AnchorPoint = Vector2.new(0.5, 0.5)
 config.main.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -1556,8 +1581,8 @@ config.main.Parent = config.window
 RegisterWindow(config.main)
 
 config.docksplitter = Instance.new("Frame")
-config.docksplitter.Name = randomString()
-config.docksplitter.Size = UDim2.new(0, 3, 1, 0)
+config.docksplitter.Name = RandomString()
+config.docksplitter.Size = UDim2.new(0, 6, 1, 0)
 config.docksplitter.BackgroundColor3 = config.COLORS.RESIZER
 config.docksplitter.BorderSizePixel = 0
 config.docksplitter.ZIndex = 8
@@ -1567,7 +1592,7 @@ config.docksplitter.Active = true
 config.docksplitter.Parent = config.main
 
 config.header = Instance.new("Frame")
-config.header.Name = randomString()
+config.header.Name = RandomString()
 config.header.Size = UDim2.new(1, 0, 0, 28)
 config.header.BackgroundColor3 = config.COLORS.HEADER
 config.header.BorderSizePixel = 0
@@ -1577,7 +1602,7 @@ config.header.Archivable = false
 config.header.Parent = config.main
 
 config.separator = Instance.new("Frame")
-config.separator.Name = randomString()
+config.separator.Name = RandomString()
 config.separator.Size = UDim2.new(1, -8, 0, 2)
 config.separator.Position = UDim2.new(0, 7, 0, 63)
 config.separator.BackgroundColor3 = config.COLORS.SECONDARY
@@ -1587,7 +1612,7 @@ config.separator.Archivable = false
 config.separator.Parent = config.main
 
 config.searchRow = Instance.new("Frame")
-config.searchRow.Name = randomString()
+config.searchRow.Name = RandomString()
 config.searchRow.Size = UDim2.new(1, 0, 0, 34)
 config.searchRow.Position = UDim2.new(0, 0, 0, 28)
 config.searchRow.BackgroundTransparency = 1
@@ -1597,7 +1622,7 @@ config.searchRow.Archivable = false
 config.searchRow.Parent = config.main
 
 config.searchbar = Instance.new("TextBox")
-config.searchbar.Name = randomString()
+config.searchbar.Name = RandomString()
 config.searchbar.Size = UDim2.new(1, -50, 0, 28)
 config.searchbar.Position = UDim2.new(0, 7, 0, 4)
 config.searchbar.BackgroundTransparency = 0
@@ -1616,7 +1641,7 @@ config.searchbar.Parent = config.searchRow
 RoundCorner(config.searchbar, 0, 8)
 
 config.threedotmenu = Instance.new("ImageButton")
-config.threedotmenu.Name = randomString()
+config.threedotmenu.Name = RandomString()
 config.threedotmenu.Size = UDim2.new(0, 28, 0, 28)
 config.threedotmenu.Position = UDim2.new(1, -36, 0.5, -13)
 config.threedotmenu.BackgroundColor3 = config.COLORS.SECONDARY
@@ -1628,7 +1653,7 @@ config.threedotmenu.Parent = config.searchRow
 RoundCorner(config.threedotmenu, 0, 8)
 
 config.colonimage = Instance.new("ImageLabel")
-config.colonimage.Name = randomString()
+config.colonimage.Name = RandomString()
 config.colonimage.Size = UDim2.new(0, 24, 0, 24)
 config.colonimage.Position = UDim2.new(0, 2, 0, 2)
 config.colonimage.BackgroundTransparency = 1
@@ -1641,7 +1666,7 @@ config.colonimage.Parent = config.threedotmenu
 config.SearchHistory = {}
 
 config.historybtn = Instance.new("ImageButton")
-config.historybtn.Name = randomString()
+config.historybtn.Name = RandomString()
 config.historybtn.Size = UDim2.new(0, 28, 0, 28)
 config.historybtn.Position = UDim2.new(1, -68, 0.5, -13)
 config.historybtn.BackgroundColor3 = config.COLORS.SECONDARY
@@ -1654,7 +1679,7 @@ config.historybtn.Parent = config.searchRow
 RoundCorner(config.historybtn, 0, 8)
 
 config.clearbtn = Instance.new("TextButton")
-config.clearbtn.Name = randomString()
+config.clearbtn.Name = RandomString()
 config.clearbtn.Size = UDim2.new(0, 28, 0, 28)
 config.clearbtn.Position = UDim2.new(1, -95, 0.5, -13)
 config.clearbtn.BackgroundTransparency = 1
@@ -1710,7 +1735,7 @@ config.searchbar.FocusLost:Connect(function()
 end)
 
 config.accent = Instance.new("Frame")
-config.accent.Name = randomString()
+config.accent.Name = RandomString()
 config.accent.Size = UDim2.new(1, 0, 0, 1.5)
 config.accent.Position = UDim2.new(0, 0, 1, -1.5)
 config.accent.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -1720,7 +1745,7 @@ config.accent.Archivable = false
 config.accent.Parent = config.header
 
 config.title = Instance.new("TextLabel")
-config.title.Name = randomString()
+config.title.Name = RandomString()
 config.title.Text = "Explorer"
 config.title.Size = UDim2.new(1, 0, 1, 0)
 config.title.Position = UDim2.new(0, -15, 0, 0)
@@ -1734,7 +1759,7 @@ config.title.Archivable = false
 config.title.Parent = config.header
 
 config.close = Instance.new("TextButton")
-config.close.Name = randomString()
+config.close.Name = RandomString()
 config.close.Size = UDim2.new(0, 28, 0, 28)
 config.close.Position = UDim2.new(1, -30, 0.5, -13)
 config.close.BackgroundTransparency = 1
@@ -1753,14 +1778,14 @@ local CELL_W, CELL_H, CELL_GAP, BAR_PAD = 76, 66, 4, 8
 local TEXT_ROW_H = 26
 local MENU_BAR_W = BAR_PAD * 2 + CELL_W * 2 + CELL_GAP
 local MENU_BAR_H = BAR_PAD * 2 + CELL_H
-local layoutBar
+local LayoutBar
 local menuCells = {}
 config.MENU_Z = 60
 local ICON_WHITE = Color3.fromRGB(255, 255, 255)
 local ICON_ACCENT = Color3.fromRGB(125, 128, 175)
 
 config.menuGui = Instance.new("ScreenGui")
-config.menuGui.Name = randomString()
+config.menuGui.Name = RandomString()
 config.menuGui.ResetOnSpawn = false
 config.menuGui.IgnoreGuiInset = true
 config.menuGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -1769,7 +1794,7 @@ config.menuGui.Archivable = false
 config.menuGui.Parent = config.folder
 
 local menubtn = Instance.new("TextButton")
-menubtn.Name = randomString()
+menubtn.Name = RandomString()
 menubtn.Size = UDim2.new(0, MENU_BTN_W, 0, MENU_BTN_H)
 menubtn.AnchorPoint = Vector2.new(0.5, 0)
 menubtn.Position = UDim2.new(0.5, 0, 0, 6)
@@ -1787,7 +1812,7 @@ RoundCorner(menubtn, 0, 8)
 BorderStroke(menubtn, 1, 60, 60, 60)
 
 config.topbar = Instance.new("Frame")
-config.topbar.Name = randomString()
+config.topbar.Name = RandomString()
 config.topbar.Size = UDim2.new(0, MENU_BAR_W, 0, MENU_BAR_H)
 config.topbar.AnchorPoint = Vector2.new(0.5, 0)
 config.topbar.Position = UDim2.new(0.5, 0, 0, 6 + MENU_BTN_H + 6)
@@ -1802,7 +1827,7 @@ RoundCorner(config.topbar, 0, 10)
 BorderStroke(config.topbar, 1, 60, 60, 60)
 
 local textRow = Instance.new("Frame")
-textRow.Name = randomString()
+textRow.Name = RandomString()
 textRow.Size = UDim2.new(1, -BAR_PAD * 2, 0, TEXT_ROW_H)
 textRow.Position = UDim2.new(0, BAR_PAD, 0, BAR_PAD - 2)
 textRow.BackgroundTransparency = 1
@@ -1819,7 +1844,7 @@ textRowLayout.Padding = UDim.new(0, 4)
 textRowLayout.Parent = textRow
 
 local textRowLine = Instance.new("Frame")
-textRowLine.Name = randomString()
+textRowLine.Name = RandomString()
 textRowLine.Size = UDim2.new(1, -BAR_PAD * 2, 0, 1)
 textRowLine.Position = UDim2.new(0, BAR_PAD, 0, BAR_PAD + TEXT_ROW_H + 1)
 textRowLine.BackgroundColor3 = config.COLORS.SECONDARY
@@ -1833,7 +1858,7 @@ local textBtnCount = 0
 function Explorer.AddMenuButton(name, callback)
  textBtnCount += 1
  local b = Instance.new("TextButton")
- b.Name = randomString()
+ b.Name = RandomString()
  b.AutomaticSize = Enum.AutomaticSize.X
  b.Size = UDim2.new(0, 0, 0, 22)
  b.BackgroundColor3 = config.COLORS.SECONDARY
@@ -1856,13 +1881,13 @@ function Explorer.AddMenuButton(name, callback)
  b.MouseEnter:Connect(function() b.BackgroundTransparency = 0.5 end)
  b.MouseLeave:Connect(function() b.BackgroundTransparency = 1 end)
  if callback then b.Activated:Connect(function() pcall(callback) end) end
- if layoutBar then layoutBar() end
+ if LayoutBar then LayoutBar() end
  return b
 end
 
-local function iconRect(parent, x, y, w, h, color, radius)
+local function IconRect(parent, x, y, w, h, color, radius)
  local f = Instance.new("Frame")
- f.Name = randomString()
+ f.Name = RandomString()
  f.Position = UDim2.new(0, x, 0, y)
  f.Size = UDim2.new(0, w, 0, h)
  f.BackgroundColor3 = color
@@ -1874,30 +1899,30 @@ local function iconRect(parent, x, y, w, h, color, radius)
  return f
 end
 
-local function buildExplorerIcon(box)
- local sq = iconRect(box, 2, 2, 7, 7, ICON_ACCENT, 2)
+local function BuildExplorerIcon(box)
+ local sq = IconRect(box, 2, 2, 7, 7, ICON_ACCENT, 2)
  BorderStroke(sq, 2, 255, 255, 255)
- iconRect(box, 15, 5, 17, 2, ICON_WHITE, 1)
- iconRect(box, 5, 11, 2, 16, ICON_WHITE, 0)
- iconRect(box, 5, 16, 19, 2, ICON_WHITE, 0)
- iconRect(box, 24, 14, 8, 7, ICON_WHITE, 2)
- iconRect(box, 5, 26, 19, 2, ICON_WHITE, 0)
- iconRect(box, 24, 24, 8, 7, ICON_WHITE, 2)
+ IconRect(box, 15, 5, 17, 2, ICON_WHITE, 1)
+ IconRect(box, 5, 11, 2, 16, ICON_WHITE, 0)
+ IconRect(box, 5, 16, 19, 2, ICON_WHITE, 0)
+ IconRect(box, 24, 14, 8, 7, ICON_WHITE, 2)
+ IconRect(box, 5, 26, 19, 2, ICON_WHITE, 0)
+ IconRect(box, 24, 24, 8, 7, ICON_WHITE, 2)
 end
 
-local function buildPropertiesIcon(box)
- iconRect(box, 4, 5, 23, 25, ICON_ACCENT, 4)
- local front = iconRect(box, 9, 2, 19, 21, config.COLORS.PRIMARY, 4)
+local function BuildPropertiesIcon(box)
+ IconRect(box, 4, 5, 23, 25, ICON_ACCENT, 4)
+ local front = IconRect(box, 9, 2, 19, 21, config.COLORS.PRIMARY, 4)
  BorderStroke(front, 2, 255, 255, 255)
  for _, y in ipairs({ 5, 12 }) do
-  iconRect(front, 3, y, 4, 4, ICON_WHITE, 1)
-  iconRect(front, 10, y + 1, 6, 2, ICON_WHITE, 1)
+  IconRect(front, 3, y, 4, 4, ICON_WHITE, 1)
+  IconRect(front, 10, y + 1, 6, 2, ICON_WHITE, 1)
  end
 end
 
-local function makeMenuCell(index, labelText, buildIcon)
+local function MakeMenuCell(index, labelText, buildIcon)
  local cell = Instance.new("TextButton")
- cell.Name = randomString()
+ cell.Name = RandomString()
  cell.Size = UDim2.new(0, CELL_W, 0, CELL_H)
  cell.Position = UDim2.new(0, 0, 0, BAR_PAD)
  cell.BackgroundColor3 = config.COLORS.SECONDARY
@@ -1912,7 +1937,7 @@ local function makeMenuCell(index, labelText, buildIcon)
  RoundCorner(cell, 0, 8)
 
  local iconBox = Instance.new("Frame")
- iconBox.Name = randomString()
+ iconBox.Name = RandomString()
  iconBox.Size = UDim2.new(0, 32, 0, 32)
  iconBox.Position = UDim2.new(0.5, -16, 0, 6)
  iconBox.BackgroundTransparency = 1
@@ -1922,7 +1947,7 @@ local function makeMenuCell(index, labelText, buildIcon)
  buildIcon(iconBox)
 
  local lbl = Instance.new("TextLabel")
- lbl.Name = randomString()
+ lbl.Name = RandomString()
  lbl.Size = UDim2.new(1, 0, 0, 16)
  lbl.Position = UDim2.new(0, 0, 0, 44)
  lbl.BackgroundTransparency = 1
@@ -1935,7 +1960,7 @@ local function makeMenuCell(index, labelText, buildIcon)
  lbl.Parent = cell
 
  local hover, active = false, false
- local function paint()
+ local function Paint()
   if active or hover then
    cell.BackgroundColor3 = config.COLORS.SECONDARY
    cell.BackgroundTransparency = active and (hover and 0.2 or 0.3) or 0.5
@@ -1943,14 +1968,14 @@ local function makeMenuCell(index, labelText, buildIcon)
    cell.BackgroundTransparency = 1
   end
  end
- cell.MouseEnter:Connect(function() hover = true paint() end)
- cell.MouseLeave:Connect(function() hover = false paint() end)
- return cell, function(on) active = on and true or false paint() end
+ cell.MouseEnter:Connect(function() hover = true Paint() end)
+ cell.MouseLeave:Connect(function() hover = false Paint() end)
+ return cell, function(on) active = on and true or false Paint() end
 end
 
-local explorerbtn, setExplorerActive = makeMenuCell(1, "Explorer", buildExplorerIcon)
-local propertiesbtn, setPropertiesActive = makeMenuCell(2, "Properties", buildPropertiesIcon)
-layoutBar = function()
+local explorerbtn, setExplorerActive = MakeMenuCell(1, "Explorer", BuildExplorerIcon)
+local propertiesbtn, setPropertiesActive = MakeMenuCell(2, "Properties", BuildPropertiesIcon)
+LayoutBar = function()
  local hasText = textBtnCount > 0
  local extra = hasText and (TEXT_ROW_H + 6) or 0
  local cellsW = CELL_W * #menuCells + CELL_GAP * (#menuCells - 1)
@@ -1963,8 +1988,8 @@ layoutBar = function()
   c.Position = UDim2.new(0.5, -cellsW / 2 + (i - 1) * (CELL_W + CELL_GAP), 0, BAR_PAD + extra)
  end
 end
-textRowLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(layoutBar)
-layoutBar()
+textRowLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(LayoutBar)
+LayoutBar()
 
 config.SetPropertiesActive = setPropertiesActive
 setExplorerActive(config.main.Visible)
@@ -1975,18 +2000,18 @@ propertiesbtn.Activated:Connect(function()
  if Explorer.ToggleProperties then Explorer.ToggleProperties() end
 end)
 
-local function setMenuOpen(open)
+local function SetMenuOpen(open)
  config.MenuOpen = open
  config.topbar.Visible = open
  menubtn.BackgroundColor3 = open and config.COLORS.SECONDARY or config.COLORS.HEADER
  if config.OnMenuToggle then config.OnMenuToggle(open) end
 end
 config.MenuOpen = false
-menubtn.Activated:Connect(function() setMenuOpen(not config.MenuOpen) end)
+menubtn.Activated:Connect(function() SetMenuOpen(not config.MenuOpen) end)
 end
 
 config.pinbtn = Instance.new("TextButton")
-config.pinbtn.Name = randomString()
+config.pinbtn.Name = RandomString()
 config.pinbtn.Size = UDim2.new(0, 22, 0, 22)
 config.pinbtn.Position = UDim2.new(1, -58, 0.5, -11)
 config.pinbtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
@@ -2000,11 +2025,11 @@ config.pinbtn.Parent = config.header
 RoundCorner(config.pinbtn, 0, 6)
 MakePinIcon(config.pinbtn, 14, 4, Color3.fromRGB(210, 210, 210))
 config.pinbtn.Activated:Connect(function()
- if config.DockSide then undock() else ApplyDock(nearestSide(config.main)) end
+ if config.DockSide then Undock() else ApplyDock(NearestSide(config.main)) end
 end)
 
 config.body = Instance.new("Frame")
-config.body.Name = randomString()
+config.body.Name = RandomString()
 config.body.Size = UDim2.new(1, 0, 1, -65)
 config.body.Position = UDim2.new(0, 0, 0, 65)
 config.body.BackgroundTransparency = 1
@@ -2013,7 +2038,7 @@ config.body.Archivable = false
 config.body.Parent = config.main
 
 config.scrolling = Instance.new("Frame")
-config.scrolling.Name = randomString()
+config.scrolling.Name = RandomString()
 config.scrolling.Size = UDim2.new(1, -24, 1, 0)
 config.scrolling.Position = UDim2.new(0, 0, 0, 0)
 config.scrolling.BackgroundTransparency = 1
@@ -2023,7 +2048,7 @@ config.scrolling.Archivable = false
 config.scrolling.Parent = config.body
 
 config.vbar = Instance.new("Frame")
-config.vbar.Name = randomString()
+config.vbar.Name = RandomString()
 config.vbar.Size = UDim2.new(0, 24, 1, 0)
 config.vbar.Position = UDim2.new(1, -24, 0, 0)
 config.vbar.BackgroundTransparency = 1
@@ -2035,7 +2060,7 @@ config.vbar.Archivable = false
 config.vbar.Parent = config.body
 
 config.vthumb = Instance.new("Frame")
-config.vthumb.Name = randomString()
+config.vthumb.Name = RandomString()
 config.vthumb.Size = UDim2.new(1, 0, 0.2, 0)
 config.vthumb.BackgroundTransparency = 1
 config.vthumb.BorderSizePixel = 0
@@ -2045,7 +2070,7 @@ config.vthumb.Archivable = false
 config.vthumb.Parent = config.vbar
 
 config.vvis = Instance.new("Frame")
-config.vvis.Name = randomString()
+config.vvis.Name = RandomString()
 config.vvis.Size = UDim2.new(0, 12, 1, 0)
 config.vvis.Position = UDim2.new(1, -14, 0, 0)
 config.vvis.BackgroundColor3 = Color3.fromRGB(90,90,90)
@@ -2057,7 +2082,7 @@ config.vvis.Parent = config.vthumb
 RoundCorner(config.vvis, 1, 0)
 
 config.hbar = Instance.new("Frame")
-config.hbar.Name = randomString()
+config.hbar.Name = RandomString()
 config.hbar.Size = UDim2.new(1, -24, 0, 24)
 config.hbar.Position = UDim2.new(0, 0, 1, -24)
 config.hbar.BackgroundTransparency = 1
@@ -2069,7 +2094,7 @@ config.hbar.Archivable = false
 config.hbar.Parent = config.body
 
 config.hthumb = Instance.new("Frame")
-config.hthumb.Name = randomString()
+config.hthumb.Name = RandomString()
 config.hthumb.Size = UDim2.new(0.2, 0, 1, 0)
 config.hthumb.BackgroundTransparency = 1
 config.hthumb.BorderSizePixel = 0
@@ -2079,7 +2104,7 @@ config.hthumb.Archivable = false
 config.hthumb.Parent = config.hbar
 
 config.hvis = Instance.new("Frame")
-config.hvis.Name = randomString()
+config.hvis.Name = RandomString()
 config.hvis.Size = UDim2.new(1, 0, 0, 12)
 config.hvis.Position = UDim2.new(0, 0, 1, -14)
 config.hvis.BackgroundColor3 = Color3.fromRGB(90,90,90)
@@ -2091,7 +2116,7 @@ config.hvis.Parent = config.hthumb
 RoundCorner(config.hvis, 1, 0)
 
 config.emptyLabel = Instance.new("TextLabel")
-config.emptyLabel.Name = randomString()
+config.emptyLabel.Name = RandomString()
 config.emptyLabel.Size = UDim2.new(1, 0, 0, 40)
 config.emptyLabel.Position = UDim2.new(0, 0, 0, 40)
 config.emptyLabel.BackgroundTransparency = 1
@@ -2106,7 +2131,7 @@ config.emptyLabel.Archivable = false
 config.emptyLabel.Parent = config.scrolling
 
 config.insertBtn = Instance.new("TextButton")
-config.insertBtn.Name = randomString()
+config.insertBtn.Name = RandomString()
 config.insertBtn.Size = UDim2.new(0, 18, 0, 18)
 config.insertBtn.BackgroundTransparency = 1
 config.insertBtn.BorderSizePixel = 0
@@ -2141,7 +2166,7 @@ do
  end
 end
 
-local function placeInsertBtn(row, slot)
+local function PlaceInsertBtn(row, slot)
  local w = config.SV.TextSrv:GetTextSize(row.instance.Name, 21, Enum.Font.SourceSans, Vector2.new(10000, 26)).X
  local x = config.Positions.TEXT_X + row.depth * config.Positions.INDENT + w + 6 - config.ScrollHOffset
  config.insertBtn.Position = UDim2.new(0, math.max(0, x), 0, (slot - 1) * config.ROW_H + (config.ROW_H - 18) / 2)
@@ -2155,10 +2180,10 @@ local function MakeDraggable(panel, handle, opts)
  handle.InputBegan:Connect(function(inp)
   if not config.Fresh(inp) then return end
   if inp.UserInputType ~= Enum.UserInputType.MouseButton1 and inp.UserInputType ~= Enum.UserInputType.Touch then return end
-  if opts.blockCheck and opts.blockCheck() then return end
-  state.inset = absOf(inp, handle) - Vector2.new(inp.Position.X, inp.Position.Y)
+  if opts.BlockCheck and opts.BlockCheck() then return end
+  state.inset = AbsOf(inp, handle) - Vector2.new(inp.Position.X, inp.Position.Y)
   state.cursor = nil
-  if opts.onBegin then opts.onBegin(inp) end
+  if opts.OnBegin then opts.OnBegin(inp) end
   state.Dragging = true
   state.didDrag = false
   state.activeInput = inp
@@ -2171,7 +2196,7 @@ local function MakeDraggable(panel, handle, opts)
   if not config.Held(inp) then
   	state.Dragging = false
   	state.activeInput = nil
-  	if opts.onEnd then opts.onEnd(state.didDrag, state.cursor) end
+  	if opts.OnEnd then opts.OnEnd(state.didDrag, state.cursor) end
   	return
   end
   local ai = state.activeInput
@@ -2184,9 +2209,9 @@ local function MakeDraggable(panel, handle, opts)
    state.startPos.X.Scale, state.startPos.X.Offset + delta.X,
    state.startPos.Y.Scale, state.startPos.Y.Offset + delta.Y
   )
-  clampPanelTop(panel)
+  ClampPanelTop(panel)
   state.cursor = Vector2.new(inp.Position.X, inp.Position.Y) + state.inset
-  if opts.onDrag then opts.onDrag(state.cursor) end
+  if opts.OnDrag then opts.OnDrag(state.cursor) end
  end)
 
  config.SV.UserInput.InputEnded:Connect(function(inp)
@@ -2194,7 +2219,7 @@ local function MakeDraggable(panel, handle, opts)
   if inp.UserInputType ~= Enum.UserInputType.MouseButton1 and inp.UserInputType ~= Enum.UserInputType.Touch then return end
   state.Dragging = false
   state.activeInput = nil
-  if opts.onEnd then opts.onEnd(state.didDrag, state.cursor) end
+  if opts.OnEnd then opts.OnEnd(state.didDrag, state.cursor) end
  end)
 
  return state
@@ -2207,7 +2232,7 @@ local function MakeResizeHandler(min_w, min_h, edge, xS, yS, xO, yO, wS, hS, wO,
  local signY = edge:find("top") and -1 or 1
 
  local h = Instance.new("TextButton")
- h.Name = randomString()
+ h.Name = RandomString()
  h.Position = UDim2.new(xS, xO, yS, yO)
  h.Size = UDim2.new(wS, wO, hS, hO)
  h.BackgroundTransparency = 1
@@ -2223,7 +2248,7 @@ local function MakeResizeHandler(min_w, min_h, edge, xS, yS, xO, yO, wS, hS, wO,
   if config.IsMinimized and isV and window == config.main then return end
   if blockCheck and blockCheck() then return end
 
-  local pos = absOf(inp, h)
+  local pos = AbsOf(inp, h)
   local ap, as = h.AbsolutePosition, h.AbsoluteSize
   if pos.X < ap.X or pos.X > ap.X + as.X or pos.Y < ap.Y or pos.Y > ap.Y + as.Y then return end
 
@@ -2277,7 +2302,7 @@ local function MakeResizeHandler(min_w, min_h, edge, xS, yS, xO, yO, wS, hS, wO,
     if signY == -1 and window.Parent then
      local scrH = window.Parent.AbsoluteSize.Y
      local startTop = startPosYScale * scrH + startPosYOffset - window.AnchorPoint.Y * startH
-     newH = math.max(min_h, math.min(newH, startH + math.max(0, startTop - topInset())))
+     newH = math.max(min_h, math.min(newH, startH + math.max(0, startTop - TopInset())))
     end
     local dH = newH - startH
 
@@ -2304,11 +2329,11 @@ local function SyncMainResize(newSize)
  local fH = newSize.Y.Offset
  config.NormalSize = UDim2.new(0, fW, 0, fH)
  config.MinimizedSize = UDim2.new(0, fW, 0, 44)
- if config.DockSide and config.layoutDocks then config.layoutDocks() end
+ if config.DockSide and config.LayoutDocks then config.LayoutDocks() end
 end
 
 config.dockHint = Instance.new("Frame")
-config.dockHint.Name = randomString()
+config.dockHint.Name = RandomString()
 config.dockHint.BackgroundColor3 = config.COLORS.ACCENT
 config.dockHint.BackgroundTransparency = 0.75
 config.dockHint.BorderSizePixel = 0
@@ -2320,7 +2345,7 @@ config.dockHint.Parent = config.window
 BorderStroke(config.dockHint, 2, 100, 160, 255)
 
 config.stackSplitter = Instance.new("TextButton")
-config.stackSplitter.Name = randomString()
+config.stackSplitter.Name = RandomString()
 config.stackSplitter.BackgroundColor3 = config.COLORS.RESIZER
 config.stackSplitter.BorderSizePixel = 0
 config.stackSplitter.AutoButtonColor = false
@@ -2330,24 +2355,24 @@ config.stackSplitter.ZIndex = 9
 config.stackSplitter.Archivable = false
 config.stackSplitter.Parent = config.window
 
-local function isStacked()
+local function IsStacked()
  return config.pmain ~= nil and config.PDock.Side ~= nil and config.PDock.Side == config.DockSide and config.main.Visible and config.pmain.Visible
 end
 
-config.layoutDocks = function()
+config.LayoutDocks = function()
  local scr = config.window.AbsoluteSize
  if scr.X <= 0 or scr.Y <= 0 then return end
- local stacked = isStacked()
+ local stacked = IsStacked()
  local ew = config.main.Size.X.Offset
  local pw = config.pmain and config.pmain.Size.X.Offset or ew
  local minH = 120
- local top = topInset()
+ local top = TopInset()
  if stacked then
   pw = ew
   if not config.PDock.WasStacked or config.PDock.LastOrder ~= config.PDock.Order then config.PDock.Split = nil end
   config.PDock.WasStacked, config.PDock.LastOrder = true, config.PDock.Order
   local availH = scr.Y - top
-  local defaultSplit = top + ((config.PDock.Order == "below") and math.floor(availH * 0.7) or math.floor(availH * 0.3))
+  local defaultSplit = top + math.floor(availH * 0.5)
   config.PDock.Split = math.clamp(config.PDock.Split or defaultSplit, top + minH, math.max(top + minH, scr.Y - minH))
  else
   config.PDock.WasStacked = false
@@ -2379,24 +2404,24 @@ config.layoutDocks = function()
   if config.PDock.Side == "left" then
    config.pdocksplitter.Position = UDim2.new(1, 0, 0, 0)
   else
-   config.pdocksplitter.Position = UDim2.new(0, -3, 0, 0)
+   config.pdocksplitter.Position = UDim2.new(0, -6, 0, 0)
   end
  end
 
  config.stackSplitter.Visible = stacked
  if stacked then
-  config.stackSplitter.Position = UDim2.new(0, config.DockSide == "left" and 0 or scr.X - ew, 0, config.PDock.Split - 1)
-  config.stackSplitter.Size = UDim2.new(0, ew, 0, 3)
+  config.stackSplitter.Position = UDim2.new(0, config.DockSide == "left" and 0 or scr.X - ew, 0, config.PDock.Split - 3)
+  config.stackSplitter.Size = UDim2.new(0, ew, 0, 7)
  end
 
- if config.layoutSource then config.layoutSource() end
+ if config.LayoutSource then config.LayoutSource() end
 end
 
 do
  local dragging, startY, startSplit
  config.stackSplitter.InputBegan:Connect(function(inp)
   if not config.Fresh(inp) then return end
-  if not isPress(inp) then return end
+  if not IsPress(inp) then return end
   dragging = true
   startY = inp.Position.Y
   startSplit = config.PDock.Split or 0
@@ -2406,14 +2431,14 @@ do
   if not config.Held(inp) then dragging = false return end
   if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
   config.PDock.Split = startSplit + (inp.Position.Y - startY)
-  config.layoutDocks()
+  config.LayoutDocks()
  end)
  config.SV.UserInput.InputEnded:Connect(function(inp)
-  if isPress(inp) then dragging = false end
+  if IsPress(inp) then dragging = false end
  end)
 end
 
-local function dropZone(gui, cur)
+local function DropZone(gui, cur)
  local ap, as = gui.AbsolutePosition, gui.AbsoluteSize
  if cur.X < ap.X or cur.X > ap.X + as.X or cur.Y < ap.Y or cur.Y > ap.Y + as.Y then return nil, false end
  local z = math.clamp(as.Y * 0.25, 40, 140)
@@ -2422,12 +2447,12 @@ local function dropZone(gui, cur)
  return nil, true
 end
 
-local function resolveDrop(dragged, other, otherSide, otherVisible, cur)
+local function ResolveDrop(dragged, other, otherSide, otherVisible, cur)
  if not cur then return nil end
  local scr = config.window.AbsoluteSize
  local otherDocked = otherSide ~= nil and otherVisible
  if otherDocked then
-  local zone, inside = dropZone(other, cur)
+  local zone, inside = DropZone(other, cur)
   if inside then
    if zone then return otherSide, zone end
    return nil
@@ -2446,7 +2471,7 @@ local function resolveDrop(dragged, other, otherSide, otherVisible, cur)
  return side, zone
 end
 
-local function showHint(dragged, other, side, zone)
+local function ShowHint(dragged, other, side, zone)
  if not side then config.dockHint.Visible = false return end
  local scr = config.window.AbsoluteSize
  if zone and other then
@@ -2456,7 +2481,7 @@ local function showHint(dragged, other, side, zone)
   config.dockHint.Size = UDim2.new(0, as.X, 0, h)
  else
   local w = dragged.AbsoluteSize.X
-  local inset = topInset()
+  local inset = TopInset()
   config.dockHint.Position = UDim2.new(0, side == "left" and 0 or scr.X - w, 0, inset)
   config.dockHint.Size = UDim2.new(0, w, 1, -inset)
  end
@@ -2464,21 +2489,21 @@ local function showHint(dragged, other, side, zone)
 end
 
 MakeDraggable(config.main, config.header, {
- blockCheck = function()
+ BlockCheck = function()
   return Explorer.PanelResizing[config.main]
  end,
  threshold = 4,
- onBegin = function()
-  if config.DockSide then undock() end
+ OnBegin = function()
+  if config.DockSide then Undock() end
  end,
- onDrag = function(cursor)
-  local side, zone = resolveDrop(config.main, config.pmain, config.PDock.Side, config.pmain ~= nil and config.pmain.Visible, cursor)
-  showHint(config.main, config.pmain, side, zone)
+ OnDrag = function(cursor)
+  local side, zone = ResolveDrop(config.main, config.pmain, config.PDock.Side, config.pmain ~= nil and config.pmain.Visible, cursor)
+  ShowHint(config.main, config.pmain, side, zone)
  end,
- onEnd = function(didDrag, cursor)
+ OnEnd = function(didDrag, cursor)
   config.dockHint.Visible = false
   if not didDrag then return end
-  local side, zone = resolveDrop(config.main, config.pmain, config.PDock.Side, config.pmain ~= nil and config.pmain.Visible, cursor)
+  local side, zone = ResolveDrop(config.main, config.pmain, config.PDock.Side, config.pmain ~= nil and config.pmain.Visible, cursor)
   if not side then return end
   if zone and config.PDock.Side == side and config.pmain and config.pmain.Visible then
    config.PDock.Order = (zone == "top") and "below" or "above"
@@ -2505,7 +2530,7 @@ local DRAG_THRESHOLD = 6
 local GHOST_MAX_W = 320
 
 local dragGhost = Instance.new("Frame")
-dragGhost.Name = randomString()
+dragGhost.Name = RandomString()
 dragGhost.Size = UDim2.new(0, 220, 0, config.ROW_H)
 dragGhost.BackgroundColor3 = config.COLORS.SELECTED
 dragGhost.BackgroundTransparency = 0.25
@@ -2525,7 +2550,7 @@ do
  gs.Thickness = 1
  gs.Parent = dragGhost
  dragIcon = Instance.new("ImageLabel")
- dragIcon.Name = randomString()
+ dragIcon.Name = RandomString()
  dragIcon.Size = UDim2.new(0, config.Positions.ICON_PX, 0, config.Positions.ICON_PX)
  dragIcon.Position = UDim2.new(0, 8, 0.5, -config.Positions.ICON_PX / 2)
  dragIcon.BackgroundTransparency = 1
@@ -2533,7 +2558,7 @@ do
  dragIcon.Active = false
  dragIcon.Parent = dragGhost
  dragLabel = Instance.new("TextLabel")
- dragLabel.Name = randomString()
+ dragLabel.Name = RandomString()
  dragLabel.Size = UDim2.new(1, -(8 + config.Positions.ICON_PX + 8 + 8), 1, 0)
  dragLabel.Position = UDim2.new(0, 8 + config.Positions.ICON_PX + 8, 0, 0)
  dragLabel.BackgroundTransparency = 1
@@ -2546,7 +2571,7 @@ do
  dragLabel.Active = false
  dragLabel.Parent = dragGhost
  dragBadge = Instance.new("TextLabel")
- dragBadge.Name = randomString()
+ dragBadge.Name = RandomString()
  dragBadge.AnchorPoint = Vector2.new(1, 0.5)
  dragBadge.Size = UDim2.new(0, 22, 0, 18)
  dragBadge.Position = UDim2.new(1, -6, 0.5, 0)
@@ -2564,7 +2589,7 @@ do
 end
 
 local dropHL = Instance.new("Frame")
-dropHL.Name = randomString()
+dropHL.Name = RandomString()
 dropHL.BackgroundColor3 = config.COLORS.ACCENT
 dropHL.BackgroundTransparency = 0.8
 dropHL.BorderSizePixel = 0
@@ -2583,7 +2608,7 @@ do
  hs.Parent = dropHL
 end
 
-local function rawCursor(inp)
+local function RawCursor(inp)
  if inp.UserInputType == Enum.UserInputType.Touch then
   local ok, gi = pcall(function() return config.SV.Gui:GetGuiInset() end)
   return Vector2.new(inp.Position.X, inp.Position.Y) + ((ok and gi) or Vector2.new(0, 0))
@@ -2591,35 +2616,35 @@ local function rawCursor(inp)
  return config.SV.UserInput:GetMouseLocation()
 end
 
-local function dragCursor(inp)
+local function DragCursor(inp)
  if Drag.anchor then
   return Drag.anchor + (Vector2.new(inp.Position.X, inp.Position.Y) - Drag.anchorInp)
  end
- return rawCursor(inp)
+ return RawCursor(inp)
 end
 
-function Drag.calibrate(inp, entry)
+function Drag.Calibrate(inp, entry)
  Drag.anchor = nil
- local raw = rawCursor(inp)
+ local raw = RawCursor(inp)
  local ap = entry.AbsolutePosition
- local function inside(y) return y >= ap.Y - 1 and y <= ap.Y + config.ROW_H + 1 end
+ local function Inside(y) return y >= ap.Y - 1 and y <= ap.Y + config.ROW_H + 1 end
  local ok, gi = pcall(function() return config.SV.Gui:GetGuiInset() end)
  local iy = (ok and gi and gi.Y) or 0
  local y
- if inside(raw.Y) then y = raw.Y
- elseif iy ~= 0 and inside(raw.Y + iy) then y = raw.Y + iy
- elseif iy ~= 0 and inside(raw.Y - iy) then y = raw.Y - iy
+ if Inside(raw.Y) then y = raw.Y
+ elseif iy ~= 0 and Inside(raw.Y + iy) then y = raw.Y + iy
+ elseif iy ~= 0 and Inside(raw.Y - iy) then y = raw.Y - iy
  else y = ap.Y + config.ROW_H / 2 end
  y = math.clamp(y, ap.Y, ap.Y + config.ROW_H - 1)
  Drag.anchor = Vector2.new(raw.X, y)
  Drag.anchorInp = Vector2.new(inp.Position.X, inp.Position.Y)
 end
 
-local function dragWarn(where, err)
+local function DragWarn(where, err)
  warn("[Explorer drag] " .. where .. ": " .. tostring(err))
 end
 
-local function dragTopLevel(list)
+local function DragTopLevel(list)
  local set, out = {}, {}
  for _, i in ipairs(list) do set[i] = true end
  for _, i in ipairs(list) do
@@ -2633,7 +2658,7 @@ local function dragTopLevel(list)
  return out
 end
 
-local function canDropOn(list, target)
+local function CanDropOn(list, target)
  if not target then return false end
  for _, src in ipairs(list) do
   local cur = target
@@ -2648,7 +2673,7 @@ local function canDropOn(list, target)
  return false
 end
 
-local function dragTargetAt(cur)
+local function DragTargetAt(cur)
  local ap, as = config.scrolling.AbsolutePosition, config.scrolling.AbsoluteSize
  if cur.X < ap.X or cur.X > ap.X + as.X or cur.Y < ap.Y or cur.Y > ap.Y + as.Y then return nil end
  local idx = math.floor((cur.Y - ap.Y) / config.ROW_H) + 1 + config.ScrollIndex
@@ -2657,7 +2682,7 @@ local function dragTargetAt(cur)
  return row.instance, idx
 end
 
-local function dragUpdate()
+local function DragUpdate()
  local cur = Drag.cursor
  local g = Drag.grab or Vector2.new(20, config.ROW_H / 2)
  do
@@ -2665,8 +2690,8 @@ local function dragUpdate()
   local origin = dragGhost.AbsolutePosition - Vector2.new(pos.X.Offset, pos.Y.Offset)
   dragGhost.Position = UDim2.fromOffset(cur.X - g.X - origin.X, cur.Y - g.Y - origin.Y)
  end
- local target, idx = dragTargetAt(cur)
- if target and canDropOn(Drag.list, target) then
+ local target, idx = DragTargetAt(cur)
+ if target and CanDropOn(Drag.list, target) then
   Drag.target = target
   dropHL.Position = UDim2.new(0, 0, 0, (idx - 1 - config.ScrollIndex) * config.ROW_H)
   dropHL.Size = UDim2.new(1, 0, 0, config.ROW_H)
@@ -2677,7 +2702,7 @@ local function dragUpdate()
  end
 end
 
-local function dragStop()
+local function DragStop()
  Drag.pending = nil
  Drag.active = false
  Drag.list = nil
@@ -2688,13 +2713,13 @@ local function dragStop()
  if Drag.hb then Drag.hb:Disconnect() Drag.hb = nil end
 end
 
-local function dragBegin()
+local function DragBegin()
  local inst = Drag.pending.inst
  local list
  if Explorer.SelectedSet[inst] then
-  list = dragTopLevel(Explorer.GetSelection())
+  list = DragTopLevel(Explorer.GetSelection())
  else
-  list = dragTopLevel({ inst })
+  list = DragTopLevel({ inst })
   if #list > 0 then Explorer.SetSelection(list, inst) end
  end
  if #list == 0 then Drag.pending = nil return end
@@ -2703,7 +2728,7 @@ local function dragBegin()
  if Explorer.CloseContextMenu then pcall(Explorer.CloseContextMenu) end
  do
   local first = list[1]
-  applyIcon(dragIcon, first.ClassName)
+  ApplyIcon(dragIcon, first.ClassName)
   dragLabel.Text = first.Name
   dragBadge.Visible = #list > 1
   dragBadge.Text = tostring(#list)
@@ -2713,7 +2738,7 @@ local function dragBegin()
   Drag.grab = Vector2.new(math.clamp(gx, 0, dragGhost.Size.X.Offset), math.clamp(Drag.pending.grabY or (config.ROW_H / 2), 0, config.ROW_H))
  end
  dragGhost.Visible = true
- if Drag.pending.cancelHold then Drag.pending.cancelHold() end
+ if Drag.pending.CancelHold then Drag.pending.CancelHold() end
 
  local acc = 0
  Drag.hb = config.SV.RunSrv.Heartbeat:Connect(function(dt)
@@ -2731,47 +2756,47 @@ local function dragBegin()
     acc -= steps
     config.ScrollIndex = math.max(0, config.ScrollIndex + dir * steps)
     RefreshTree()
-    dragUpdate()
+    DragUpdate()
    end
   else
    acc = 0
   end
  end)
- dragUpdate()
+ DragUpdate()
 end
 
 config.SV.UserInput.InputChanged:Connect(function(inp)
  local p = Drag.pending
  if not p then return end
  if not config.Held(inp) then
-  if Drag.active then dragStop() else Drag.pending = nil end
+  if Drag.active then DragStop() else Drag.pending = nil end
   return
  end
  local okc, errc = pcall(function()
  local t = inp.UserInputType
  if t ~= Enum.UserInputType.MouseMovement and t ~= Enum.UserInputType.Touch then return end
- Drag.cursor = dragCursor(inp)
+ Drag.cursor = DragCursor(inp)
  if not Drag.active then
   if (Vector2.new(inp.Position.X, inp.Position.Y) - Drag.startPos).Magnitude < DRAG_THRESHOLD then return end
-  dragBegin()
+  DragBegin()
   if not Drag.active then return end
  end
- dragUpdate()
+ DragUpdate()
  end)
- if not okc then dragWarn("move", errc) dragStop() end
+ if not okc then DragWarn("move", errc) DragStop() end
 end)
 
 config.SV.UserInput.InputEnded:Connect(function(inp)
- if not isPress(inp) then return end
+ if not IsPress(inp) then return end
  if not Drag.pending then return end
  if Drag.active then
   local target, list = Drag.target, Drag.list
   Drag.justDragged = true
   task.delay(0.2, function() Drag.justDragged = false end)
-  dragStop()
-  if target and list and canDropOn(list, target) and Explorer.MoveInstances then
+  DragStop()
+  if target and list and CanDropOn(list, target) and Explorer.MoveInstances then
    local okm, errm = pcall(Explorer.MoveInstances, list, target)
-   if not okm then dragWarn("drop", errm) end
+   if not okm then DragWarn("drop", errm) end
   end
  else
   Drag.pending = nil
@@ -2784,16 +2809,16 @@ config.SV.UserInput.InputBegan:Connect(function(inp)
   task.delay(0.2, function()
    Drag.justDragged = false
   end)
-  dragStop()
+  DragStop()
  end
 end)
-Drag.cursorOf = dragCursor
+Drag.CursorOf = DragCursor
 Explorer.Drag = Drag
 end
 
 local function CreatePoolEntry(poolIndex)
  local entry = Instance.new("TextButton")
- entry.Name = randomString()
+ entry.Name = RandomString()
  entry.Size = UDim2.new(0, 100, 0, config.ROW_H)
  entry.BackgroundColor3 = config.COLORS.SELECTED
  entry.BackgroundTransparency = 1
@@ -2809,7 +2834,7 @@ local function CreatePoolEntry(poolIndex)
  corner.Parent = entry
 
  local bottomMask = Instance.new("Frame")
- bottomMask.Name = randomString()
+ bottomMask.Name = RandomString()
  bottomMask.BorderSizePixel = 0
  bottomMask.BackgroundColor3 = entry.BackgroundColor3
  bottomMask.BackgroundTransparency = 1
@@ -2819,7 +2844,7 @@ local function CreatePoolEntry(poolIndex)
  bottomMask.Parent = config.scrolling
 
  local toggle = Instance.new("ImageButton")
- toggle.Name = randomString()
+ toggle.Name = RandomString()
  toggle.Size = UDim2.new(0, 16, 0, 16)
  toggle.BackgroundTransparency = 1
  toggle.Image = config.IMG.Caret
@@ -2830,7 +2855,7 @@ local function CreatePoolEntry(poolIndex)
  toggle.Parent = config.scrolling
 
  local icon = Instance.new("ImageLabel")
- icon.Name = randomString()
+ icon.Name = RandomString()
  icon.Size = UDim2.new(0, config.Positions.ICON_PX, 0, config.Positions.ICON_PX)
  icon.BackgroundTransparency = 1
  icon.Image = config.ICON_ID
@@ -2840,7 +2865,7 @@ local function CreatePoolEntry(poolIndex)
  icon.Parent = config.scrolling
 
  local label = Instance.new("TextLabel")
- label.Name = randomString()
+ label.Name = RandomString()
  label.BackgroundTransparency = 1
  label.TextColor3 = config.COLORS.TEXT
  label.TextXAlignment = Enum.TextXAlignment.Left
@@ -2855,7 +2880,7 @@ local function CreatePoolEntry(poolIndex)
  local holdThread, holdStartPos
  local data = { inst = nil, row = nil, mask = bottomMask, holdTriggered = false, hovering = false, highlighted = false }
 
- local function onHoverEnter()
+ local function OnHoverEnter()
   local inst = data.inst
   if not inst then return end
   data.hovering = true
@@ -2874,9 +2899,9 @@ local function CreatePoolEntry(poolIndex)
   bottomMask.BackgroundTransparency = entry.BackgroundTransparency
   config.HoverInst = inst
   config.InsertTarget = inst
-  placeInsertBtn(data.row, poolIndex)
+  PlaceInsertBtn(data.row, poolIndex)
  end
- local function onHoverLeave()
+ local function OnHoverLeave()
   data.hovering = false
   if not data.highlighted then
    corner.CornerRadius = UDim.new(0, 0)
@@ -2895,20 +2920,20 @@ local function CreatePoolEntry(poolIndex)
   end)
  end
  local inEntry, inMask, inToggle = false, false, false
- local function refreshHover()
+ local function RefreshHover()
   local want = (inEntry or inMask) and not inToggle
-  if want and not data.hovering then onHoverEnter()
-  elseif not want and data.hovering then onHoverLeave() end
+  if want and not data.hovering then OnHoverEnter()
+  elseif not want and data.hovering then OnHoverLeave() end
  end
- data.clearMaskHover = function()
-  if inMask then inMask = false; refreshHover() end
+ data.ClearMaskHover = function()
+  if inMask then inMask = false; RefreshHover() end
  end
- entry.MouseEnter:Connect(function() inEntry = true; refreshHover() end)
- entry.MouseLeave:Connect(function() inEntry = false; refreshHover() end)
- bottomMask.MouseEnter:Connect(function() inMask = true; refreshHover() end)
- bottomMask.MouseLeave:Connect(function() inMask = false; refreshHover() end)
- toggle.MouseEnter:Connect(function() inToggle = true; refreshHover() end)
- toggle.MouseLeave:Connect(function() inToggle = false; refreshHover() end)
+ entry.MouseEnter:Connect(function() inEntry = true; RefreshHover() end)
+ entry.MouseLeave:Connect(function() inEntry = false; RefreshHover() end)
+ bottomMask.MouseEnter:Connect(function() inMask = true; RefreshHover() end)
+ bottomMask.MouseLeave:Connect(function() inMask = false; RefreshHover() end)
+ toggle.MouseEnter:Connect(function() inToggle = true; RefreshHover() end)
+ toggle.MouseLeave:Connect(function() inToggle = false; RefreshHover() end)
  config.pooldata[poolIndex] = data
 
  entry.InputBegan:Connect(function(inp)
@@ -2923,18 +2948,18 @@ local function CreatePoolEntry(poolIndex)
 
   holdStartPos = inp.Position
   if inst.Parent ~= Explorer.Root then
-   Explorer.Drag.calibrate(inp, entry)
+   Explorer.Drag.Calibrate(inp, entry)
    Explorer.Drag.pending = {
     inst = inst,
-    grabX = Explorer.Drag.cursorOf(inp).X - entry.AbsolutePosition.X,
+    grabX = Explorer.Drag.CursorOf(inp).X - entry.AbsolutePosition.X,
     rowWidth = entry.AbsoluteSize.X,
     grabY = Explorer.Drag.anchor and (Explorer.Drag.anchor.Y - entry.AbsolutePosition.Y) or (config.ROW_H / 2),
-    cancelHold = function()
+    CancelHold = function()
      if holdThread then task.cancel(holdThread) holdThread = nil end
     end,
    }
    Explorer.Drag.startPos = Vector2.new(inp.Position.X, inp.Position.Y)
-   Explorer.Drag.cursor = Explorer.Drag.cursorOf(inp)
+   Explorer.Drag.cursor = Explorer.Drag.CursorOf(inp)
   end
   if holdThread then task.cancel(holdThread) end
   holdThread = task.delay(0.4, function()
@@ -3020,7 +3045,7 @@ end
 local function GetGuideLine(n)
  while #config.guideLines < n do
   local line = Instance.new("Frame")
-  line.Name = randomString()
+  line.Name = RandomString()
   line.BorderSizePixel = 0
   line.BackgroundColor3 = config.COLORS.WHITE
   line.BackgroundTransparency = 0.9
@@ -3042,15 +3067,15 @@ config.SUBCLASS = {
 }
 
 config.LCLS = {}
-local function lcls(c)
+local function Lcls(c)
  local l = config.LCLS[c]
  if not l then l = c:lower() config.LCLS[c] = l end
  return l
 end
 
-local function isA(inst, cls)
+local function IsA(inst, cls)
  local cn = inst.ClassName
- local c = lcls(cn)
+ local c = Lcls(cn)
  if c == cls or cls == "instance" then return true end
  local set = config.SUBCLASS[cls]
  if set and set[cn] then return true end
@@ -3061,7 +3086,7 @@ local function isA(inst, cls)
  return false
 end
 
-local function hasTag(inst, tag)
+local function HasTag(inst, tag)
  local t = rawget(inst, "Tags")
  if type(t) ~= "table" then return false end
  for k, v in pairs(t) do
@@ -3071,7 +3096,7 @@ local function hasTag(inst, tag)
  return false
 end
 
-local function lname(inst)
+local function Lname(inst)
  local nm = inst.Name
  if inst._lnSrc ~= nm then
   inst._lnSrc = nm
@@ -3080,21 +3105,21 @@ local function lname(inst)
  return inst._ln
 end
 
-local function normVal(v) return (tostring(v):lower():gsub("%s", "")) end
-local function unquote(v) return (v:gsub('"', "")) end
+local function NormVal(v) return (tostring(v):lower():gsub("%s", "")) end
+local function Unquote(v) return (v:gsub('"', "")) end
 
 config.PredMeta = config.PredMeta or setmetatable({}, { __mode = "k" })
 local PM = config.PredMeta
-local function tagPred(f, cost, stable)
+local function TagPred(f, cost, stable)
  PM[f] = { cost = cost, stable = stable }
  return f
 end
 
-local function tokenize(str)
+local function Tokenize(str)
  str = str:gsub("%s*([<>=!~]+)%s*", "%1")
  local toks, n, cur, inQ = {}, 0, {}, false
  local cn = 0
- local function push()
+ local function Push()
   if cn > 0 then
    n += 1
    toks[n] = table.concat(cur, "", 1, cn)
@@ -3109,26 +3134,26 @@ local function tokenize(str)
   elseif inQ then
    cn += 1 cur[cn] = ch
   elseif ch == "(" or ch == ")" then
-   push()
+   Push()
    n += 1
    toks[n] = ch
   elseif ch:match("%s") then
-   push()
+   Push()
   else
    cn += 1 cur[cn] = ch
   end
  end
- push()
+ Push()
  return toks
 end
 
-local function parentOf(n)
+local function ParentOf(n)
  local p = n.Parent
  if p == Explorer.Root then return nil end
  return p
 end
 
-local function makeGetter(key)
+local function MakeGetter(key)
  local k = key:lower()
  if k == "name" then return function(inst) return inst.Name end end
  if k == "classname" then return function(inst) return inst.ClassName end end
@@ -3158,54 +3183,54 @@ local function makeGetter(key)
  end
 end
 
-local function makeAtom(t)
+local function MakeAtom(t)
  local key, op, val = t:match('^([%w_]+)([<>=!~]+)(.+)$')
  if key and not t:find('^"') then
-  val = unquote(val)
-  local get = makeGetter(key)
-  local nval = normVal(val)
+  val = Unquote(val)
+  local get = MakeGetter(key)
+  local nval = NormVal(val)
   local nnum = tonumber(val)
   if op == "=" or op == "==" then
-   return tagPred(function(inst)
+   return TagPred(function(inst)
     local pv = get(inst)
-    return pv ~= nil and normVal(pv):find(nval, 1, true) ~= nil
+    return pv ~= nil and NormVal(pv):find(nval, 1, true) ~= nil
    end, 4, false)
   elseif op == "!=" or op == "~=" then
-   return tagPred(function(inst)
+   return TagPred(function(inst)
     local pv = get(inst)
-    return pv == nil or normVal(pv):find(nval, 1, true) == nil
+    return pv == nil or NormVal(pv):find(nval, 1, true) == nil
    end, 4, false)
   end
-  local cmp
-  if op == "<" then cmp = function(a, b) return a < b end
-  elseif op == ">" then cmp = function(a, b) return a > b end
-  elseif op == "<=" then cmp = function(a, b) return a <= b end
-  elseif op == ">=" then cmp = function(a, b) return a >= b end end
-  return tagPred(function(inst)
+  local Cmp
+  if op == "<" then Cmp = function(a, b) return a < b end
+  elseif op == ">" then Cmp = function(a, b) return a > b end
+  elseif op == "<=" then Cmp = function(a, b) return a <= b end
+  elseif op == ">=" then Cmp = function(a, b) return a >= b end end
+  return TagPred(function(inst)
    local a = tonumber(get(inst))
-   if not a or not nnum or not cmp then return false end
-   return cmp(a, nnum)
+   if not a or not nnum or not Cmp then return false end
+   return Cmp(a, nnum)
   end, 4, false)
  end
 
  local pfx, rest = t:match('^(%a+):(.*)$')
  if pfx then
   local p = pfx:lower()
-  rest = unquote(rest):lower()
+  rest = Unquote(rest):lower()
   if p == "classname" or p == "class" then
-   return tagPred(function(inst) return lcls(inst.ClassName):find(rest, 1, true) ~= nil end, 1, true)
+   return TagPred(function(inst) return Lcls(inst.ClassName):find(rest, 1, true) ~= nil end, 1, true)
   elseif p == "is" then
    local memo = {}
-   return tagPred(function(inst)
+   return TagPred(function(inst)
     local cn = inst.ClassName
     local r = memo[cn]
-    if r == nil then r = isA(inst, rest) memo[cn] = r end
+    if r == nil then r = IsA(inst, rest) memo[cn] = r end
     return r
    end, 1, true)
   elseif p == "tag" then
-   return tagPred(function(inst) return hasTag(inst, rest) end, 2, false)
+   return TagPred(function(inst) return HasTag(inst, rest) end, 2, false)
   elseif p == "name" then
-   return tagPred(function(inst) return lname(inst):find(rest, 1, true) ~= nil end, 1, true)
+   return TagPred(function(inst) return Lname(inst):find(rest, 1, true) ~= nil end, 1, true)
   end
  end
 
@@ -3215,31 +3240,31 @@ local function makeAtom(t)
   local ok = #segs >= 2
   for _, sg in ipairs(segs) do if sg == "" then ok = false end end
   if ok then
-   local function m(node, i)
+   local function M(node, i)
     if i == 0 then return true end
     local sg = segs[i]
     if sg == "**" then
      local cur = node
      while cur do
-      if m(parentOf(cur), i - 1) then return true end
-      cur = parentOf(cur)
+      if M(ParentOf(cur), i - 1) then return true end
+      cur = ParentOf(cur)
      end
      return false
     end
     if not node then return false end
-    if sg ~= "*" and not lname(node):find(sg, 1, true) then return false end
-    return m(parentOf(node), i - 1)
+    if sg ~= "*" and not Lname(node):find(sg, 1, true) then return false end
+    return M(ParentOf(node), i - 1)
    end
    local n = #segs
-   return tagPred(function(inst) return m(inst, n) end, 3, false)
+   return TagPred(function(inst) return M(inst, n) end, 3, false)
   end
  end
 
- local q = unquote(t):lower()
- return tagPred(function(inst) return lname(inst):find(q, 1, true) ~= nil end, 1, true)
+ local q = Unquote(t):lower()
+ return TagPred(function(inst) return Lname(inst):find(q, 1, true) ~= nil end, 1, true)
 end
 
-local function combine(list, isAnd)
+local function Combine(list, isAnd)
  local n = #list
  if n == 1 then return list[1] end
  for i = 2, n do
@@ -3258,27 +3283,27 @@ local function combine(list, isAnd)
   cost += m.cost
   if not m.stable then stable = false end
  end
- local f
+ local F
  if n == 2 then
   local a, b = list[1], list[2]
-  if isAnd then f = function(i) return a(i) and b(i) end
-  else f = function(i) return a(i) or b(i) end end
+  if isAnd then F = function(i) return a(i) and b(i) end
+  else F = function(i) return a(i) or b(i) end end
  elseif isAnd then
-  f = function(inst)
+  F = function(inst)
    for i = 1, n do
     if not list[i](inst) then return false end
    end
    return true
   end
  else
-  f = function(inst)
+  F = function(inst)
    for i = 1, n do
     if list[i](inst) then return true end
    end
    return false
   end
  end
- return tagPred(f, cost, stable)
+ return TagPred(F, cost, stable)
 end
 
 config.PredCounter = config.PredCounter or 0
@@ -3286,56 +3311,56 @@ config.PredCounter = config.PredCounter or 0
 function Explorer.CompileSearch(str)
  str = str:match("^%s*(.-)%s*$")
  if str == "" then return nil end
- local toks, pos = tokenize(str), 1
- local parseOr
- local function isKw(t, kw) return t ~= nil and t:lower() == kw end
- local function parsePrimary()
+ local toks, pos = Tokenize(str), 1
+ local ParseOr
+ local function IsKw(t, kw) return t ~= nil and t:lower() == kw end
+ local function ParsePrimary()
   local t = toks[pos]
-  if not t or t == ")" or isKw(t, "and") or isKw(t, "or") then return nil end
+  if not t or t == ")" or IsKw(t, "and") or IsKw(t, "or") then return nil end
   pos += 1
   if t == "(" then
-   local e = parseOr()
+   local e = ParseOr()
    if toks[pos] == ")" then pos += 1 end
    return e
   end
-  return makeAtom(t)
+  return MakeAtom(t)
  end
- local function parseAnd()
-  local first = parsePrimary()
+ local function ParseAnd()
+  local first = ParsePrimary()
   if not first then return nil end
   local list = { first }
   while true do
    local t = toks[pos]
-   if not t or t == ")" or isKw(t, "or") then break end
-   if isKw(t, "and") then pos += 1 end
-   local right = parsePrimary()
+   if not t or t == ")" or IsKw(t, "or") then break end
+   if IsKw(t, "and") then pos += 1 end
+   local right = ParsePrimary()
    if not right then break end
    list[#list + 1] = right
   end
-  return combine(list, true)
+  return Combine(list, true)
  end
- parseOr = function()
-  local first = parseAnd() or tagPred(function() return true end, 0, true)
+ ParseOr = function()
+  local first = ParseAnd() or TagPred(function() return true end, 0, true)
   local list = { first }
-  while isKw(toks[pos], "or") do
+  while IsKw(toks[pos], "or") do
    pos += 1
-   local right = parseAnd()
+   local right = ParseAnd()
    if not right then break end
    list[#list + 1] = right
   end
-  return combine(list, false)
+  return Combine(list, false)
  end
- local ok, pred = pcall(parseOr)
+ local ok, pred = pcall(ParseOr)
  if not ok then
   local q = str:lower()
-  pred = tagPred(function(inst) return lname(inst):find(q, 1, true) ~= nil end, 1, true)
+  pred = TagPred(function(inst) return Lname(inst):find(q, 1, true) ~= nil end, 1, true)
  end
  config.PredCounter += 1
  PM[pred].id = config.PredCounter
  return pred
 end
 
-local function readInfo(i) return i.Name, i.ClassName end
+local function ReadInfo(i) return i.Name, i.ClassName end
 
 function Explorer.LoadChildren(v)
  if v.Loaded then return end
@@ -3349,7 +3374,7 @@ function Explorer.LoadChildren(v)
  for i = 1, #kids do
   local c = kids[i]
   if c ~= config.folder then
-   local ok, name, class = pcall(readInfo, c)
+   local ok, name, class = pcall(ReadInfo, c)
    if ok then
     count += 1
     list[count] = setmetatable({
@@ -3384,7 +3409,7 @@ function Explorer.HasChildren(inst)
  return false
 end
 
-local function nameWidth(inst)
+local function NameWidth(inst)
  local nm = inst.Name
  if inst._wSrc == nm then return inst._w end
  local w = config.SV.TextSrv:GetTextSize(nm, 13, Enum.Font.Gotham, Vector2.new(10000, 26)).X
@@ -3404,7 +3429,7 @@ function Explorer.ScanTree()
  local meta = searching and pred and config.PredMeta[pred] or nil
  local pid = meta and meta.stable and meta.id or nil
 
- local function matches(inst)
+ local function Matches(inst)
   if not searching or not pred then return true end
   local m = matchMemo[inst]
   if m == nil then
@@ -3424,14 +3449,14 @@ function Explorer.ScanTree()
   return m
  end
 
- local function isAncestorOfMatch(inst)
+ local function IsAncestorOfMatch(inst)
   local a = ancMemo[inst]
   if a ~= nil then return a end
   a = false
   local kids = inst.Children
   for i = 1, #kids do
    local c = kids[i]
-   if matches(c) or isAncestorOfMatch(c) then a = true break end
+   if Matches(c) or IsAncestorOfMatch(c) then a = true break end
   end
   ancMemo[inst] = a
   return a
@@ -3439,13 +3464,13 @@ function Explorer.ScanTree()
 
  local Expanded, SearchOpen = Explorer.Expanded, Explorer.SearchOpen
 
- local function traverse(inst, depth, showAll)
+ local function Traverse(inst, depth, showAll)
   if inst.Real and not inst.Loaded then Explorer.LoadChildren(inst) end
-  local kids = sortedChildren(inst)
+  local kids = SortedChildren(inst)
   for i = 1, #kids do
    local child = kids[i]
-   local m = matches(child)
-   local anc = (searching and isAncestorOfMatch(child)) or false
+   local m = Matches(child)
+   local anc = (searching and IsAncestorOfMatch(child)) or false
    if not searching or m or anc or showAll then
     local expanded, childShowAll = false, false
     if not searching then
@@ -3466,11 +3491,11 @@ function Explorer.ScanTree()
      searchLeaf = (searching and not anc),
      match = (searching and m),
     }
-    if expanded then traverse(child, depth + 1, childShowAll or (showAll and searching)) end
+    if expanded then Traverse(child, depth + 1, childShowAll or (showAll and searching)) end
    end
   end
  end
- traverse(Explorer.Root, 0)
+ Traverse(Explorer.Root, 0)
 
  local index, nRows = {}, #rows
  local INDENT = config.Positions.INDENT
@@ -3483,14 +3508,14 @@ function Explorer.ScanTree()
   if est > bestEst then bestEst, bestRow = est, row end
  end
  Explorer.RowIndex = index
- config.TreeWidthBase = bestRow and (bestRow.depth * INDENT + 44 + nameWidth(bestRow.instance) + 60) or 0
+ config.TreeWidthBase = bestRow and (bestRow.depth * INDENT + 44 + NameWidth(bestRow.instance) + 60) or 0
  config.TreeWidthRow = bestRow
  config.emptyLabel.Visible = (nRows == 0)
 end
 
-local function appendSubtree(out, inst, depth)
+local function AppendSubtree(out, inst, depth)
  if inst.Real and not inst.Loaded then Explorer.LoadChildren(inst) end
- local kids = sortedChildren(inst)
+ local kids = SortedChildren(inst)
  local Expanded = Explorer.Expanded
  local n = #out
  for i = 1, #kids do
@@ -3498,11 +3523,11 @@ local function appendSubtree(out, inst, depth)
   local expanded = Expanded[child] == true
   n += 1
   out[n] = { instance = child, depth = depth, expanded = expanded, searchLeaf = false, match = false }
-  if expanded then appendSubtree(out, child, depth + 1) n = #out end
+  if expanded then AppendSubtree(out, child, depth + 1) n = #out end
  end
 end
 
-local function fastRebuild(inst)
+local function FastRebuild(inst)
  config.RowsRev = (config.RowsRev or 0) + 1
  if config.SearchQuery ~= "" then return false end
  local index, rows = Explorer.RowIndex, config.visiblerows
@@ -3518,7 +3543,7 @@ local function fastRebuild(inst)
  while last < oldN and rows[last + 1].depth > depth do last += 1 end
 
  local fresh = {}
- if expanded then appendSubtree(fresh, inst, depth + 1) end
+ if expanded then AppendSubtree(fresh, inst, depth + 1) end
  row.expanded = expanded
 
  local removed, added = last - idx, #fresh
@@ -3551,7 +3576,7 @@ local function fastRebuild(inst)
    if est > bestEst then bestEst, bestRow = est, r end
   end
   config.TreeWidthRow = bestRow
-  config.TreeWidthBase = bestRow and (bestRow.depth * INDENT + 44 + nameWidth(bestRow.instance) + 60) or 0
+  config.TreeWidthBase = bestRow and (bestRow.depth * INDENT + 44 + NameWidth(bestRow.instance) + 60) or 0
  else
   local bestEst = widthRow.depth * INDENT + #widthRow.instance.Name * 8
   local bestRow = nil
@@ -3562,7 +3587,7 @@ local function fastRebuild(inst)
   end
   if bestRow then
    config.TreeWidthRow = bestRow
-   config.TreeWidthBase = bestRow.depth * INDENT + 44 + nameWidth(bestRow.instance) + 60
+   config.TreeWidthBase = bestRow.depth * INDENT + 44 + NameWidth(bestRow.instance) + 60
   end
  end
  config.emptyLabel.Visible = (newN == 0)
@@ -3572,14 +3597,14 @@ end
 function Explorer.ExpandRow(idx, row, inst)
  Explorer.Expanded[inst] = true
  if config.SearchQuery ~= "" then Explorer.SearchOpen[inst] = true end
- if not fastRebuild(inst) then Explorer.ScanTree() end
+ if not FastRebuild(inst) then Explorer.ScanTree() end
  RefreshTree()
 end
 
 function Explorer.CollapseRow(idx, row, inst)
  Explorer.Expanded[inst] = nil
  if config.SearchQuery ~= "" then Explorer.SearchOpen[inst] = false end
- if not fastRebuild(inst) then Explorer.ScanTree() end
+ if not FastRebuild(inst) then Explorer.ScanTree() end
  RefreshTree()
 end
 
@@ -3593,7 +3618,7 @@ function RefreshTree()
   local to = math.min(#vr, from + math.ceil(config.body.AbsoluteSize.Y / config.ROW_H) + 2)
   for i = from, to do
    local row = vr[i]
-   local needed = row.depth * config.Positions.INDENT + 44 + nameWidth(row.instance) + 60
+   local needed = row.depth * config.Positions.INDENT + 44 + NameWidth(row.instance) + 60
    if needed > maxW then maxW = needed end
   end
  end
@@ -3691,7 +3716,7 @@ function RefreshTree()
      e.corner.CornerRadius = UDim.new(0, 8)
      e.mask.Visible = false
     end
-    if not e.mask.Visible and data.clearMaskHover then data.clearMaskHover() end
+    if not e.mask.Visible and data.ClearMaskHover then data.ClearMaskHover() end
     if e.mask.Visible then
      e.mask.BackgroundColor3 = e.entry.BackgroundColor3
      e.mask.BackgroundTransparency = e.entry.BackgroundTransparency
@@ -3709,7 +3734,7 @@ function RefreshTree()
      e.corner.CornerRadius = UDim.new(0, 0)
     end
     e.mask.Visible = false
-    if data.clearMaskHover then data.clearMaskHover() end
+    if data.ClearMaskHover then data.ClearMaskHover() end
    end
 
    e.icon.Position = UDim2.new(0, config.Positions.ICON_X + indentation - config.ScrollHOffset, 0, (i-1)*config.ROW_H + (config.ROW_H - config.Positions.ICON_PX)/2)
@@ -3717,12 +3742,12 @@ function RefreshTree()
    local userIcon = Explorer.UserIcons[cls]
    if data.iconCls ~= cls or data.iconUser ~= userIcon then
     data.iconCls, data.iconUser = cls, userIcon
-    applyIcon(e.icon, cls)
+    ApplyIcon(e.icon, cls)
    end
 
    e.label.Position = UDim2.new(0, config.Positions.TEXT_X + indentation - config.ScrollHOffset, 0, (i-1)*config.ROW_H)
    e.label.Size = UDim2.new(0, math.max(rowW, viewW) - config.Positions.TEXT_X - indentation - 8, 0, config.ROW_H)
-   local newText = escape(inst.Name):gsub("%s+", " ")
+   local newText = Escape(inst.Name):gsub("%s+", " ")
    if e.label.Text ~= newText then e.label.Text = newText end
 
    absoluteIdx = absoluteIdx + 1
@@ -3806,7 +3831,7 @@ function RefreshTree()
  local hi = config.HoverInst and Explorer.RowIndex and Explorer.RowIndex[config.HoverInst]
  local hrow = hi and (hi - config.ScrollIndex)
  if hrow and hrow >= 1 and hrow <= #config.entries then
-  placeInsertBtn(config.visiblerows[hi], hrow)
+  PlaceInsertBtn(config.visiblerows[hi], hrow)
  elseif not config.OverInsert then
   config.insertBtn.Visible = false
  end
@@ -3830,16 +3855,16 @@ end)
 local function Draggable(thumb, track, isHorizontal, vis)
  local dragging, startPos, startScroll
  local hovering = false
- local function paint()
+ local function Paint()
   vis.BackgroundColor3 = (dragging or hovering) and Color3.fromRGB(140,140,140) or Color3.fromRGB(90,90,90)
  end
- local function maxScroll()
+ local function MaxScroll()
   if isHorizontal then return math.max(0, config.TreeContentWidth - config.scrolling.AbsoluteSize.X) end
   return math.max(0, #config.visiblerows - math.floor(config.scrolling.AbsoluteSize.Y / config.ROW_H))
  end
- local function current() return isHorizontal and config.ScrollHOffset or config.ScrollIndex end
- local function apply(v)
-  local m = maxScroll()
+ local function Current() return isHorizontal and config.ScrollHOffset or config.ScrollIndex end
+ local function Apply(v)
+  local m = MaxScroll()
   if isHorizontal then
    config.ScrollHOffset = math.clamp(v, 0, m)
   else
@@ -3847,41 +3872,41 @@ local function Draggable(thumb, track, isHorizontal, vis)
   end
   RefreshTree()
  end
- local function isPress(inp)
+ local function IsPress(inp)
   return inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch
  end
 
  thumb.Active = true
  config.WidenHit(thumb, isHorizontal).InputBegan:Connect(function(inp)
   if not config.Fresh(inp) then return end
-  if not isPress(inp) then return end
-  if maxScroll() <= 0 then return end
+  if not IsPress(inp) then return end
+  if MaxScroll() <= 0 then return end
   dragging = true
   startPos = inp.Position
-  startScroll = current()
-  paint()
+  startScroll = Current()
+  Paint()
  end)
- track.MouseEnter:Connect(function() hovering = true paint() end)
- track.MouseLeave:Connect(function() hovering = false paint() end)
+ track.MouseEnter:Connect(function() hovering = true Paint() end)
+ track.MouseLeave:Connect(function() hovering = false Paint() end)
 
  config.SV.UserInput.InputChanged:Connect(function(inp)
   if not dragging then return end
-  if not config.Held(inp) then dragging = false paint() return end
+  if not config.Held(inp) then dragging = false Paint() return end
   if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
-  local m = maxScroll()
+  local m = MaxScroll()
   local ts = track.AbsoluteSize
   local trackLen = isHorizontal and ts.X or ts.Y
   local thumbFrac = isHorizontal and thumb.Size.X.Scale or thumb.Size.Y.Scale
   local usable = trackLen * (1 - thumbFrac)
   local delta = isHorizontal and (inp.Position.X - startPos.X) or (inp.Position.Y - startPos.Y)
   if usable > 0 and m > 0 then
-   apply(startScroll + delta / usable * m)
+   Apply(startScroll + delta / usable * m)
   end
  end)
  config.SV.UserInput.InputEnded:Connect(function(inp)
-  if isPress(inp) and dragging then
+  if IsPress(inp) and dragging then
    dragging = false
-   paint()
+   Paint()
   end
  end)
 end
@@ -3918,7 +3943,7 @@ config.searchbar:GetPropertyChangedSignal("Text"):Connect(function()
  config.searchToken += 1
  local my = config.searchToken
  local text = config.searchbar.Text
- local function apply()
+ local function Apply()
   if my ~= config.searchToken then return end
   local trimmed = text:match("^%s*(.-)%s*$")
   if trimmed == config.SearchAppliedText then return end
@@ -3931,7 +3956,7 @@ config.searchbar:GetPropertyChangedSignal("Text"):Connect(function()
   RefreshTree()
   if config.SearchQuery ~= "" and Explorer.EnsureDeepLoad then Explorer.EnsureDeepLoad() end
  end
- if text:match("^%s*$") then apply() else task.delay(0.15, apply) end
+ if text:match("^%s*$") then Apply() else task.delay(0.15, Apply) end
 end)
 
 config.contextItems = {}
@@ -3959,28 +3984,28 @@ local function CloseContextMenu()
 end
 Explorer.CloseContextMenu = CloseContextMenu
 
-local function isRootNode(inst)
+local function IsRootNode(inst)
  return inst == nil or inst.ClassName == "Root"
 end
-local function isServiceNode(inst)
+local function IsServiceNode(inst)
  return Explorer.Mode == "Game" and inst.Parent ~= nil
   and inst.Parent.ClassName == "Root" and inst.Parent.Name == "game"
 end
-local function isArchivable(inst)
+local function IsArchivable(inst)
  if not inst.Real then return true end
  local ok, v = pcall(function() return inst.Real.Archivable end)
  return not ok or v ~= false
 end
 Explorer.Can = {
- Copy = function(inst) return not isRootNode(inst) and not isServiceNode(inst) and isArchivable(inst) end,
- Cut = function(inst) return not isRootNode(inst) and not isServiceNode(inst) end,
- Duplicate = function(inst) return not isRootNode(inst) and not isServiceNode(inst) and isArchivable(inst) end,
- Rename = function(inst) return not isRootNode(inst) and not isServiceNode(inst) end,
- Delete = function(inst) return not isRootNode(inst) and not isServiceNode(inst) end,
- Group = function(inst) return not isRootNode(inst) and not isServiceNode(inst) end,
+ Copy = function(inst) return not IsRootNode(inst) and not IsServiceNode(inst) and IsArchivable(inst) end,
+ Cut = function(inst) return not IsRootNode(inst) and not IsServiceNode(inst) end,
+ Duplicate = function(inst) return not IsRootNode(inst) and not IsServiceNode(inst) and IsArchivable(inst) end,
+ Rename = function(inst) return not IsRootNode(inst) and not IsServiceNode(inst) end,
+ Delete = function(inst) return not IsRootNode(inst) and not IsServiceNode(inst) end,
+ Group = function(inst) return not IsRootNode(inst) and not IsServiceNode(inst) end,
  PasteInto = function(inst) return not (Explorer.Mode == "Game" and inst.ClassName == "Root" and inst.Name == "game") end,
 }
-local function anySelected(fn)
+local function AnySelected(fn)
  for _, i in ipairs(Explorer.GetSelection()) do
   if fn(i) then return true end
  end
@@ -4000,12 +4025,12 @@ function OpenContextMenu(inst, x, y)
  end
  local selCount = #Explorer.GetSelection()
  local items: any = {}
- local function add(label, danger, fn)
+ local function AddItem(label, danger, fn)
   table.insert(items, { label, danger, fn })
  end
  local C = Explorer.Can
- if anySelected(C.Cut) then add("Cut", false, Explorer.Cut) end
- if anySelected(C.Copy) then add("Copy", false, Explorer.Copy) end
+ if AnySelected(C.Cut) then AddItem("Cut", false, Explorer.Cut) end
+ if AnySelected(C.Copy) then AddItem("Copy", false, Explorer.Copy) end
  if #Explorer.Clipboard > 0 and C.PasteInto(inst) then
   local blocked = false
   if Explorer.ClipboardCut then
@@ -4017,13 +4042,13 @@ function OpenContextMenu(inst, x, y)
     end
    end
   end
-  if not blocked then add("Paste Into", false, function() Explorer.Paste(inst) end) end
+  if not blocked then AddItem("Paste Into", false, function() Explorer.Paste(inst) end) end
  end
- if anySelected(C.Duplicate) then add("Duplicate", false, Explorer.Duplicate) end
- add("Insert", false, function() Explorer.OpenInsertMenu(inst, x, y) end)
+ if AnySelected(C.Duplicate) then AddItem("Duplicate", false, Explorer.Duplicate) end
+ AddItem("Insert", false, function() Explorer.OpenInsertMenu(inst, x, y) end)
  if selCount == 1 then
   if C.Rename(inst) then
-   add("Rename", false, function() Explorer.StartRename(inst) end)
+   AddItem("Rename", false, function() Explorer.StartRename(inst) end)
   end
   if inst.Real and Explorer.ViewModel then
    local okPV, isPV = pcall(function()
@@ -4032,18 +4057,18 @@ function OpenContextMenu(inst, x, y)
     return real:FindFirstChildWhichIsA("BasePart", true) ~= nil
    end)
    if okPV and isPV then
-    add("View 3D Model", false, function() Explorer.ViewModel(inst) end)
+    AddItem("View 3D Model", false, function() Explorer.ViewModel(inst) end)
    end
   end
   if #inst.Children > 0 and (inst.ClassName == "Model" or inst.ClassName == "Folder") then
-   add("Ungroup", false, function() Explorer.Ungroup(inst) end)
+   AddItem("Ungroup", false, function() Explorer.Ungroup(inst) end)
   end
  end
- if anySelected(C.Group) then
-  add("Group", false, function() Explorer.GroupSelection("Model") end)
-  add("Group As a Folder", false, function() Explorer.GroupSelection("Folder") end)
+ if AnySelected(C.Group) then
+  AddItem("Group", false, function() Explorer.GroupSelection("Model") end)
+  AddItem("Group As a Folder", false, function() Explorer.GroupSelection("Folder") end)
  end
- if inst ~= Explorer.Root and not isRootNode(inst) and Explorer.HasChildren(inst) then
+ if inst ~= Explorer.Root and not IsRootNode(inst) and Explorer.HasChildren(inst) then
   table.insert(items, "SEPARATOR")
   local opt
   if Explorer.GetExpanded(inst) then
@@ -4054,9 +4079,9 @@ function OpenContextMenu(inst, x, y)
   table.insert(items, { "Hierarchy", false, nil, Options = { opt } })
  end
  table.insert(items, "SEPARATOR")
- if not isRootNode(inst) and setclipboard then
-  add("Copy Name", false, function() pcall(setclipboard, inst.Name) end)
-  add("Copy Path", false, function() pcall(setclipboard, inst:GetFullName()) end)
+ if not IsRootNode(inst) and setclipboard then
+  AddItem("Copy Name", false, function() pcall(setclipboard, inst.Name) end)
+  AddItem("Copy Path", false, function() pcall(setclipboard, inst:GetFullName()) end)
  end
  if #Explorer.ContextItems > 0 then
   table.insert(items, "SEPARATOR")
@@ -4064,9 +4089,9 @@ function OpenContextMenu(inst, x, y)
    table.insert(items, { item.label, item.danger or false, function() pcall(item.callback, inst) end })
   end
  end
- if anySelected(C.Delete) then
+ if AnySelected(C.Delete) then
   table.insert(items, "SEPARATOR")
-  add("Delete", true, Explorer.DeleteSelection)
+  AddItem("Delete", true, Explorer.DeleteSelection)
  end
 
  config.contextItems = items
@@ -4080,8 +4105,8 @@ function Explorer.CreateInstance(className, name, parent)
  parent = parent or Explorer.Root
  local G = Explorer.Game
  local inst
- if G and G.isGame(parent) then
-  inst = G.create(className, name or className, parent)
+ if G and G.IsGame(parent) then
+  inst = G.Create(className, name or className, parent)
   if not inst then return nil end
   if inst.Parent and inst.Parent ~= Explorer.Root then Explorer.Expanded[inst.Parent] = true end
  else
@@ -4095,7 +4120,7 @@ end
 function Explorer.DestroyInstance(inst)
  if not inst or inst == Explorer.Root then return end
  local G = Explorer.Game
- if G and G.isGame(inst) and not G.destroy(inst) then return end
+ if G and G.IsGame(inst) and not G.Destroy(inst) then return end
  Explorer.SelectedSet[inst] = nil
  if Explorer.Selected == inst then
   Explorer.Selected = next(Explorer.SelectedSet)
@@ -4110,8 +4135,8 @@ end
 
 function Explorer.SetName(inst, name)
  local G = Explorer.Game
- if G and G.isGame(inst) and inst.Real then
-  if not G.rename(inst, name) then return end
+ if G and G.IsGame(inst) and inst.Real then
+  if not G.Rename(inst, name) then return end
  else
   inst.Name = name
  end
@@ -4131,7 +4156,7 @@ function Explorer.SetExpanded(inst, expanded)
  if expanded then Explorer.Expanded[inst] = true
  else Explorer.Expanded[inst] = nil end
  if config.SearchQuery ~= "" then Explorer.SearchOpen[inst] = expanded and true or false end
- if not fastRebuild(inst) then Explorer.ScanTree() end
+ if not FastRebuild(inst) then Explorer.ScanTree() end
  RefreshTree()
 end
 
@@ -4216,7 +4241,7 @@ function Explorer.AddTag(inst, tag)
  if Explorer.RefreshProperties then Explorer.RefreshProperties() end
 end
 
-local function cloneVirtual(inst, parent)
+local function CloneVirtual(inst, parent)
  local kids = table.clone(inst.Children)
  local c = VirtualInstance.new(inst.ClassName, Explorer.UniqueName(parent, inst.Name), nil)
  for k, v in pairs(inst.Properties) do c.Properties[k] = v end
@@ -4225,11 +4250,11 @@ local function cloneVirtual(inst, parent)
  if inst.Real then c.Metadata.Real = inst.Real end
  if inst.Tags then c.Tags = table.clone(inst.Tags) end
  c:SetParent(parent)
- for _, ch in ipairs(kids) do cloneVirtual(ch, c) end
+ for _, ch in ipairs(kids) do CloneVirtual(ch, c) end
  return c
 end
 
-local function topLevel(list)
+local function TopLevel(list)
  local set, out = {}, {}
  for _, i in ipairs(list) do set[i] = true end
  for _, i in ipairs(list) do
@@ -4243,7 +4268,7 @@ local function topLevel(list)
  return out
 end
 
-local function reveal(inst)
+local function Reveal(inst)
  if not config.ExpandOnSelect then return end
  local cur = inst.Parent
  while cur and cur ~= Explorer.Root do
@@ -4252,21 +4277,21 @@ local function reveal(inst)
  end
 end
 
-local function filterBy(list, fn)
+local function FilterBy(list, fn)
  local out = {}
  for _, i in ipairs(list) do if fn(i) then out[#out + 1] = i end end
  return out
 end
 
 function Explorer.Copy()
- local list = topLevel(filterBy(Explorer.GetSelection(), Explorer.Can.Copy))
+ local list = TopLevel(FilterBy(Explorer.GetSelection(), Explorer.Can.Copy))
  if #list == 0 then return end
  Explorer.Clipboard = list
  Explorer.ClipboardCut = false
 end
 
 function Explorer.Cut()
- local list = topLevel(filterBy(Explorer.GetSelection(), Explorer.Can.Cut))
+ local list = TopLevel(FilterBy(Explorer.GetSelection(), Explorer.Can.Cut))
  if #list == 0 then return end
  Explorer.Clipboard = list
  Explorer.ClipboardCut = true
@@ -4285,8 +4310,8 @@ function Explorer.Paste(target)
    end
    if not bad and src.Parent then
     local G = Explorer.Game
-    if G and G.isGame(src) then
-     if G.move(src, parent) then made[#made + 1] = src end
+    if G and G.IsGame(src) then
+     if G.Move(src, parent) then made[#made + 1] = src end
     else
      src:SetParent(parent)
      made[#made + 1] = src
@@ -4294,11 +4319,11 @@ function Explorer.Paste(target)
    end
   elseif src.Parent then
    local G = Explorer.Game
-   if G and G.isGame(src) then
-    local c = G.clone(src, parent)
+   if G and G.IsGame(src) then
+    local c = G.Clone(src, parent)
     if c then made[#made + 1] = c end
    else
-    made[#made + 1] = cloneVirtual(src, parent)
+    made[#made + 1] = CloneVirtual(src, parent)
    end
   end
  end
@@ -4316,15 +4341,15 @@ function Explorer.MoveInstances(list, parent)
  if not parent then return end
  local G = Explorer.Game
  local moved = {}
- for _, src in ipairs(topLevel(list)) do
+ for _, src in ipairs(TopLevel(list)) do
   local cur, bad = parent, false
   while cur do
    if cur == src then bad = true break end
    cur = cur.Parent
   end
   if not bad and src.Parent and src.Parent ~= parent then
-   if G and G.isGame(src) then
-    if G.move(src, parent) then moved[#moved + 1] = src end
+   if G and G.IsGame(src) then
+    if G.Move(src, parent) then moved[#moved + 1] = src end
    else
     src:SetParent(parent)
     moved[#moved + 1] = src
@@ -4339,38 +4364,38 @@ end
 
 function Explorer.Duplicate()
  local made = {}
- for _, src in ipairs(topLevel(filterBy(Explorer.GetSelection(), Explorer.Can.Duplicate))) do
+ for _, src in ipairs(TopLevel(FilterBy(Explorer.GetSelection(), Explorer.Can.Duplicate))) do
   local G = Explorer.Game
-  if G and G.isGame(src) then
-   local c = G.clone(src, src.Parent or Explorer.Root)
+  if G and G.IsGame(src) then
+   local c = G.Clone(src, src.Parent or Explorer.Root)
    if c then made[#made + 1] = c end
   else
-   made[#made + 1] = cloneVirtual(src, src.Parent or Explorer.Root)
+   made[#made + 1] = CloneVirtual(src, src.Parent or Explorer.Root)
   end
  end
  if #made == 0 then return end
- for _, m in ipairs(made) do reveal(m) end
+ for _, m in ipairs(made) do Reveal(m) end
  Explorer.ScanTree()
  Explorer.SetSelection(made, made[#made])
 end
 
 function Explorer.DeleteSelection()
- for _, inst in ipairs(topLevel(filterBy(Explorer.GetSelection(), Explorer.Can.Delete))) do
+ for _, inst in ipairs(TopLevel(FilterBy(Explorer.GetSelection(), Explorer.Can.Delete))) do
   Explorer.DestroyInstance(inst)
  end
 end
 
 function Explorer.GroupSelection(className)
  className = className or "Folder"
- local list = topLevel(filterBy(Explorer.GetSelection(), Explorer.Can.Group))
+ local list = TopLevel(FilterBy(Explorer.GetSelection(), Explorer.Can.Group))
  if #list == 0 then return end
  local parent = list[1].Parent or Explorer.Root
  local G = Explorer.Game
  local f
- if G and G.isGame(list[1]) then
-  f = G.create(className, className, parent)
+ if G and G.IsGame(list[1]) then
+  f = G.Create(className, className, parent)
   if not f then return end
-  for _, i in ipairs(list) do G.move(i, f) end
+  for _, i in ipairs(list) do G.Move(i, f) end
  else
   f = VirtualInstance.new(className, Explorer.UniqueName(parent, className), parent)
   for _, i in ipairs(list) do i:SetParent(f) end
@@ -4383,7 +4408,7 @@ end
 function Explorer.Ungroup(inst)
  if not inst then return end
  local G = Explorer.Game
- local isGame = G and G.isGame(inst) and inst.Real ~= nil
+ local isGame = G and G.IsGame(inst) and inst.Real ~= nil
  if isGame and not inst.Loaded then Explorer.LoadChildren(inst) end
  if #inst.Children == 0 then return end
  local parent = inst.Parent or Explorer.Root
@@ -4391,7 +4416,7 @@ function Explorer.Ungroup(inst)
  if isGame then
   local ok, done = true, {}
   for _, c in ipairs(moved) do
-   if G.move(c, parent) then done[#done + 1] = c else ok = false end
+   if G.Move(c, parent) then done[#done + 1] = c else ok = false end
   end
   moved = done
   if not ok then
@@ -4420,7 +4445,7 @@ function Explorer.StartRename(inst)
  ).X
 
  local box = Instance.new("TextBox")
- box.Name = randomString()
+ box.Name = RandomString()
  box.Position = UDim2.new(
   e.label.Position.X.Scale, e.label.Position.X.Offset - PAD,
   e.label.Position.Y.Scale, e.label.Position.Y.Offset
@@ -4494,30 +4519,30 @@ function Explorer.Refresh()
  if Explorer.RefreshProperties then Explorer.RefreshProperties() end
 end
 
-local function expandRec(inst, searching)
+local function ExpandRec(inst, searching)
  Explorer.Expanded[inst] = true
  if searching then Explorer.SearchOpen[inst] = true end
  if inst.Real and not inst.Loaded then Explorer.LoadChildren(inst) end
  local kids = inst.Children
- for i = 1, #kids do expandRec(kids[i], searching) end
+ for i = 1, #kids do ExpandRec(kids[i], searching) end
 end
 
-local function collapseRec(inst, searching)
+local function CollapseRec(inst, searching)
  Explorer.Expanded[inst] = nil
  if searching then Explorer.SearchOpen[inst] = false end
  local kids = inst.Children
- for i = 1, #kids do collapseRec(kids[i], searching) end
+ for i = 1, #kids do CollapseRec(kids[i], searching) end
 end
 
 function Explorer.ExpandAll(inst)
- expandRec(inst, config.SearchQuery ~= "")
- if not fastRebuild(inst) then Explorer.ScanTree() end
+ ExpandRec(inst, config.SearchQuery ~= "")
+ if not FastRebuild(inst) then Explorer.ScanTree() end
  RefreshTree()
 end
 
 function Explorer.CollapseAll(inst)
- collapseRec(inst, config.SearchQuery ~= "")
- if not fastRebuild(inst) then Explorer.ScanTree() end
+ CollapseRec(inst, config.SearchQuery ~= "")
+ if not FastRebuild(inst) then Explorer.ScanTree() end
  RefreshTree()
 end
 
@@ -4538,7 +4563,7 @@ function Explorer.Open()
  config.main.Visible = true
  config.searchbar.Visible = true
  config.threedotmenu.Visible = true
- if config.layoutDocks then config.layoutDocks() end
+ if config.LayoutDocks then config.LayoutDocks() end
  Explorer.ScanTree()
  RefreshTree()
 end
@@ -4547,7 +4572,7 @@ function Explorer.Close()
  if not config.main.Visible then return end
  config.IsMinimized = true
  config.main.Visible = false
- if config.layoutDocks then config.layoutDocks() end
+ if config.LayoutDocks then config.LayoutDocks() end
 end
 
 function Explorer.Toggle()
@@ -4560,7 +4585,7 @@ config.close.Activated:Connect(function()
  Explorer.Close()
 end)
 
-local function closeInsertMenu()
+local function CloseInsertMenu()
  if config.InsertConns then
   for _, c in ipairs(config.InsertConns) do c:Disconnect() end
   config.InsertConns = nil
@@ -4581,7 +4606,7 @@ do
 end
 
 function Explorer.OpenInsertMenu(parentInst, x, y)
- closeInsertMenu()
+ CloseInsertMenu()
  CloseContextMenu()
  parentInst = parentInst or Explorer.Root
  local conns = {}
@@ -4596,7 +4621,7 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
  local viewW = W - 12
 
  local menu = Instance.new("Frame")
- menu.Name = randomString()
+ menu.Name = RandomString()
  menu.Size = UDim2.new(0, W, 0, H)
  menu.Position = UDim2.new(0, math.clamp(x, 4, math.max(4, config.window.AbsoluteSize.X - W - 4)), 0, math.clamp(y, 4, math.max(4, config.window.AbsoluteSize.Y - H - 4)))
  menu.BackgroundColor3 = config.COLORS.PRIMARY
@@ -4609,7 +4634,7 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
  config.InsertMenu = menu
 
  local box = Instance.new("TextBox")
- box.Name = randomString()
+ box.Name = RandomString()
  box.Size = UDim2.new(1, -14, 0, 28)
  box.Position = UDim2.new(0, 7, 0, 6)
  box.BackgroundColor3 = Color3.fromRGB(20, 21, 26)
@@ -4634,7 +4659,7 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
  box.FocusLost:Connect(function() boxStroke.Color = Color3.fromRGB(80, 80, 80) end)
 
  local view = Instance.new("Frame")
- view.Name = randomString()
+ view.Name = RandomString()
  view.Size = UDim2.new(0, viewW, 0, listH)
  view.Position = UDim2.new(0, 0, 0, listY)
  view.BackgroundTransparency = 1
@@ -4644,7 +4669,7 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
  view.Parent = menu
 
  local bar = Instance.new("Frame")
- bar.Name = randomString()
+ bar.Name = RandomString()
  bar.Size = UDim2.new(0, 10, 0, listH)
  bar.Position = UDim2.new(1, -10, 0, listY)
  bar.BackgroundTransparency = 1
@@ -4655,7 +4680,7 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
  bar.Parent = menu
 
  local thumb = Instance.new("Frame")
- thumb.Name = randomString()
+ thumb.Name = RandomString()
  thumb.Size = UDim2.new(1, 0, 0.2, 0)
  thumb.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
  thumb.BorderSizePixel = 0
@@ -4664,8 +4689,8 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
  thumb.Parent = bar
  RoundCorner(thumb, 1, 0)
 
- local function insert(className)
-  closeInsertMenu()
+ local function Insert(className)
+  CloseInsertMenu()
   if parentInst ~= Explorer.Root then Explorer.Expanded[parentInst] = true end
   local inst = Explorer.CreateInstance(className, className, parentInst)
   if inst and config.SelectAfterInsert then Explorer.SelectInstance(inst) end
@@ -4675,7 +4700,7 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
  local scrollIndex = 0
  local pool = {}
 
- local function refresh()
+ local function Refresh()
   local maxIndex = math.max(0, #items - VISIBLE)
   scrollIndex = math.clamp(scrollIndex, 0, maxIndex)
   for i, p in ipairs(pool) do
@@ -4684,7 +4709,7 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
    if item then
     p.entry.Visible = true
     p.entry.Position = UDim2.new(0, 0, 0, (i - 1) * ROW)
-    applyIcon(p.icon, item)
+    ApplyIcon(p.icon, item)
     p.label.Text = item
    else
     p.entry.Visible = false
@@ -4703,7 +4728,7 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
 
  for i = 1, VISIBLE + 1 do
   local entry = Instance.new("TextButton")
-  entry.Name = randomString()
+  entry.Name = RandomString()
   entry.Size = UDim2.new(0, viewW, 0, ROW)
   entry.BackgroundColor3 = config.COLORS.SECONDARY
   entry.BackgroundTransparency = 1
@@ -4741,22 +4766,22 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
   pool[i] = p
   entry.MouseEnter:Connect(function() if p.item then entry.BackgroundTransparency = 0 end end)
   entry.MouseLeave:Connect(function() entry.BackgroundTransparency = 1 end)
-  entry.Activated:Connect(function() if p.item then insert(p.item) end end)
+  entry.Activated:Connect(function() if p.item then Insert(p.item) end end)
  end
 
- local function populate()
+ local function Populate()
   local q = box.Text:lower()
   items = {}
   for _, name in ipairs(config.INSERT_CLASSES) do
    if q == "" or name:lower():find(q, 1, true) then items[#items + 1] = name end
   end
   scrollIndex = 0
-  refresh()
+  Refresh()
  end
- populate()
- box:GetPropertyChangedSignal("Text"):Connect(populate)
+ Populate()
+ box:GetPropertyChangedSignal("Text"):Connect(Populate)
  box.FocusLost:Connect(function(enter)
-  if enter and items[1] and config.InsertMenu == menu then insert(items[1]) end
+  if enter and items[1] and config.InsertMenu == menu then Insert(items[1]) end
  end)
 
  conns[#conns + 1] = config.SV.UserInput.InputChanged:Connect(function(input)
@@ -4765,7 +4790,7 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
   local mp = input.Position
   if mp.X < ap.X or mp.X > ap.X + as.X or mp.Y < ap.Y or mp.Y > ap.Y + as.Y then return end
   scrollIndex = scrollIndex - input.Position.Z * 3
-  refresh()
+  Refresh()
  end)
 
  local dragging, startY, startIndex = false, 0, 0
@@ -4782,7 +4807,7 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
   local usable = listH * (1 - thumb.Size.Y.Scale)
   if usable > 0 and maxIndex > 0 then
    scrollIndex = math.floor(startIndex + (inp.Position.Y - startY) / usable * maxIndex + 0.5)
-   refresh()
+   Refresh()
   end
  end)
  conns[#conns + 1] = config.SV.UserInput.InputEnded:Connect(function(inp)
@@ -4808,13 +4833,13 @@ config.insertBtn.Activated:Connect(function()
  Explorer.OpenInsertMenu(config.InsertTarget, ap.X, ap.Y + 20)
 end)
 
-local function mouseInMain()
+local function MouseInMain()
  local mp = config.SV.UserInput:GetMouseLocation()
  local ap, as = config.main.AbsolutePosition, config.main.AbsoluteSize
  return mp.X >= ap.X and mp.X <= ap.X + as.X and mp.Y >= ap.Y and mp.Y <= ap.Y + as.Y + 36
 end
 
-local function selectRowAt(idx)
+local function SelectRowAt(idx)
  local row = config.visiblerows[idx]
  if not row then return end
  local viewRows = math.max(1, math.floor(config.scrolling.AbsoluteSize.Y / config.ROW_H))
@@ -4840,7 +4865,7 @@ config.searchbar.FocusLost:Connect(function(enter)
  else
   config.SearchCursor = (config.SearchCursor % #hits) + 1
  end
- selectRowAt(hits[config.SearchCursor])
+ SelectRowAt(hits[config.SearchCursor])
 end)
 
 config.SV.UserInput.InputBegan:Connect(function(inp, gpe)
@@ -4851,14 +4876,14 @@ config.SV.UserInput.InputBegan:Connect(function(inp, gpe)
  local alt = config.SV.UserInput:IsKeyDown(Enum.KeyCode.LeftAlt) or config.SV.UserInput:IsKeyDown(Enum.KeyCode.RightAlt)
  local key = inp.KeyCode
  if key == Enum.KeyCode.Escape and config.InsertMenu then
-  closeInsertMenu()
+  CloseInsertMenu()
   return
  end
  if ctrl and shift and key == Enum.KeyCode.X then
   task.defer(function() config.searchbar:CaptureFocus() end)
   return
  end
- if gpe or not mouseInMain() then return end
+ if gpe or not MouseInMain() then return end
  local rows = config.visiblerows
  local cur = Explorer.Selected and Explorer.RowIndex and Explorer.RowIndex[Explorer.Selected]
  local pageRows = math.max(1, math.floor(config.scrolling.AbsoluteSize.Y / config.ROW_H))
@@ -4900,36 +4925,36 @@ config.SV.UserInput.InputBegan:Connect(function(inp, gpe)
  elseif key == Enum.KeyCode.F2 and Explorer.Selected then
   Explorer.StartRename(Explorer.Selected)
  elseif key == Enum.KeyCode.Down then
-  selectRowAt(cur and math.min(cur + 1, #rows) or 1)
+  SelectRowAt(cur and math.min(cur + 1, #rows) or 1)
  elseif key == Enum.KeyCode.Up then
-  selectRowAt(cur and math.max(cur - 1, 1) or 1)
+  SelectRowAt(cur and math.max(cur - 1, 1) or 1)
  elseif key == Enum.KeyCode.Home then
-  selectRowAt(1)
+  SelectRowAt(1)
  elseif key == Enum.KeyCode.End then
-  selectRowAt(#rows)
+  SelectRowAt(#rows)
  elseif key == Enum.KeyCode.PageDown then
-  selectRowAt(cur and math.min(cur + pageRows, #rows) or 1)
+  SelectRowAt(cur and math.min(cur + pageRows, #rows) or 1)
  elseif key == Enum.KeyCode.PageUp then
-  selectRowAt(cur and math.max(cur - pageRows, 1) or 1)
+  SelectRowAt(cur and math.max(cur - pageRows, 1) or 1)
  elseif key == Enum.KeyCode.Right and cur then
   local inst = rows[cur].instance
   if rows[cur].searchLeaf then
   elseif Explorer.HasChildren(inst) and not rows[cur].expanded then
    Explorer.SetExpanded(inst, true)
   elseif Explorer.HasChildren(inst) then
-   selectRowAt(cur + 1)
+   SelectRowAt(cur + 1)
   end
  elseif key == Enum.KeyCode.Left and cur then
   local inst = rows[cur].instance
   if inst.Parent and inst.Parent ~= Explorer.Root and Explorer.RowIndex[inst.Parent] then
-   selectRowAt(Explorer.RowIndex[inst.Parent])
+   SelectRowAt(Explorer.RowIndex[inst.Parent])
   elseif Explorer.Expanded[inst] then
    Explorer.SetExpanded(inst, false)
   end
  end
 end)
 
-local function pointIn(gui, pos)
+local function PointIn(gui, pos)
  if not gui then return false end
  local ap, as = gui.AbsolutePosition, gui.AbsoluteSize
  return pos.X >= ap.X and pos.X <= ap.X + as.X and pos.Y >= ap.Y and pos.Y <= ap.Y + as.Y
@@ -4938,7 +4963,7 @@ end
 config.SV.UserInput.InputBegan:Connect(function(inp)
  if inp.UserInputType ~= Enum.UserInputType.MouseButton1 and inp.UserInputType ~= Enum.UserInputType.MouseButton2 and inp.UserInputType ~= Enum.UserInputType.Touch then return end
  local pos = Vector2.new(inp.Position.X, inp.Position.Y)
- if config.InsertMenu and not pointIn(config.InsertMenu, pos) then closeInsertMenu() end
+ if config.InsertMenu and not PointIn(config.InsertMenu, pos) then CloseInsertMenu() end
 end)
 
 config.SV.ContextAction:BindAction("OpenExplorer", function(_, state)
@@ -5035,7 +5060,7 @@ do
  local SECTION_ORDER = { Data = 1, Appearance = 2, Transform = 3, Part = 4, Text = 5, Behavior = 6, Collision = 7, Other = 8 }
  local RANK = { Name = 1, ClassName = 2, Parent = 3 }
 
- local function guessSection(name, v)
+ local function GuessSection(name, v)
   local t = typeof(v)
   if name:match("^Text") or name == "Font" or name == "FontFace" then return "Text" end
   if name:match("Color") or name:match("Transparency") or name:match("Material") or name:match("Image") then return "Appearance" end
@@ -5049,13 +5074,13 @@ do
  Explorer.API = API
  local API_URL = "https://raw.githubusercontent.com/MaximumADHD/Roblox-Client-Tracker/roblox/API-Dump.json"
 
- local function hasTagStr(tags, name)
+ local function HasTagStr(tags, name)
   if type(tags) ~= "table" then return false end
   for _, t in ipairs(tags) do if t == name then return true end end
   return false
  end
 
- local function httpRequest(url)
+ local function HttpRequest(url)
   local req = request or http_request or (syn and syn.request) or (http and http.request) or (fluxus and fluxus.request)
   if req then
    local ok, res = pcall(req, { Url = url, Method = "GET" })
@@ -5068,13 +5093,13 @@ do
   return nil
  end
 
- local function loadAPI()
+ local function LoadAPI()
   if API.Classes or API.Loading then return end
   API.Loading = true
   task.spawn(function()
    local body
    for _ = 1, 3 do
-    body = httpRequest(API_URL)
+    body = HttpRequest(API_URL)
     if body then break end
     task.wait(2)
    end
@@ -5092,15 +5117,15 @@ do
    for _, c in ipairs(data.Classes) do
     local props = {}
     for _, m in ipairs(c.Members or {}) do
-     if m.MemberType == "Property" and not hasTagStr(m.Tags, "Deprecated") then
+     if m.MemberType == "Property" and not HasTagStr(m.Tags, "Deprecated") then
       local sec = m.Security
       local writeSec = type(sec) == "table" and sec.Write or sec
       props[#props + 1] = {
        Name = m.Name,
        Category = m.Category or "Other",
-       ReadOnly = hasTagStr(m.Tags, "ReadOnly") or (writeSec ~= nil and writeSec ~= "None"),
-       NotScriptable = hasTagStr(m.Tags, "NotScriptable"),
-       Hidden = hasTagStr(m.Tags, "Hidden"),
+       ReadOnly = HasTagStr(m.Tags, "ReadOnly") or (writeSec ~= nil and writeSec ~= "None"),
+       NotScriptable = HasTagStr(m.Tags, "NotScriptable"),
+       Hidden = HasTagStr(m.Tags, "Hidden"),
        Type = m.ValueType and m.ValueType.Name or "",
        TypeCat = m.ValueType and m.ValueType.Category or "",
       }
@@ -5135,7 +5160,7 @@ do
   return out
  end
 
- local function readReal(real, name)
+ local function ReadReal(real, name)
   local ok, v = pcall(function() return real[name] end)
   if not ok and type(gethiddenproperty) == "function" then
    ok, v = pcall(gethiddenproperty, real, name)
@@ -5143,7 +5168,7 @@ do
   return ok, v
  end
 
- local function writeReal(real, name, value)
+ local function WriteReal(real, name, value)
   local ok = pcall(function() real[name] = value end)
   if not ok and type(sethiddenproperty) == "function" then
    ok = pcall(sethiddenproperty, real, name, value)
@@ -5151,11 +5176,11 @@ do
   return ok
  end
 
- loadAPI()
+ LoadAPI()
 
- local function collect(inst)
+ local function Collect(inst)
   local bySec, order, seen = {}, {}, {}
-  local function add(sec, entry)
+  local function AddItem(sec, entry)
    local s = bySec[sec]
    if not s then
     s = { name = sec, props = {} }
@@ -5166,9 +5191,9 @@ do
   end
   local parentName = "nil"
   if inst.Parent and inst.Parent ~= Explorer.Root then parentName = inst.Parent.Name end
-  add("Data", { key = "Name", value = inst.Name })
-  add("Data", { key = "ClassName", value = inst.ClassName, readonly = true })
-  add("Data", { key = "Parent", value = parentName, readonly = true })
+  AddItem("Data", { key = "Name", value = inst.Name })
+  AddItem("Data", { key = "ClassName", value = inst.ClassName, readonly = true })
+  AddItem("Data", { key = "Parent", value = parentName, readonly = true })
   seen.Name, seen.ClassName, seen.Parent = true, true, true
 
   local real = inst.Real
@@ -5178,38 +5203,38 @@ do
     local canHidden = type(gethiddenproperty) == "function"
     for _, p in ipairs(list) do
      if not seen[p.Name] and (canHidden or not p.NotScriptable) then
-      local ok, v = readReal(real, p.Name)
+      local ok, v = ReadReal(real, p.Name)
       if ok then
        seen[p.Name] = true
        local ro = p.ReadOnly or p.TypeCat == "Class" or (p.NotScriptable and type(sethiddenproperty) ~= "function")
        if v == nil then v, ro = "nil", true end
-       add(p.Category, { key = p.Name, value = v, readonly = ro and true or false })
+       AddItem(p.Category, { key = p.Name, value = v, readonly = ro and true or false })
       end
      end
     end
    else
     for _, def in ipairs(Explorer.PropertyDefs) do
-     if not seen[def.Name] and isA(inst, def.Class:lower()) then
-      local ok, v = readReal(real, def.Name)
+     if not seen[def.Name] and IsA(inst, def.Class:lower()) then
+      local ok, v = ReadReal(real, def.Name)
       if ok and v ~= nil then
        seen[def.Name] = true
-       add(def.Section, { key = def.Name, value = v, readonly = def.ReadOnly })
+       AddItem(def.Section, { key = def.Name, value = v, readonly = def.ReadOnly })
       end
      end
     end
     if API.Failed then
-     add("Data", { key = "(API dump failed to load)", value = "retrying on reselect", readonly = true })
+     AddItem("Data", { key = "(API dump failed to load)", value = "retrying on reselect", readonly = true })
      API.Failed = false
-     loadAPI()
+     LoadAPI()
     end
    end
   else
    for _, def in ipairs(Explorer.PropertyDefs) do
-    if not seen[def.Name] and isA(inst, def.Class:lower()) then
+    if not seen[def.Name] and IsA(inst, def.Class:lower()) then
      seen[def.Name] = true
      local v = inst.Properties[def.Name]
      if v == nil then v = def.Default end
-     add(def.Section, { key = def.Name, value = v, readonly = def.ReadOnly })
+     AddItem(def.Section, { key = def.Name, value = v, readonly = def.ReadOnly })
     end
    end
 
@@ -5219,7 +5244,7 @@ do
    end
    for _, k in ipairs(extra) do
     local v = inst.Properties[k]
-    add(guessSection(k, v), { key = k, value = v })
+    AddItem(GuessSection(k, v), { key = k, value = v })
    end
   end
 
@@ -5238,7 +5263,7 @@ do
   return order
  end
 
- local function hasProp(t, key)
+ local function HasProp(t, key)
   if key == "Name" then return true end
   if t.Real then
    local list = API.PropsFor(t.ClassName)
@@ -5249,12 +5274,12 @@ do
   end
   if t.Properties[key] ~= nil then return true end
   for _, def in ipairs(Explorer.PropertyDefs) do
-   if def.Name == key and isA(t, def.Class:lower()) then return true end
+   if def.Name == key and IsA(t, def.Class:lower()) then return true end
   end
   return false
  end
 
- local function fmtNum(n)
+ local function FmtNum(n)
   if n ~= n then return "nan" end
   if n == math.huge then return "inf" elseif n == -math.huge then return "-inf" end
   if n == math.floor(n) and math.abs(n) < 1e15 then return string.format("%d", n) end
@@ -5264,33 +5289,33 @@ do
   return s
  end
 
- local function fmt(v)
+ local function Fmt(v)
   if type(v) == "table" and v.ClassName then return tostring(v.Name) end
   local t = typeof(v)
   if t == "string" then return v
-  elseif t == "number" then return fmtNum(v)
+  elseif t == "number" then return FmtNum(v)
   elseif t == "boolean" then return tostring(v)
   elseif t == "Color3" then
    return string.format("%d, %d, %d", math.round(v.R * 255), math.round(v.G * 255), math.round(v.B * 255))
-  elseif t == "Vector3" then return fmtNum(v.X) .. ", " .. fmtNum(v.Y) .. ", " .. fmtNum(v.Z)
-  elseif t == "Vector2" then return fmtNum(v.X) .. ", " .. fmtNum(v.Y)
-  elseif t == "UDim" then return fmtNum(v.Scale) .. ", " .. fmtNum(v.Offset)
+  elseif t == "Vector3" then return FmtNum(v.X) .. ", " .. FmtNum(v.Y) .. ", " .. FmtNum(v.Z)
+  elseif t == "Vector2" then return FmtNum(v.X) .. ", " .. FmtNum(v.Y)
+  elseif t == "UDim" then return FmtNum(v.Scale) .. ", " .. FmtNum(v.Offset)
   elseif t == "UDim2" then
-   return "{" .. fmtNum(v.X.Scale) .. ", " .. fmtNum(v.X.Offset) .. "}, {" .. fmtNum(v.Y.Scale) .. ", " .. fmtNum(v.Y.Offset) .. "}"
+   return "{" .. FmtNum(v.X.Scale) .. ", " .. FmtNum(v.X.Offset) .. "}, {" .. FmtNum(v.Y.Scale) .. ", " .. FmtNum(v.Y.Offset) .. "}"
   elseif t == "CFrame" then
    local parts = {}
-   for i, n in ipairs({ v:GetComponents() }) do parts[i] = fmtNum(n) end
+   for i, n in ipairs({ v:GetComponents() }) do parts[i] = FmtNum(n) end
    return table.concat(parts, ", ")
   elseif t == "EnumItem" then return v.Name
   elseif t == "BrickColor" then return v.Name
-  elseif t == "NumberRange" then return fmtNum(v.Min) .. ", " .. fmtNum(v.Max)
-  elseif t == "Rect" then return fmtNum(v.Min.X) .. ", " .. fmtNum(v.Min.Y) .. ", " .. fmtNum(v.Max.X) .. ", " .. fmtNum(v.Max.Y)
+  elseif t == "NumberRange" then return FmtNum(v.Min) .. ", " .. FmtNum(v.Max)
+  elseif t == "Rect" then return FmtNum(v.Min.X) .. ", " .. FmtNum(v.Min.Y) .. ", " .. FmtNum(v.Max.X) .. ", " .. FmtNum(v.Max.Y)
   elseif t == "nil" then return ""
   end
   return tostring(v)
  end
 
- local function nums(text, n)
+ local function Nums(text, n)
   local cleaned = text:gsub("[{}%(%)]", " ")
   local out = {}
   for s in cleaned:gmatch("[^,%s]+") do
@@ -5302,7 +5327,7 @@ do
   return out
  end
 
- local function parseValue(text, cur)
+ local function ParseValue(text, cur)
   local t = typeof(cur)
   if t == "string" then return text
   elseif t == "number" then return tonumber(text)
@@ -5311,30 +5336,30 @@ do
    if h then
     return Color3.fromRGB(tonumber(h:sub(1, 2), 16), tonumber(h:sub(3, 4), 16), tonumber(h:sub(5, 6), 16))
    end
-   local n = nums(text, 3)
+   local n = Nums(text, 3)
    if n then return Color3.fromRGB(math.clamp(n[1], 0, 255), math.clamp(n[2], 0, 255), math.clamp(n[3], 0, 255)) end
   elseif t == "Vector3" then
-   local n = nums(text, 3)
+   local n = Nums(text, 3)
    if n then return Vector3.new(n[1], n[2], n[3]) end
   elseif t == "Vector2" then
-   local n = nums(text, 2)
+   local n = Nums(text, 2)
    if n then return Vector2.new(n[1], n[2]) end
   elseif t == "UDim" then
-   local n = nums(text, 2)
+   local n = Nums(text, 2)
    if n then return UDim.new(n[1], n[2]) end
   elseif t == "UDim2" then
-   local n = nums(text, 4)
+   local n = Nums(text, 4)
    if n then return UDim2.new(n[1], n[2], n[3], n[4]) end
   elseif t == "CFrame" then
-   local n = nums(text)
+   local n = Nums(text)
    if n and #n == 3 then return CFrame.new(n[1], n[2], n[3]) * (cur - cur.Position) end
    if n and #n == 12 then return CFrame.new(table.unpack(n)) end
   elseif t == "NumberRange" then
-   local n = nums(text)
+   local n = Nums(text)
    if n and #n == 1 then return NumberRange.new(n[1]) end
    if n and #n == 2 then return NumberRange.new(n[1], n[2]) end
   elseif t == "Rect" then
-   local n = nums(text, 4)
+   local n = Nums(text, 4)
    if n then return Rect.new(n[1], n[2], n[3], n[4]) end
   elseif t == "BrickColor" then
    local ok, bc = pcall(BrickColor.new, text)
@@ -5343,7 +5368,7 @@ do
   return nil
  end
 
- local function components(v)
+ local function Components(v)
   local t = typeof(v)
   if t == "Vector3" then
    return {
@@ -5402,23 +5427,23 @@ do
   { "NumberRange", NumberRange.new(0, 1) }, { "Rect", Rect.new(0, 0, 0, 0) },
  }
 
- local rebuild, refreshList
+ local Rebuild, RefreshList
 
- local function applyProp(key, value)
+ local function ApplyProp(key, value)
   local targets = Explorer.GetSelection()
   if #targets == 0 and P.Inst then targets = { P.Inst } end
   for _, t in ipairs(targets) do
-   if hasProp(t, key) then
+   if HasProp(t, key) then
     if key == "Name" then
      if type(value) == "string" and value ~= "" then
       if t.Real then
-       if writeReal(t.Real, "Name", value) then t.Name = value end
+       if WriteReal(t.Real, "Name", value) then t.Name = value end
       else
        t.Name = value
       end
      end
     elseif t.Real then
-     writeReal(t.Real, key, value)
+     WriteReal(t.Real, key, value)
     else
      t.Properties[key] = value
     end
@@ -5432,7 +5457,7 @@ do
   Explorer.RefreshProperties()
  end
 
- local function tagList(inst)
+ local function TagList(inst)
   local out = {}
   local t = inst.Tags
   if type(t) == "table" then
@@ -5445,7 +5470,7 @@ do
   return out
  end
 
- local function removeTag(inst, tag)
+ local function RemoveTag(inst, tag)
   local t = inst.Tags
   if type(t) ~= "table" then return end
   t[tag] = nil
@@ -5454,12 +5479,12 @@ do
   end
  end
 
- local function addValueRows(rows, d)
+ local function AddValueRows(rows, d)
   local row = {
    kind = "prop", name = d.name, value = d.value, readonly = d.readonly,
-   commit = d.commit, gear = d.gear, expKey = d.expKey,
+   Commit = d.Commit, gear = d.gear, expKey = d.expKey,
   }
-  local comps = (not d.readonly) and components(d.value) or nil
+  local comps = (not d.readonly) and Components(d.value) or nil
   if comps then
    row.expandable = true
    row.expanded = P.PExp[d.expKey] == true
@@ -5470,25 +5495,25 @@ do
     local make = c[3]
     rows[#rows + 1] = {
      kind = "prop", sub = true, name = c[1], value = c[2],
-     commit = function(nv) d.commit(make(nv)) end,
+     Commit = function(nv) d.Commit(make(nv)) end,
     }
    end
   end
  end
 
- rebuild = function()
+ Rebuild = function()
   local rows = {}
   local inst = Explorer.Selected
   if inst == Explorer.Root then inst = nil end
   P.Inst = inst
   if inst then
    local f = P.Filter
-   local function matches(name) return f == "" or name:lower():find(f, 1, true) ~= nil end
+   local function Matches(name) return f == "" or name:lower():find(f, 1, true) ~= nil end
 
-   for _, sec in ipairs(collect(inst)) do
+   for _, sec in ipairs(Collect(inst)) do
     local keep = {}
     for _, p in ipairs(sec.props) do
-     if matches(p.key) then keep[#keep + 1] = p end
+     if Matches(p.key) then keep[#keep + 1] = p end
     end
     if #keep > 0 then
      local collapsed = P.Collapsed[sec.name] == true and f == ""
@@ -5496,10 +5521,10 @@ do
      if not collapsed then
       for _, p in ipairs(keep) do
        local key = p.key
-       addValueRows(rows, {
+       AddValueRows(rows, {
         name = key, value = p.value, readonly = p.readonly,
         expKey = inst.ClassName .. ":" .. key,
-        commit = function(nv) applyProp(key, nv) end,
+        Commit = function(nv) ApplyProp(key, nv) end,
        })
       end
      end
@@ -5516,7 +5541,7 @@ do
    end
    local attrNames = {}
    for k in pairs(inst.Attributes) do
-    if type(k) == "string" and matches(k) then attrNames[#attrNames + 1] = k end
+    if type(k) == "string" and Matches(k) then attrNames[#attrNames + 1] = k end
    end
    table.sort(attrNames)
    if f == "" or #attrNames > 0 then
@@ -5525,10 +5550,10 @@ do
     if not collapsed then
      for _, k in ipairs(attrNames) do
       local name = k
-      addValueRows(rows, {
+      AddValueRows(rows, {
        name = name, value = inst.Attributes[name], gear = true,
        expKey = "attr:" .. name,
-       commit = function(nv)
+       Commit = function(nv)
         inst.Attributes[name] = nv
         if inst.Real then pcall(function() inst.Real:SetAttribute(name, nv) end) end
         if Explorer.OnPropertyChangedCb then pcall(Explorer.OnPropertyChangedCb, inst, "Attribute:" .. name, nv) end
@@ -5540,8 +5565,8 @@ do
    end
 
    local tags = {}
-   for _, tg in ipairs(tagList(inst)) do
-    if matches(tg) then tags[#tags + 1] = tg end
+   for _, tg in ipairs(TagList(inst)) do
+    if Matches(tg) then tags[#tags + 1] = tg end
    end
    if f == "" or #tags > 0 then
     local collapsed = P.Collapsed.Tags == true and f == ""
@@ -5555,10 +5580,10 @@ do
  end
 
  config.pmain = Instance.new("Frame")
- config.pmain.Name = randomString()
+ config.pmain.Name = RandomString()
  config.pmain.Size = UDim2.new(0, config.main.Size.X.Offset, 0, P.FloatH)
  config.pmain.Position = UDim2.new(0, 40, 0, 40)
- clampPanelTop(config.pmain)
+ ClampPanelTop(config.pmain)
  config.pmain.BackgroundColor3 = config.COLORS.PRIMARY
  config.pmain.BackgroundTransparency = config.NT
  config.pmain.Active = true
@@ -5569,8 +5594,8 @@ do
  RegisterWindow(config.pmain)
 
  config.pdocksplitter = Instance.new("Frame")
- config.pdocksplitter.Name = randomString()
- config.pdocksplitter.Size = UDim2.new(0, 3, 1, 0)
+ config.pdocksplitter.Name = RandomString()
+ config.pdocksplitter.Size = UDim2.new(0, 6, 1, 0)
  config.pdocksplitter.BackgroundColor3 = config.COLORS.RESIZER
  config.pdocksplitter.BorderSizePixel = 0
  config.pdocksplitter.ZIndex = 8
@@ -5580,7 +5605,7 @@ do
  config.pdocksplitter.Parent = config.pmain
 
  local hdr = Instance.new("Frame")
- hdr.Name = randomString()
+ hdr.Name = RandomString()
  hdr.Size = UDim2.new(1, 0, 0, 65)
  hdr.BackgroundColor3 = config.COLORS.HEADER
  hdr.BorderSizePixel = 0
@@ -5590,7 +5615,7 @@ do
  hdr.Parent = config.pmain
 
  local hAccent = Instance.new("Frame")
- hAccent.Name = randomString()
+ hAccent.Name = RandomString()
  hAccent.Size = UDim2.new(1, 0, 0, 1.5)
  hAccent.Position = UDim2.new(0, 0, 1, -1.5)
  hAccent.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -5600,7 +5625,7 @@ do
  hAccent.Parent = hdr
 
  local ptitle = Instance.new("TextLabel")
- ptitle.Name = randomString()
+ ptitle.Name = RandomString()
  ptitle.Size = UDim2.new(1, -70, 0, 28)
  ptitle.Position = UDim2.new(0, 35, 0, 0)
  ptitle.BackgroundTransparency = 1
@@ -5615,7 +5640,7 @@ do
  ptitle.Parent = hdr
 
  local pclose = Instance.new("TextButton")
- pclose.Name = randomString()
+ pclose.Name = RandomString()
  pclose.Size = UDim2.new(0, 28, 0, 28)
  pclose.Position = UDim2.new(1, -30, 0, 1)
  pclose.BackgroundTransparency = 1
@@ -5628,7 +5653,7 @@ do
  MakeCloseIcon(pclose, 8, 4, Color3.fromRGB(210, 210, 210))
 
  local ppin = Instance.new("TextButton")
- ppin.Name = randomString()
+ ppin.Name = RandomString()
  ppin.Size = UDim2.new(0, 22, 0, 22)
  ppin.Position = UDim2.new(1, -58, 0, 3)
  ppin.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
@@ -5643,7 +5668,7 @@ do
  MakePinIcon(ppin, 14, 4, Color3.fromRGB(210, 210, 210))
 
  local searchRowP = Instance.new("Frame")
- searchRowP.Name = randomString()
+ searchRowP.Name = RandomString()
  searchRowP.Size = UDim2.new(1, 0, 0, 34)
  searchRowP.Position = UDim2.new(0, 0, 0, 28)
  searchRowP.BackgroundTransparency = 1
@@ -5653,7 +5678,7 @@ do
  searchRowP.Parent = config.pmain
 
  local filterBox = Instance.new("TextBox")
- filterBox.Name = randomString()
+ filterBox.Name = RandomString()
  filterBox.Size = UDim2.new(1, -14, 0, 28)
  filterBox.Position = UDim2.new(0, 7, 0, 4)
  filterBox.BackgroundColor3 = config.COLORS.PRIMARY
@@ -5670,7 +5695,7 @@ do
  filterBox.Parent = searchRowP
 
  local pbody = Instance.new("Frame")
- pbody.Name = randomString()
+ pbody.Name = RandomString()
  pbody.Size = UDim2.new(1, 0, 1, -65)
  pbody.Position = UDim2.new(0, 0, 0, 65)
  pbody.BackgroundTransparency = 1
@@ -5679,19 +5704,21 @@ do
  pbody.Parent = config.pmain
 
  local list = Instance.new("Frame")
- list.Name = randomString()
- list.Size = UDim2.new(1, -12, 1, -8)
+ list.Name = RandomString()
+ list.Size = UDim2.new(1, -18, 1, -8)
  list.BackgroundTransparency = 1
  list.ClipsDescendants = true
  list.ZIndex = 3
  list.Archivable = false
  list.Parent = pbody
 
+ local SB_W = 18
+
  local pvbar = Instance.new("Frame")
- pvbar.Name = randomString()
- pvbar.Size = UDim2.new(0, 24, 1, -8)
- pvbar.Position = UDim2.new(1, -24, 0, 0)
- pvbar.BackgroundTransparency = 1
+ pvbar.Name = RandomString()
+ pvbar.Size = UDim2.new(0, SB_W, 1, -8)
+ pvbar.Position = UDim2.new(1, -SB_W, 0, 0)
+ pvbar.BackgroundColor3 = Color3.fromRGB(34, 34, 38)
  pvbar.BorderSizePixel = 0
  pvbar.Active = true
  pvbar.Visible = false
@@ -5699,30 +5726,70 @@ do
  pvbar.Archivable = false
  pvbar.Parent = pbody
 
+ local function MakeSBButton(up)
+  local b = Instance.new("TextButton")
+  b.Name = RandomString()
+  b.Size = UDim2.new(0, SB_W, 0, SB_W)
+  b.Position = up and UDim2.new(0, 0, 0, 0) or UDim2.new(0, 0, 1, -SB_W)
+  b.BackgroundColor3 = Color3.fromRGB(52, 52, 57)
+  b.BorderSizePixel = 0
+  b.AutoButtonColor = false
+  b.Text = ""
+  b.ZIndex = 10
+  b.Archivable = false
+  b.Parent = pvbar
+  BorderStroke(b, 1, 24, 24, 27)
+  local c = Instance.new("ImageLabel")
+  c.Name = RandomString()
+  c.Size = UDim2.new(0, 16, 0, 16)
+  c.AnchorPoint = Vector2.new(0.5, 0.5)
+  c.Position = UDim2.new(0.5, 0, 0.5, 0)
+  c.BackgroundTransparency = 1
+  c.Image = config.IMG.Caret
+  c.Rotation = up and -90 or 90
+  c.ZIndex = 11
+  c.Archivable = false
+  c.Parent = b
+  b.MouseEnter:Connect(function() b.BackgroundColor3 = Color3.fromRGB(70, 70, 76) end)
+  b.MouseLeave:Connect(function() b.BackgroundColor3 = Color3.fromRGB(52, 52, 57) end)
+  return b
+ end
+ local pvup = MakeSBButton(true)
+ local pvdown = MakeSBButton(false)
+
+ local pvtrack = Instance.new("Frame")
+ pvtrack.Name = RandomString()
+ pvtrack.Size = UDim2.new(1, 0, 1, -SB_W * 2)
+ pvtrack.Position = UDim2.new(0, 0, 0, SB_W)
+ pvtrack.BackgroundTransparency = 1
+ pvtrack.BorderSizePixel = 0
+ pvtrack.ZIndex = 10
+ pvtrack.Archivable = false
+ pvtrack.Parent = pvbar
+
  local pvthumb = Instance.new("Frame")
- pvthumb.Name = randomString()
+ pvthumb.Name = RandomString()
  pvthumb.Size = UDim2.new(1, 0, 0.2, 0)
  pvthumb.BackgroundTransparency = 1
  pvthumb.BorderSizePixel = 0
  pvthumb.Active = false
- pvthumb.ZIndex = 10
+ pvthumb.ZIndex = 11
  pvthumb.Archivable = false
- pvthumb.Parent = pvbar
+ pvthumb.Parent = pvtrack
 
  local pvvis = Instance.new("Frame")
- pvvis.Name = randomString()
- pvvis.Size = UDim2.new(0, 8, 1, 0)
- pvvis.Position = UDim2.new(1, -10, 0, 0)
+ pvvis.Name = RandomString()
+ pvvis.Size = UDim2.new(1, -2, 1, 0)
+ pvvis.Position = UDim2.new(0, 1, 0, 0)
  pvvis.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
  pvvis.BorderSizePixel = 0
- pvvis.ZIndex = 10
+ pvvis.ZIndex = 11
  pvvis.Active = false
  pvvis.Archivable = false
  pvvis.Parent = pvthumb
- RoundCorner(pvvis, 1, 0)
 
  local divHit = Instance.new("TextButton")
- divHit.Name = randomString()
+ divHit.Name = RandomString()
  divHit.Size = UDim2.new(0, 14, 1, 0)
  divHit.BackgroundTransparency = 1
  divHit.Text = ""
@@ -5732,17 +5799,17 @@ do
  divHit.Archivable = false
  divHit.Parent = list
 
- local function closeMenu()
+ local function CloseMenu()
   if P.MenuBlocker then
    P.MenuBlocker:Destroy()
    P.MenuBlocker = nil
   end
  end
 
- local function openMenu(anchor, items, onPick, minW)
-  closeMenu()
+ local function OpenMenu(anchor, items, onPick, minW)
+  CloseMenu()
   local blocker = Instance.new("TextButton")
-  blocker.Name = randomString()
+  blocker.Name = RandomString()
   blocker.Size = UDim2.new(1, 0, 1, 0)
   blocker.BackgroundTransparency = 1
   blocker.Text = ""
@@ -5750,7 +5817,7 @@ do
   blocker.ZIndex = 70
   blocker.Archivable = false
   blocker.Parent = config.window
-  blocker.Activated:Connect(closeMenu)
+  blocker.Activated:Connect(CloseMenu)
   P.MenuBlocker = blocker
 
   local ap, as = anchor.AbsolutePosition, anchor.AbsoluteSize
@@ -5763,7 +5830,7 @@ do
   if y + h > scr.Y - 4 then y = math.max(4, ap.Y - h - 2) end
 
   local m = Instance.new("ScrollingFrame")
-  m.Name = randomString()
+  m.Name = RandomString()
   m.Size = UDim2.new(0, w, 0, h)
   m.Position = UDim2.new(0, x, 0, y)
   m.BackgroundColor3 = config.COLORS.PRIMARY
@@ -5779,7 +5846,7 @@ do
 
   for i, it in ipairs(items) do
    local b = Instance.new("TextButton")
-   b.Name = randomString()
+   b.Name = RandomString()
    b.Size = UDim2.new(1, -8, 0, ITEM_H - 2)
    b.Position = UDim2.new(0, 4, 0, 2 + (i - 1) * ITEM_H)
    b.BackgroundColor3 = config.COLORS.SECONDARY
@@ -5801,16 +5868,16 @@ do
    b.MouseEnter:Connect(function() b.BackgroundTransparency = 0 end)
    b.MouseLeave:Connect(function() b.BackgroundTransparency = 1 end)
    b.Activated:Connect(function()
-    closeMenu()
+    CloseMenu()
     onPick(it)
    end)
   end
  end
 
- local function openDialog(cfg)
-  closeMenu()
+ local function OpenDialog(cfg)
+  CloseMenu()
   local blocker = Instance.new("TextButton")
-  blocker.Name = randomString()
+  blocker.Name = RandomString()
   blocker.Size = UDim2.new(1, 0, 1, 0)
   blocker.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
   blocker.BackgroundTransparency = 0.55
@@ -5819,11 +5886,11 @@ do
   blocker.ZIndex = 50
   blocker.Archivable = false
   blocker.Parent = config.window
-  local function close() blocker:Destroy() end
-  blocker.Activated:Connect(close)
+  local function Close() blocker:Destroy() end
+  blocker.Activated:Connect(Close)
 
   local dlg = Instance.new("Frame")
-  dlg.Name = randomString()
+  dlg.Name = RandomString()
   dlg.Size = UDim2.new(0, 270, 0, cfg.withType and 158 or 114)
   dlg.AnchorPoint = Vector2.new(0.5, 0.5)
   dlg.Position = UDim2.new(0.5, 0, 0.4, 0)
@@ -5837,7 +5904,7 @@ do
   BorderStroke(dlg, 1, 80, 80, 80)
 
   local t = Instance.new("TextLabel")
-  t.Name = randomString()
+  t.Name = RandomString()
   t.Size = UDim2.new(1, -24, 0, 22)
   t.Position = UDim2.new(0, 12, 0, 6)
   t.BackgroundTransparency = 1
@@ -5851,7 +5918,7 @@ do
   t.Parent = dlg
 
   local nameBox = Instance.new("TextBox")
-  nameBox.Name = randomString()
+  nameBox.Name = RandomString()
   nameBox.Size = UDim2.new(1, -24, 0, 28)
   nameBox.Position = UDim2.new(0, 12, 0, 34)
   nameBox.BackgroundColor3 = config.COLORS.SECONDARY
@@ -5874,7 +5941,7 @@ do
   local typeName = cfg.typeName or "string"
   if cfg.withType then
    local typeBtn = Instance.new("TextButton")
-   typeBtn.Name = randomString()
+   typeBtn.Name = RandomString()
    typeBtn.Size = UDim2.new(1, -24, 0, 28)
    typeBtn.Position = UDim2.new(0, 12, 0, 68)
    typeBtn.BackgroundColor3 = config.COLORS.SECONDARY
@@ -5896,16 +5963,16 @@ do
    typeBtn.Activated:Connect(function()
     local items = {}
     for _, at in ipairs(ATTR_TYPES) do items[#items + 1] = { label = at[1] } end
-    openMenu(typeBtn, items, function(it)
+    OpenMenu(typeBtn, items, function(it)
      typeName = it.label
      typeBtn.Text = typeName
     end)
    end)
   end
 
-  local function mkBtn(text, x, w, color, fn)
+  local function MkBtn(text, x, w, color, fn)
    local b = Instance.new("TextButton")
-   b.Name = randomString()
+   b.Name = RandomString()
    b.Size = UDim2.new(w, -15, 0, 28)
    b.Position = UDim2.new(x, x == 0 and 12 or 3, 1, -38)
    b.BackgroundColor3 = color
@@ -5921,27 +5988,27 @@ do
    b.Activated:Connect(fn)
    return b
   end
-  local function save()
+  local function Save()
    local n = nameBox.Text:match("^%s*(.-)%s*$")
    if n == "" then return end
-   if cfg.validate then
-    local err = cfg.validate(n)
+   if cfg.Validate then
+    local err = cfg.Validate(n)
     if err then
      t.Text = err
      t.TextColor3 = config.COLORS.CLOSE_TEXT
      return
     end
    end
-   close()
-   cfg.onSave(n, typeName)
+   Close()
+   cfg.OnSave(n, typeName)
   end
-  mkBtn("Cancel", 0, 0.5, config.COLORS.SECONDARY, close)
-  mkBtn("Save", 0.5, 0.5, config.COLORS.SELECTED, save)
-  nameBox.FocusLost:Connect(function(enter) if enter then save() end end)
+  MkBtn("Cancel", 0, 0.5, config.COLORS.SECONDARY, Close)
+  MkBtn("Save", 0.5, 0.5, config.COLORS.SELECTED, Save)
+  nameBox.FocusLost:Connect(function(enter) if enter then Save() end end)
   task.defer(function() if nameBox.Parent then nameBox:CaptureFocus() end end)
  end
 
- local function defaultFor(typeName)
+ local function DefaultFor(typeName)
   for _, at in ipairs(ATTR_TYPES) do
    if at[1] == typeName then return at[2] end
   end
@@ -5950,10 +6017,10 @@ do
 
  local pool = {}
 
- local function makeRow()
+ local function MakeRow()
   local r = {}
   local f = Instance.new("TextButton")
-  f.Name = randomString()
+  f.Name = RandomString()
   f.Size = UDim2.new(1, 0, 0, ROW)
   f.BackgroundColor3 = config.COLORS.HEADER
   f.BackgroundTransparency = 1
@@ -5967,7 +6034,7 @@ do
   r.frame = f
 
   local line = Instance.new("Frame")
-  line.Name = randomString()
+  line.Name = RandomString()
   line.Size = UDim2.new(1, 0, 0, 1)
   line.Position = UDim2.new(0, 0, 1, -1)
   line.BackgroundColor3 = Color3.fromRGB(38, 39, 45)
@@ -5978,7 +6045,7 @@ do
   r.line = line
 
   local vline = Instance.new("Frame")
-  vline.Name = randomString()
+  vline.Name = RandomString()
   vline.Size = UDim2.new(0, 1, 1, 0)
   vline.BackgroundColor3 = Color3.fromRGB(38, 39, 45)
   vline.BorderSizePixel = 0
@@ -5988,7 +6055,7 @@ do
   r.vline = vline
 
   local arrow = Instance.new("ImageButton")
-  arrow.Name = randomString()
+  arrow.Name = RandomString()
   arrow.Size = UDim2.new(0, 16, 0, 16)
   arrow.BackgroundTransparency = 1
   arrow.Image = config.IMG.Caret
@@ -6000,21 +6067,22 @@ do
   r.arrow = arrow
 
   local name = Instance.new("TextLabel")
-  name.Name = randomString()
+  name.Name = RandomString()
   name.BackgroundTransparency = 1
   name.TextColor3 = config.COLORS.TEXT
   name.TextXAlignment = Enum.TextXAlignment.Left
   name.TextYAlignment = Enum.TextYAlignment.Center
   name.Font = Enum.Font.SourceSans
   name.TextSize = 19
-  name.TextTruncate = Enum.TextTruncate.AtEnd
+  name.TextTruncate = Enum.TextTruncate.None
+  name.ClipsDescendants = true
   name.ZIndex = 4
   name.Archivable = false
   name.Parent = f
   r.name = name
 
   local value = Instance.new("TextBox")
-  value.Name = randomString()
+  value.Name = RandomString()
   value.BackgroundColor3 = Color3.fromRGB(20, 21, 26)
   value.BackgroundTransparency = 1
   value.BorderSizePixel = 0
@@ -6037,7 +6105,7 @@ do
   r.value = value
 
   local hit = Instance.new("TextButton")
-  hit.Name = randomString()
+  hit.Name = RandomString()
   hit.BackgroundTransparency = 1
   hit.Text = ""
   hit.AutoButtonColor = false
@@ -6048,7 +6116,7 @@ do
   r.hit = hit
 
   local swatch = Instance.new("Frame")
-  swatch.Name = randomString()
+  swatch.Name = RandomString()
   swatch.Size = UDim2.new(0, 16, 0, 12)
   swatch.BorderSizePixel = 0
   swatch.Visible = false
@@ -6059,7 +6127,7 @@ do
   r.swatch = swatch
 
   local checkBtn = Instance.new("TextButton")
-  checkBtn.Name = randomString()
+  checkBtn.Name = RandomString()
   checkBtn.Size = UDim2.new(0, 20, 0, 20)
   checkBtn.BackgroundTransparency = 1
   checkBtn.Text = ""
@@ -6072,8 +6140,16 @@ do
   cbox.Position = UDim2.new(0, 2, 0, 2)
   r.checkBtn, r.setCheck = checkBtn, setCheck
 
-  local chev = MakeChevron(f, 6)
+  local chev = Instance.new("ImageLabel")
+  chev.Name = RandomString()
+  chev.Size = UDim2.new(0, 16, 0, 16)
+  chev.BackgroundTransparency = 1
+  chev.Image = config.IMG.Caret
+  chev.Rotation = 90
+  chev.ZIndex = 6
+  chev.Archivable = false
   chev.Visible = false
+  chev.Parent = f
   r.chev = chev
 
   local add = MakePlus(f, 6)
@@ -6086,11 +6162,11 @@ do
   more.Visible = false
   r.more = more
 
-  local function toggleRow()
+  local function ToggleRow()
    local d = r.data
    if not d then return end
    if d.kind == "section" then
-    P.Collapsed[d.name] = (not P.Collapsed[d.name]) or nil
+    return
    elseif d.expandable then
     P.PExp[d.expKey] = (not P.PExp[d.expKey]) or nil
    else
@@ -6098,8 +6174,8 @@ do
    end
    Explorer.RefreshProperties()
   end
-  f.Activated:Connect(toggleRow)
-  arrow.Activated:Connect(toggleRow)
+  f.Activated:Connect(ToggleRow)
+  arrow.Activated:Connect(ToggleRow)
 
   local editData
   value.Focused:Connect(function()
@@ -6113,32 +6189,32 @@ do
    local d = editData or r.data
    editData = nil
    if not d or d.kind ~= "prop" then return end
-   if not d.commit or d.readonly then value.Text = fmt(d.value) return end
-   local nv = parseValue(value.Text, d.value)
+   if not d.Commit or d.readonly then value.Text = Fmt(d.value) return end
+   local nv = ParseValue(value.Text, d.value)
    if nv == nil or (d.name == "Name" and nv == "") then
-    value.Text = fmt(d.value)
+    value.Text = Fmt(d.value)
     return
    end
-   if typeof(nv) == typeof(d.value) and fmt(nv) == fmt(d.value) then
-    value.Text = fmt(d.value)
+   if typeof(nv) == typeof(d.value) and Fmt(nv) == Fmt(d.value) then
+    value.Text = Fmt(d.value)
     return
    end
-   d.commit(nv)
+   d.Commit(nv)
   end)
 
   checkBtn.Activated:Connect(function()
    local d = r.data
-   if d and d.commit and not d.readonly then d.commit(not d.value) end
+   if d and d.Commit and not d.readonly then d.Commit(not d.value) end
   end)
 
   hit.Activated:Connect(function()
    local d = r.data
-   if not d or not d.commit or d.readonly then return end
+   if not d or not d.Commit or d.readonly then return end
    local ok, items = pcall(function() return d.value.EnumType:GetEnumItems() end)
    if not ok then return end
    local menu = {}
    for _, it in ipairs(items) do menu[#menu + 1] = { label = it.Name, value = it } end
-   openMenu(hit, menu, function(it) d.commit(it.value) end)
+   OpenMenu(hit, menu, function(it) d.Commit(it.value) end)
   end)
 
   add.Activated:Connect(function()
@@ -6146,20 +6222,20 @@ do
    local inst = P.Inst
    if not d or not inst then return end
    if d.add == "attr" then
-    openDialog({
+    OpenDialog({
      title = "New attribute", withType = true, typeName = "string",
-     validate = function(n)
+     Validate = function(n)
       if inst.Attributes[n] ~= nil then return "Attribute already exists" end
      end,
-     onSave = function(n, tn)
-      if inst.Attributes[n] == nil then inst.Attributes[n] = defaultFor(tn) end
+     OnSave = function(n, tn)
+      if inst.Attributes[n] == nil then inst.Attributes[n] = DefaultFor(tn) end
       Explorer.RefreshProperties()
      end,
     })
    elseif d.add == "tag" then
-    openDialog({
+    OpenDialog({
      title = "Add tag",
-     onSave = function(n)
+     OnSave = function(n)
       Explorer.AddTag(inst, n)
       Explorer.RefreshProperties()
      end,
@@ -6170,7 +6246,7 @@ do
   del.Activated:Connect(function()
    local d = r.data
    if d and d.kind == "tag" and P.Inst then
-    removeTag(P.Inst, d.name)
+    RemoveTag(P.Inst, d.name)
     Explorer.RefreshProperties()
    end
   end)
@@ -6180,7 +6256,7 @@ do
    local inst = P.Inst
    if not d or not inst then return end
    local old = d.name
-   openMenu(more, {
+   OpenMenu(more, {
     { label = "Rename", act = "rename" },
     { label = "Delete", act = "delete", danger = true },
    }, function(it)
@@ -6188,12 +6264,12 @@ do
      inst.Attributes[old] = nil
      Explorer.RefreshProperties()
     else
-     openDialog({
+     OpenDialog({
       title = "Rename attribute", name = old,
-      validate = function(n)
+      Validate = function(n)
        if n ~= old and inst.Attributes[n] ~= nil then return "Attribute already exists" end
       end,
-      onSave = function(n)
+      OnSave = function(n)
        if n ~= old and inst.Attributes[n] == nil then
         inst.Attributes[n] = inst.Attributes[old]
         inst.Attributes[old] = nil
@@ -6208,7 +6284,7 @@ do
   return r
  end
 
- local function bind(r, d, i, nameW, contentW)
+ local function Bind(r, d, i, nameW, contentW)
   local f = r.frame
   f.Visible = true
   f.Position = UDim2.new(0, 0, 0, (i - 1) * ROW)
@@ -6227,14 +6303,13 @@ do
   if d.kind == "section" then
    f.BackgroundTransparency = 0
    r.line.Visible = false
-   r.arrow.Visible = true
-   r.arrow.Position = UDim2.new(0, 4, 0.5, -8)
-   r.arrow.Rotation = d.collapsed and 0 or 90
    r.name.FontFace = config.FONT.GothamMedium
    r.name.TextSize = 12
    r.name.TextColor3 = config.COLORS.TEXT_BRIGHT
-   r.name.Position = UDim2.new(0, 24, 0, 0)
-   r.name.Size = UDim2.new(1, -52, 1, 0)
+   r.name.TextXAlignment = Enum.TextXAlignment.Left
+   r.name.TextTruncate = Enum.TextTruncate.AtEnd
+   r.name.Position = UDim2.new(0, 8, 0, 0)
+   r.name.Size = UDim2.new(1, -36, 1, 0)
    r.name.Text = d.name
    if d.add then
     r.add.Visible = true
@@ -6251,6 +6326,8 @@ do
   r.name.Text = d.name
 
   if d.kind == "tag" then
+   r.name.TextXAlignment = Enum.TextXAlignment.Left
+   r.name.TextTruncate = Enum.TextTruncate.AtEnd
    r.name.Position = UDim2.new(0, 24, 0, 0)
    r.name.Size = UDim2.new(0, contentW - 56, 1, 0)
    r.del.Visible = true
@@ -6264,8 +6341,20 @@ do
    r.arrow.Position = UDim2.new(0, 4 + indent, 0.5, -8)
    r.arrow.Rotation = d.expanded and 90 or 0
   end
+  local nameAvail = math.max(10, nameW - 28 - indent)
   r.name.Position = UDim2.new(0, 24 + indent, 0, 0)
-  r.name.Size = UDim2.new(0, math.max(10, nameW - 28 - indent), 1, 0)
+  r.name.Size = UDim2.new(0, nameAvail, 1, 0)
+  r.name.TextTruncate = Enum.TextTruncate.None
+  r.name.TextXAlignment = Enum.TextXAlignment.Left
+  local function TW(s) return config.SV.TextSrv:GetTextSize(s, 19, Enum.Font.SourceSans, Vector2.new(10000, 26)).X end
+  if TW(d.name) > nameAvail then
+   local full, lo, hi = d.name, 0, #d.name
+   while lo < hi do
+    local mid = math.ceil((lo + hi) / 2)
+    if TW("..." .. full:sub(#full - mid + 1)) <= nameAvail then lo = mid else hi = mid - 1 end
+   end
+   r.name.Text = "..." .. full:sub(#full - lo + 1)
+  end
   r.vline.Visible = true
   r.vline.Position = UDim2.new(0, nameW, 0, 0)
 
@@ -6279,7 +6368,7 @@ do
   vw = math.max(20, vw)
 
   local t = typeof(d.value)
-  local editable = (not d.readonly) and d.commit ~= nil
+  local editable = (not d.readonly) and d.Commit ~= nil
   if t == "boolean" then
    r.checkBtn.Visible = true
    r.checkBtn.Position = UDim2.new(0, vx + 4, 0.5, -10)
@@ -6297,7 +6386,7 @@ do
   r.value.Visible = true
   r.value.Position = UDim2.new(0, tx, 0, 2)
   r.value.Size = UDim2.new(0, math.max(10, vw - (tx - vx) - (t == "EnumItem" and editable and 16 or 0)), 1, -5)
-  r.value.Text = fmt(d.value)
+  r.value.Text = Fmt(d.value)
   if t == "EnumItem" then
    r.value.TextEditable = false
    r.value.TextColor3 = config.COLORS.TEXT_BRIGHT
@@ -6306,7 +6395,7 @@ do
     r.hit.Position = UDim2.new(0, vx, 0, 0)
     r.hit.Size = UDim2.new(0, vw, 1, 0)
     r.chev.Visible = true
-    r.chev.Position = UDim2.new(0, vx + vw - 16, 0.5, -4)
+    r.chev.Position = UDim2.new(0, vx + vw - 18, 0.5, -8)
    end
   elseif editable and EDITABLE[t] then
    r.value.TextEditable = true
@@ -6317,15 +6406,15 @@ do
   end
  end
 
- refreshList = function()
+ RefreshList = function()
   if not config.pmain.Visible then return end
   local viewH = list.AbsoluteSize.Y
   local listW = list.AbsoluteSize.X
   if viewH <= 0 then return end
-  local contentW = listW - 12
+  local contentW = listW
   local fullRows = math.floor(viewH / ROW)
   local need = math.ceil(viewH / ROW) + 1
-  while #pool < need do pool[#pool + 1] = makeRow() end
+  while #pool < need do pool[#pool + 1] = MakeRow() end
 
   local total = #P.Rows
   local maxScroll = math.max(0, total - fullRows)
@@ -6336,7 +6425,7 @@ do
    local r = pool[i]
    local d = P.Rows[P.Scroll + i]
    if d and (i - 1) * ROW < viewH then
-    bind(r, d, i, nameW, contentW)
+    Bind(r, d, i, nameW, contentW)
    else
     r.frame.Visible = false
     r.data = nil
@@ -6357,7 +6446,7 @@ do
   end
  end
 
- local function updateHeader()
+ local function UpdateHeader()
   local inst = P.Inst
   if not inst then
    ptitle.Text = "Properties"
@@ -6371,9 +6460,9 @@ do
  end
 
  function Explorer.RefreshProperties()
-  rebuild()
-  updateHeader()
-  refreshList()
+  Rebuild()
+  UpdateHeader()
+  RefreshList()
  end
 
  Explorer.PropsOnSelect = function()
@@ -6381,7 +6470,7 @@ do
   Explorer.RefreshProperties()
  end
 
- list:GetPropertyChangedSignal("AbsoluteSize"):Connect(refreshList)
+ list:GetPropertyChangedSignal("AbsoluteSize"):Connect(RefreshList)
 
  filterBox:GetPropertyChangedSignal("Text"):Connect(function()
   P.Filter = filterBox.Text:match("^%s*(.-)%s*$"):lower()
@@ -6390,39 +6479,106 @@ do
  end)
 
  do
-  local function maxScroll()
+  local function MaxScroll()
    return math.max(0, #P.Rows - math.floor(list.AbsoluteSize.Y / ROW))
   end
   local dragging, startPos, startScroll
-  pvthumb.Active = true
-  config.WidenHit(pvthumb, false).InputBegan:Connect(function(inp)
-   if not config.Fresh(inp) then return end
-   if not isPress(inp) then return end
-   if maxScroll() <= 0 then return end
+  local function TopHit(target, extraLeft)
+   local hit = Instance.new("TextButton")
+   hit.Name = RandomString()
+   hit.Text = ""
+   hit.AutoButtonColor = false
+   hit.BackgroundTransparency = 1
+   hit.BorderSizePixel = 0
+   hit.Active = true
+   hit.Visible = false
+   hit.Archivable = false
+   hit.Parent = config.window
+   local conn
+   conn = config.SV.RunSrv.Heartbeat:Connect(function()
+    if not target:IsDescendantOf(config.window) then
+     conn:Disconnect()
+     hit:Destroy()
+     return
+    end
+    local top, shown = target, true
+    while top.Parent and top.Parent ~= config.window do
+     if top:IsA("GuiObject") and not top.Visible then shown = false end
+     top = top.Parent
+    end
+    if top:IsA("GuiObject") and not top.Visible then shown = false end
+    local as = target.AbsoluteSize
+    if not shown or top.Parent ~= config.window or as.X <= 0 or as.Y <= 0 then
+     hit.Visible = false
+     return
+    end
+    local ap = target.AbsolutePosition - config.window.AbsolutePosition
+    hit.Position = UDim2.fromOffset(math.floor(ap.X - extraLeft), math.floor(ap.Y))
+    hit.Size = UDim2.fromOffset(math.ceil(as.X + extraLeft), math.ceil(as.Y))
+    hit.ZIndex = top:IsA("GuiObject") and top.ZIndex + 1 or 2
+    hit.Visible = true
+   end)
+   return hit
+  end
+  local pvhit = TopHit(pvthumb, 14)
+  local function BeginDrag(inp)
+   if not IsPress(inp) then return end
+   if MaxScroll() <= 0 then return end
    dragging = true
    startPos = inp.Position
    startScroll = P.Scroll
    pvvis.BackgroundColor3 = Color3.fromRGB(140, 140, 140)
-  end)
-  pvbar.MouseEnter:Connect(function() if not dragging then pvvis.BackgroundColor3 = Color3.fromRGB(120, 120, 120) end end)
-  pvbar.MouseLeave:Connect(function() if not dragging then pvvis.BackgroundColor3 = Color3.fromRGB(90, 90, 90) end end)
+  end
+  pvhit.InputBegan:Connect(BeginDrag)
+  pvhit.MouseEnter:Connect(function() if not dragging then pvvis.BackgroundColor3 = Color3.fromRGB(120, 120, 120) end end)
+  pvhit.MouseLeave:Connect(function() if not dragging then pvvis.BackgroundColor3 = Color3.fromRGB(90, 90, 90) end end)
   config.SV.UserInput.InputChanged:Connect(function(inp)
    if not dragging then return end
    if not config.Held(inp) then dragging = false pvvis.BackgroundColor3 = Color3.fromRGB(90, 90, 90) return end
    if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
-   local m = maxScroll()
-   local trackH = pvbar.AbsoluteSize.Y
+   local m = MaxScroll()
+   local trackH = pvtrack.AbsoluteSize.Y
    local usable = trackH * (1 - pvthumb.Size.Y.Scale)
    if usable > 0 and m > 0 then
     P.Scroll = math.floor(startScroll + (inp.Position.Y - startPos.Y) / usable * m + 0.5)
-    refreshList()
+    RefreshList()
    end
   end)
   config.SV.UserInput.InputEnded:Connect(function(inp)
-   if isPress(inp) and dragging then
+   if IsPress(inp) and dragging then
     dragging = false
     pvvis.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
    end
+  end)
+
+  local holdToken = 0
+  local function Nudge(dir)
+   P.Scroll = math.clamp(P.Scroll + dir, 0, MaxScroll())
+   RefreshList()
+  end
+  local function HookArrow(btn, dir)
+   local hit = TopHit(btn, 0)
+   hit.MouseEnter:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(70, 70, 76) end)
+   hit.MouseLeave:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(52, 52, 57) end)
+   hit.InputBegan:Connect(function(inp)
+    if not IsPress(inp) then return end
+    if not config.Fresh(inp) then return end
+    holdToken += 1
+    local my = holdToken
+    Nudge(dir)
+    task.spawn(function()
+     task.wait(0.4)
+     while holdToken == my do
+      Nudge(dir)
+      task.wait(0.05)
+     end
+    end)
+   end)
+  end
+  HookArrow(pvup, -1)
+  HookArrow(pvdown, 1)
+  config.SV.UserInput.InputEnded:Connect(function(inp)
+   if IsPress(inp) then holdToken += 1 end
   end)
  end
 
@@ -6430,7 +6586,7 @@ do
   local dragging, startX, startDiv
   divHit.InputBegan:Connect(function(inp)
    if not config.Fresh(inp) then return end
-   if not isPress(inp) then return end
+   if not IsPress(inp) then return end
    dragging = true
    startX = inp.Position.X
    startDiv = P.Divider
@@ -6439,12 +6595,12 @@ do
    if not dragging then return end
    if not config.Held(inp) then dragging = false return end
    if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
-   local w = math.max(1, list.AbsoluteSize.X - 12)
+   local w = math.max(1, list.AbsoluteSize.X)
    P.Divider = math.clamp(startDiv + (inp.Position.X - startX) / w, 0.2, 0.75)
-   refreshList()
+   RefreshList()
   end)
   config.SV.UserInput.InputEnded:Connect(function(inp)
-   if isPress(inp) then dragging = false end
+   if IsPress(inp) then dragging = false end
   end)
  end
 
@@ -6457,16 +6613,16 @@ do
   local ap, as = config.pmain.AbsolutePosition, config.pmain.AbsoluteSize
   if mp.X < ap.X or mp.X > ap.X + as.X or mp.Y < ap.Y or mp.Y > ap.Y + as.Y then return end
   P.Scroll = P.Scroll - delta * 3
-  refreshList()
+  RefreshList()
  end)
 
- local function dockProps(side, order)
+ local function DockProps(side, order)
   config.PDock.Side = side
   if order then config.PDock.Order = order end
-  config.layoutDocks()
+  config.LayoutDocks()
  end
 
- local function undockProps()
+ local function UndockProps()
   if not config.PDock.Side then return end
   local px, py = config.pmain.Position.X.Offset, config.pmain.Position.Y.Offset
   local w = config.pmain.Size.X.Offset
@@ -6475,72 +6631,72 @@ do
   config.pmain.Position = UDim2.new(0, px, 0, py)
   config.pmain.Size = UDim2.new(0, w, 0, P.FloatH)
   config.pdocksplitter.Visible = false
-  config.layoutDocks()
+  config.LayoutDocks()
  end
 
  function Explorer.DockProperties(side, order)
-  if side == nil then undockProps() else dockProps(side, order) end
+  if side == nil then UndockProps() else DockProps(side, order) end
  end
 
  ppin.Activated:Connect(function()
-  if config.PDock.Side then undockProps() else dockProps(nearestSide(config.pmain)) end
+  if config.PDock.Side then UndockProps() else DockProps(NearestSide(config.pmain)) end
  end)
 
  MakeDraggable(config.pmain, hdr, {
-  blockCheck = function() return Explorer.PanelResizing[config.pmain] end,
+  BlockCheck = function() return Explorer.PanelResizing[config.pmain] end,
   threshold = 4,
-  onBegin = function() if config.PDock.Side then undockProps() end end,
-  onDrag = function(cursor)
-   local side, zone = resolveDrop(config.pmain, config.main, config.DockSide, config.main.Visible, cursor)
-   showHint(config.pmain, config.main, side, zone)
+  OnBegin = function() if config.PDock.Side then UndockProps() end end,
+  OnDrag = function(cursor)
+   local side, zone = ResolveDrop(config.pmain, config.main, config.DockSide, config.main.Visible, cursor)
+   ShowHint(config.pmain, config.main, side, zone)
   end,
-  onEnd = function(didDrag, cursor)
+  OnEnd = function(didDrag, cursor)
    config.dockHint.Visible = false
    if not didDrag then return end
-   local side, zone = resolveDrop(config.pmain, config.main, config.DockSide, config.main.Visible, cursor)
+   local side, zone = ResolveDrop(config.pmain, config.main, config.DockSide, config.main.Visible, cursor)
    if not side then return end
    local order
    if zone then order = (zone == "top") and "above" or "below" end
-   dockProps(side, order)
+   DockProps(side, order)
   end,
  })
 
- local function onPropsResize(newSize)
+ local function OnPropsResize(newSize)
   if config.PDock.Side then
-   if isStacked() then
+   if IsStacked() then
     config.main.Size = UDim2.new(0, newSize.X.Offset, 0, config.main.Size.Y.Offset)
     config.NormalSize = UDim2.new(0, newSize.X.Offset, 0, config.NormalSize.Y.Offset)
    end
-   config.layoutDocks()
+   config.LayoutDocks()
   else
    P.FloatH = newSize.Y.Offset
   end
  end
 
  local EDGE = config.EDGE
- local function notRight() return config.PDock.Side == "right" end
- local function notLeft() return config.PDock.Side == "left" end
- local function whenDocked() return config.PDock.Side ~= nil end
- MakeResizeHandler(220, 160, "right", 1, 0, 3-EDGE*2, EDGE, 0, 1, EDGE * 2, -EDGE * 2, 8, config.pmain, notRight, onPropsResize)
- MakeResizeHandler(220, 160, "left", 0, 0, -3, EDGE, 0, 1, EDGE * 2, -EDGE * 2, 8, config.pmain, notLeft, onPropsResize)
- MakeResizeHandler(220, 160, "bottom", 0, 1, EDGE, 0, 1, 0, -EDGE * 2, EDGE * 2, 8, config.pmain, whenDocked, onPropsResize)
- MakeResizeHandler(220, 160, "top", 0, 0, EDGE, -EDGE * 2, 1, 0, -EDGE * 2, EDGE * 2, 8, config.pmain, whenDocked, onPropsResize)
- MakeResizeHandler(220, 160, "top_left", 0, 0, -3, -EDGE * 2, 0, 0, EDGE * 2, EDGE * 2, 9, config.pmain, whenDocked, onPropsResize)
- MakeResizeHandler(220, 160, "top_right", 1, 0, 3-EDGE*2, -EDGE * 2, 0, 0, EDGE * 2, EDGE * 2, 9, config.pmain, whenDocked, onPropsResize)
- MakeResizeHandler(220, 160, "bottom_left", 0, 1, -3, 0, 0, 0, EDGE * 2, EDGE * 2, 9, config.pmain, whenDocked, onPropsResize)
- MakeResizeHandler(220, 160, "bottom_right", 1, 1, 3-EDGE*2, 0, 0, 0, EDGE * 2, EDGE * 2, 9, config.pmain, whenDocked, onPropsResize)
+ local function NotRight() return config.PDock.Side == "right" end
+ local function NotLeft() return config.PDock.Side == "left" end
+ local function WhenDocked() return config.PDock.Side ~= nil end
+ MakeResizeHandler(220, 160, "right", 1, 0, 3-EDGE*2, EDGE, 0, 1, EDGE * 2, -EDGE * 2, 8, config.pmain, NotRight, OnPropsResize)
+ MakeResizeHandler(220, 160, "left", 0, 0, -3, EDGE, 0, 1, EDGE * 2, -EDGE * 2, 8, config.pmain, NotLeft, OnPropsResize)
+ MakeResizeHandler(220, 160, "bottom", 0, 1, EDGE, 0, 1, 0, -EDGE * 2, EDGE * 2, 8, config.pmain, WhenDocked, OnPropsResize)
+ MakeResizeHandler(220, 160, "top", 0, 0, EDGE, -EDGE * 2, 1, 0, -EDGE * 2, EDGE * 2, 8, config.pmain, WhenDocked, OnPropsResize)
+ MakeResizeHandler(220, 160, "top_left", 0, 0, -3, -EDGE * 2, 0, 0, EDGE * 2, EDGE * 2, 9, config.pmain, WhenDocked, OnPropsResize)
+ MakeResizeHandler(220, 160, "top_right", 1, 0, 3-EDGE*2, -EDGE * 2, 0, 0, EDGE * 2, EDGE * 2, 9, config.pmain, WhenDocked, OnPropsResize)
+ MakeResizeHandler(220, 160, "bottom_left", 0, 1, -3, 0, 0, 0, EDGE * 2, EDGE * 2, 9, config.pmain, WhenDocked, OnPropsResize)
+ MakeResizeHandler(220, 160, "bottom_right", 1, 1, 3-EDGE*2, 0, 0, 0, EDGE * 2, EDGE * 2, 9, config.pmain, WhenDocked, OnPropsResize)
 
  function Explorer.OpenProperties()
   if config.pmain.Visible then return end
   config.pmain.Visible = true
-  config.layoutDocks()
+  config.LayoutDocks()
   Explorer.RefreshProperties()
  end
  function Explorer.CloseProperties()
   if not config.pmain.Visible then return end
-  closeMenu()
+  CloseMenu()
   config.pmain.Visible = false
-  config.layoutDocks()
+  config.LayoutDocks()
  end
  function Explorer.ToggleProperties()
   if config.pmain.Visible then Explorer.CloseProperties() else Explorer.OpenProperties() end
@@ -6580,7 +6736,7 @@ do
  local viewerPositioned = false
 
  local viewerPanel = Instance.new("Frame")
- viewerPanel.Name = randomString()
+ viewerPanel.Name = RandomString()
  viewerPanel.Size = UDim2.new(0, 300, 0, 260)
  viewerPanel.Position = UDim2.new(0, 60, 0, 60)
  viewerPanel.BackgroundColor3 = config.COLORS.PRIMARY
@@ -6594,7 +6750,7 @@ do
  RegisterWindow(viewerPanel)
 
  local vhdr = Instance.new("Frame")
- vhdr.Name = randomString()
+ vhdr.Name = RandomString()
  vhdr.Size = UDim2.new(1, 0, 0, 28)
  vhdr.BackgroundColor3 = config.COLORS.HEADER
  vhdr.BorderSizePixel = 0
@@ -6604,7 +6760,7 @@ do
  vhdr.Parent = viewerPanel
 
  local vAccent = Instance.new("Frame")
- vAccent.Name = randomString()
+ vAccent.Name = RandomString()
  vAccent.Size = UDim2.new(1, 0, 0, 1.5)
  vAccent.Position = UDim2.new(0, 0, 1, -1.5)
  vAccent.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -6614,7 +6770,7 @@ do
  vAccent.Parent = vhdr
 
  local vtitle = Instance.new("TextLabel")
- vtitle.Name = randomString()
+ vtitle.Name = RandomString()
  vtitle.Size = UDim2.new(1, -100, 1, 0)
  vtitle.Position = UDim2.new(0, 35, 0, 0)
  vtitle.BackgroundTransparency = 1
@@ -6629,7 +6785,7 @@ do
  vtitle.Parent = vhdr
 
  local vclose = Instance.new("TextButton")
- vclose.Name = randomString()
+ vclose.Name = RandomString()
  vclose.Size = UDim2.new(0, 28, 0, 28)
  vclose.Position = UDim2.new(1, -30, 0, 0)
  vclose.BackgroundTransparency = 1
@@ -6642,7 +6798,7 @@ do
  MakeCloseIcon(vclose, 8, 4, Color3.fromRGB(210, 210, 210))
 
  local vrotate = Instance.new("ImageButton")
- vrotate.Name = randomString()
+ vrotate.Name = RandomString()
  vrotate.Size = UDim2.new(0, 22, 0, 22)
  vrotate.Position = UDim2.new(1, -58, 0, 3)
  vrotate.BackgroundColor3 = Color3.fromRGB(40, 80, 60)
@@ -6659,7 +6815,7 @@ do
  Explorer.ApplyImage(vrotate, "Rotation")
 
  local vbody = Instance.new("Frame")
- vbody.Name = randomString()
+ vbody.Name = RandomString()
  vbody.Size = UDim2.new(1, 0, 1, -28)
  vbody.Position = UDim2.new(0, 0, 0, 28)
  vbody.BackgroundTransparency = 1
@@ -6668,7 +6824,7 @@ do
  vbody.Parent = viewerPanel
 
  local viewport = Instance.new("ViewportFrame")
- viewport.Name = randomString()
+ viewport.Name = RandomString()
  viewport.Size = UDim2.new(1, -16, 1, -44)
  viewport.Position = UDim2.new(0, 8, 0, 8)
  viewport.BackgroundColor3 = Color3.fromRGB(14, 14, 14)
@@ -6680,7 +6836,7 @@ do
  RoundCorner(viewport, 0, 6)
 
  local vpath = Instance.new("TextLabel")
- vpath.Name = randomString()
+ vpath.Name = RandomString()
  vpath.Size = UDim2.new(1, -16, 0, 18)
  vpath.Position = UDim2.new(0, 8, 1, -26)
  vpath.BackgroundTransparency = 1
@@ -6730,7 +6886,7 @@ do
   local scr = config.window.AbsoluteSize
   local w, h = viewerPanel.Size.X.Offset, viewerPanel.Size.Y.Offset
   local leftBound, rightBound = 0, scr.X
-  local function claim(gui, side)
+  local function Claim(gui, side)
    if not gui or not gui.Visible then return end
    if side == "left" then
     leftBound = math.max(leftBound, gui.AbsolutePosition.X + gui.AbsoluteSize.X)
@@ -6738,8 +6894,8 @@ do
     rightBound = math.min(rightBound, gui.AbsolutePosition.X)
    end
   end
-  claim(config.main, config.DockSide)
-  claim(config.pmain, config.PDock.Side)
+  Claim(config.main, config.DockSide)
+  Claim(config.pmain, config.PDock.Side)
   local availableW = rightBound - leftBound
   local x
   if availableW >= w + 20 then
@@ -6748,9 +6904,9 @@ do
    x = scr.X - w - 40
   end
   x = math.clamp(x, 4, math.max(4, scr.X - w - 4))
-  local y = math.clamp(scr.Y / 2 - h / 2, topInset() + 4, math.max(topInset() + 4, scr.Y - h - 4))
+  local y = math.clamp(scr.Y / 2 - h / 2, TopInset() + 4, math.max(TopInset() + 4, scr.Y - h - 4))
   viewerPanel.Position = UDim2.new(0, x, 0, y)
-  clampPanelTop(viewerPanel)
+  ClampPanelTop(viewerPanel)
  end
 
  local function ViewModel(inst)
@@ -6961,15 +7117,15 @@ function Explorer.DumpFunctions(scr)
 
 	local MAX_DEPTH = 100
 
-	local function getSource(f)
+	local function GetSource(f)
 		local ok, src = pcall(debug.info, f, "s")
 		return ok and src or nil
 	end
 
 	local hasNativeIsClosure = iscclosure ~= nil
-	local function islclosure(f, cachedSrc)
+	local function IsLClosure(f, cachedSrc)
 		if hasNativeIsClosure then return not iscclosure(f) end
-		local src = cachedSrc or getSource(f)
+		local src = cachedSrc or GetSource(f)
 		return src ~= nil and src ~= "[C]"
 	end
 
@@ -6988,7 +7144,7 @@ function Explorer.DumpFunctions(scr)
 	local getconsts = debug.getconstants or getconstants
 	local getprotos = debug.getprotos or getprotos
 
-	local function safeStr(s)
+	local function SafeStr(s)
 		if type(s) ~= "string" then return tostring(s) end
 		local clean = {}
 		for i = 1, #s do
@@ -7005,13 +7161,13 @@ function Explorer.DumpFunctions(scr)
 		table.insert(lines, string.rep("  ", indent or 0) .. str)
 	end
 
-	local function getfunctiondetails(func)
+	local function GetFunctionDetails(func)
 		local ok, name, source, numParams, isVarArg, line = pcall(debug.info, func, "nsal")
 		if not ok then return "Unknown", "Unknown", 0, false, -1 end
 		return (name and name ~= "" and name or "Anonymous"), source or "Unknown", numParams or 0, isVarArg or false, line or -1
 	end
 
-	local function dump_value(val, indent, index, visited, depth)
+	local function DumpValue(val, indent, index, visited, depth)
 		visited = visited or {}
 		depth = depth or 0
 		if depth > MAX_DEPTH then
@@ -7020,7 +7176,7 @@ function Explorer.DumpFunctions(scr)
 		end
 		local t = typeof(val)
 		if t == "function" then
-			local name = islclosure(val) and getfunctiondetails(val) or "[C Function]"
+			local name = IsLClosure(val) and GetFunctionDetails(val) or "[C Function]"
 			AddLine(tostring(index) .. " [function] = " .. tostring(name), indent)
 		elseif t == "table" then
 			if visited[val] then
@@ -7030,7 +7186,7 @@ function Explorer.DumpFunctions(scr)
 				AddLine(tostring(index) .. " [table]:", indent)
 				local ok = pcall(function()
 					for k, v in next, val do
-						dump_value(v, indent + 1, k, visited, depth + 1)
+						DumpValue(v, indent + 1, k, visited, depth + 1)
 					end
 				end)
 				if not ok then
@@ -7041,16 +7197,16 @@ function Explorer.DumpFunctions(scr)
 			local s = ""
 			local ok = pcall(function() s = tostring(val) end)
 			if not ok then s = "<error tostring>" end
-			pcall(function() s = safeStr(s) end)
+			pcall(function() s = SafeStr(s) end)
 			AddLine(tostring(index) .. " [" .. t .. "] = " .. s, indent)
 		end
 	end
 
-	local function dump_function(func, indent, visitedFuncs)
+	local function DumpFunction(func, indent, visitedFuncs)
 		visitedFuncs = visitedFuncs or {}
-		if visitedFuncs[func] or not islclosure(func) then return end
+		if visitedFuncs[func] or not IsLClosure(func) then return end
 		visitedFuncs[func] = true
-		local name, source, params, vararg, line = getfunctiondetails(func)
+		local name, source, params, vararg, line = GetFunctionDetails(func)
 		AddLine("", 0)
 		AddLine(string.format("Function: %s | Source: %s | Line: %d | Params: %d%s", name, source, line, params, vararg and "+" or ""), indent)
 
@@ -7059,7 +7215,7 @@ function Explorer.DumpFunctions(scr)
 			if ok and typeof(ups) == "table" and next(ups) ~= nil then
 				AddLine("Upvalues:", indent)
 				local visitedValues = {}
-				for k, v in ups do dump_value(v, indent + 1, k, visitedValues, 0) end
+				for k, v in ups do DumpValue(v, indent + 1, k, visitedValues, 0) end
 			end
 		end
 		if getconsts then
@@ -7067,7 +7223,7 @@ function Explorer.DumpFunctions(scr)
 			if ok and typeof(consts) == "table" and next(consts) ~= nil then
 				AddLine("Constants:", indent)
 				local visitedValues = {}
-				for i, c in consts do dump_value(c, indent + 1, i, visitedValues, 0) end
+				for i, c in consts do DumpValue(c, indent + 1, i, visitedValues, 0) end
 			end
 		end
 		if getprotos then
@@ -7075,17 +7231,17 @@ function Explorer.DumpFunctions(scr)
 			if ok and typeof(protos) == "table" and next(protos) ~= nil then
 				AddLine("Prototypes:", indent)
 				for _, proto in protos do
-					if typeof(proto) == "function" and islclosure(proto) then
-						dump_function(proto, indent + 1, visitedFuncs)
+					if typeof(proto) == "function" and IsLClosure(proto) then
+						DumpFunction(proto, indent + 1, visitedFuncs)
 					end
 				end
 			end
 		end
 	end
 
-	local function isScriptMatch(func, cachedSrc)
+	local function IsScriptMatch(func, cachedSrc)
 		if not scr then return true end
-		local src = cachedSrc or getSource(func)
+		local src = cachedSrc or GetSource(func)
 		if src and src ~= "[C]" then
 			if typeof(scr) == "Instance" then
 				local sName = scr:GetFullName()
@@ -7107,9 +7263,9 @@ function Explorer.DumpFunctions(scr)
 
 		for _, obj in ipairs(lookin) do
 			if typeof(obj) == "function" then
-				local src = hasNativeIsClosure and nil or getSource(obj)
-				if islclosure(obj, src) and isScriptMatch(obj, src) then
-					dump_function(obj, 1)
+				local src = hasNativeIsClosure and nil or GetSource(obj)
+				if IsLClosure(obj, src) and IsScriptMatch(obj, src) then
+					DumpFunction(obj, 1)
 					found = found + 1
 				end
 			end
@@ -7141,13 +7297,26 @@ Explorer.HighlighterUrl = "https://raw.githubusercontent.com/lqdxt/Scripts/refs/
 
 config.SCRIPT_CLASSES = { Script = true, LocalScript = true, ModuleScript = true }
 config.srcOpen = false
-config.reloadSource = nil
+config.ReloadSource = nil
 
 function Explorer.IsScript(inst)
- return inst ~= nil and config.SCRIPT_CLASSES[inst.ClassName] == true
+ if inst == nil then return false end
+ local ok, cn = pcall(function() return inst.ClassName end)
+ return ok and config.SCRIPT_CLASSES[cn] == true
 end
 
 function Explorer.IsSourceOpen() return config.srcOpen end
+
+local function GetRealRef(inst)
+ if typeof(inst) == "Instance" then return inst end
+ if type(inst) ~= "table" then return nil end
+ local r = rawget(inst, "Real")
+ if r == nil then
+  local md = rawget(inst, "Metadata")
+  if type(md) == "table" then r = md.Real end
+ end
+ return r
+end
 
 function Explorer.SetSource(target, source)
  if type(target) == "function" then
@@ -7155,32 +7324,35 @@ function Explorer.SetSource(target, source)
  elseif target ~= nil then
   Explorer.Sources[target] = source
  end
- if config.reloadSource then config.reloadSource(target) end
+ if config.ReloadSource then config.ReloadSource(target) end
 end
 
 function Explorer.GetSource(inst)
+ local realRef = GetRealRef(inst)
  local s = Explorer.Sources[inst]
+ if s == nil and realRef and realRef ~= inst then s = Explorer.Sources[realRef] end
  if type(s) == "function" then
   local ok, r = pcall(s, inst)
   s = ok and r or nil
  end
  if s == nil then
   local ok, r = pcall(function() return inst.Source end)
-  if ok then s = r end
+  if ok and type(r) == "string" then s = r end
  end
- local realRef = inst.Real or inst.Metadata.Real
- if s == nil and realRef then
-  local real = realRef
-  local ok, r = pcall(function() return real.Source end)
+ if s == nil and realRef and realRef ~= inst then
+  local ok, r = pcall(function() return realRef.Source end)
   if ok and type(r) == "string" and r ~= "" then s = r end
  end
  if s == nil and Explorer.SourceProvider then
   local ok, r = pcall(Explorer.SourceProvider, inst)
   if ok then s = r end
  end
- if s == nil and realRef and decompile then
-  local ok, r = pcall(decompile, realRef)
-  if ok and type(r) == "string" then s = r end
+ if s == nil and decompile then
+  local target = realRef or (typeof(inst) == "Instance" and inst or nil)
+  if target then
+   local ok, r = pcall(decompile, target)
+   if ok and type(r) == "string" then s = r end
+  end
  end
  if s ~= nil and type(s) ~= "string" then s = tostring(s) end
  return s
@@ -7189,14 +7361,14 @@ end
 do
  local LH, TS, CODE_FONT = 18, 14, Enum.Font.Code
  local CODE_FACE = nil
- local function applyCodeFont(obj)
+ local function ApplyCodeFont(obj)
   if CODE_FACE then
    obj.FontFace = CODE_FACE
   else
    obj.Font = CODE_FONT
   end
  end
- local function measureCharW()
+ local function MeasureCharW()
   local w
   if CODE_FACE then
    local ok, res = pcall(function()
@@ -7219,7 +7391,7 @@ do
  end
  local TEXT_PLAIN = Color3.fromRGB(204, 204, 204)
 
- local function esc(s)
+ local function Esc(s)
   if not s:find("[&<>]") then return s end
   return (s:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"))
  end
@@ -7229,14 +7401,11 @@ do
   return v
  end})
 
- local kwOpenTag = setmetatable({}, {__index = function(t, c)
-  local v = '<font color="' .. c .. '"><stroke color="' .. c .. '" thickness="0.6" transparency="0.35">'
-  t[c] = v
-  return v
- end})
- local KW_CLOSE = "</stroke></font>"
+ local function BoldWrap(c, text)
+  return "<b>" .. openTag[c] .. text .. "</font></b>"
+ end
 
- local function highlightWithModule(H, line, state)
+ local function Highlight(H, line, state)
   local cc = state ~= nil and state.kind == "comment"
   local cs = state ~= nil and state.kind == "string"
   local lvl = state and state.level or 0
@@ -7245,9 +7414,11 @@ do
   local out = {}
   for k, tok in ipairs(tokens) do
    local c = tok.type ~= "plain" and colors[tok.type] or nil
-   if c and tok.type == "keyword" then out[k] = kwOpenTag[c] .. esc(tok.value) .. KW_CLOSE
-   elseif c then out[k] = openTag[c] .. esc(tok.value) .. "</font>"
-   else out[k] = esc(tok.value) end
+   if c then
+    out[k] = (tok.type == "keyword") and BoldWrap(c, Esc(tok.value)) or (openTag[c] .. Esc(tok.value) .. "</font>")
+   else
+    out[k] = Esc(tok.value)
+   end
   end
   local ns = nil
   if ec then ns = { kind = "comment", level = cml }
@@ -7255,87 +7426,17 @@ do
   return table.concat(out), ns
  end
 
- local C_KEYWORD, C_BUILTIN = "#f86d7c", "#84d6f7"
- local C_STRING, C_NUMBER, C_COMMENT = "#adf195", "#ffc600", "#6a6a6a"
- local KEYWORDS, BUILTINS = {}, {}
- for w in ("and break continue do else elseif end false for function goto if in local nil not or repeat return then true until while"):gmatch("%S+") do KEYWORDS[w] = true end
- for w in ("print warn error assert pcall xpcall require game workspace script typeof type tostring tonumber ipairs pairs next select unpack setmetatable getmetatable rawget rawset rawequal rawlen task math string table os coroutine buffer bit32 utf8 Instance Vector2 Vector3 CFrame Color3 BrickColor UDim UDim2 Enum Random Ray Rect TweenInfo tick time wait spawn delay shared _G _VERSION"):gmatch("%S+") do BUILTINS[w] = true end
-
- local function highlightBuiltin(line, state)
-  local out, n, i = {}, #line, 1
-  local function push(text, c)
-   if text == "" then return end
-   if c == C_KEYWORD then out[#out + 1] = kwOpenTag[c] .. esc(text) .. KW_CLOSE
-   elseif c then out[#out + 1] = openTag[c] .. esc(text) .. "</font>"
-   else out[#out + 1] = esc(text) end
-  end
-  if state then
-   local close = "]" .. string.rep("=", state.level) .. "]"
-   local _, e = line:find(close, 1, true)
-   local c = state.kind == "comment" and C_COMMENT or C_STRING
-   if e then push(line:sub(1, e), c) i = e + 1 state = nil
-   else push(line, c) return table.concat(out), state end
-  end
-  while i <= n do
-   local ch = line:sub(i, i)
-   if ch == "-" and line:sub(i + 1, i + 1) == "-" then
-    local lvl = line:match("^%-%-%[(=*)%[", i)
-    if lvl then
-     local _, e = line:find("]" .. lvl .. "]", i, true)
-     if e then push(line:sub(i, e), C_COMMENT) i = e + 1
-     else push(line:sub(i), C_COMMENT) return table.concat(out), { kind = "comment", level = #lvl } end
-    else
-     push(line:sub(i), C_COMMENT) i = n + 1
-    end
-   elseif ch == '"' or ch == "'" or ch == "`" then
-    local j = i + 1
-    while j <= n do
-     local c2 = line:sub(j, j)
-     if c2 == "\\" then j += 2
-     elseif c2 == ch then break
-     else j += 1 end
-    end
-    push(line:sub(i, math.min(j, n)), C_STRING) i = j + 1
-   elseif ch == "[" and line:match("^%[=*%[", i) then
-    local lvl = line:match("^%[(=*)%[", i)
-    local _, e = line:find("]" .. lvl .. "]", i, true)
-    if e then push(line:sub(i, e), C_STRING) i = e + 1
-    else push(line:sub(i), C_STRING) return table.concat(out), { kind = "string", level = #lvl } end
-   elseif ch:match("%d") or (ch == "." and line:sub(i + 1, i + 1):match("%d")) then
-    local num = line:match("^0[xX][%x_]+", i) or line:match("^0[bB][01_]+", i)
-     or line:match("^%d[%d_]*%.?%d*[eE][%+%-]?%d+", i) or line:match("^%d[%d_]*%.?%d*", i)
-     or line:match("^%.%d+", i) or ch
-    push(num, C_NUMBER) i += #num
-   elseif ch:match("[%a_]") then
-    local word = line:match("^[%w_]+", i)
-    local prev = i > 1 and line:sub(i - 1, i - 1) or ""
-    local c = nil
-    if prev ~= "." and prev ~= ":" then
-     c = KEYWORDS[word] and C_KEYWORD or (BUILTINS[word] and C_BUILTIN) or nil
-    end
-    push(word, c) i += #word
-   elseif ch:match("%s") then
-    local ws = line:match("^%s+", i)
-    push(ws) i += #ws
-   else
-    local run = line:match("^[^%w_%s\"'`%[%-%.]+", i)
-    if run then push(run) i += #run else push(ch) i += 1 end
-   end
-  end
-  return table.concat(out), nil
- end
-
- local function highlightLine(line, state)
+ local function HighlightLine(line, state)
   local H = Explorer.Highlighter
   if H then
-   local ok, r, ns = pcall(highlightWithModule, H, line, state)
+   local ok, r, ns = pcall(Highlight, H, line, state)
    if ok then return r, ns end
   end
-  return highlightBuiltin(line, state)
+  return Esc(line), nil
  end
 
  local panel = Instance.new("Frame")
- panel.Name = randomString()
+ panel.Name = RandomString()
  panel.BackgroundColor3 = config.COLORS.PRIMARY
  panel.BackgroundTransparency = config.NT
  panel.BorderSizePixel = 0
@@ -7347,7 +7448,7 @@ do
  panel.Parent = config.window
 
  local hdr = Instance.new("Frame")
- hdr.Name = randomString()
+ hdr.Name = RandomString()
  hdr.Size = UDim2.new(1, 0, 0, 28)
  hdr.BackgroundColor3 = config.COLORS.HEADER
  hdr.BorderSizePixel = 0
@@ -7356,7 +7457,7 @@ do
  hdr.Parent = panel
 
  local hicon = Instance.new("ImageLabel")
- hicon.Name = randomString()
+ hicon.Name = RandomString()
  hicon.Size = UDim2.new(0, 18, 0, 18)
  hicon.Position = UDim2.new(0, 8, 0.5, -9)
  hicon.BackgroundTransparency = 1
@@ -7365,7 +7466,7 @@ do
  hicon.Parent = hdr
 
  local htitle = Instance.new("TextLabel")
- htitle.Name = randomString()
+ htitle.Name = RandomString()
  htitle.Size = UDim2.new(1, -236, 1, 0)
  htitle.Position = UDim2.new(0, 32, 0, 0)
  htitle.BackgroundTransparency = 1
@@ -7381,7 +7482,7 @@ do
  htitle.Parent = hdr
 
  local hclose = Instance.new("TextButton")
- hclose.Name = randomString()
+ hclose.Name = RandomString()
  hclose.Size = UDim2.new(0, 28, 0, 28)
  hclose.Position = UDim2.new(1, -30, 0, 0)
  hclose.BackgroundTransparency = 1
@@ -7394,7 +7495,7 @@ do
  MakeCloseIcon(hclose, 8, 5, Color3.fromRGB(210, 210, 210))
 
  local hcopy = Instance.new("TextButton")
- hcopy.Name = randomString()
+ hcopy.Name = RandomString()
  hcopy.Size = UDim2.new(0, 52, 0, 20)
  hcopy.Position = UDim2.new(1, -88, 0.5, -10)
  hcopy.BackgroundColor3 = config.COLORS.SECONDARY
@@ -7411,7 +7512,7 @@ do
  RoundCorner(hcopy, 0, 6)
 
 local hdump = Instance.new("TextButton")
-hdump.Name = randomString()
+hdump.Name = RandomString()
 hdump.Size = UDim2.new(0, 52, 0, 20)
 hdump.Position = UDim2.new(1, -144, 0.5, -10)
 hdump.BackgroundColor3 = config.COLORS.SECONDARY
@@ -7427,9 +7528,9 @@ hdump.Archivable = false
 hdump.Parent = hdr
 RoundCorner(hdump, 0, 6)
 
- local function makeZoomBtn(xOff, imageName)
+ local function MakeZoomBtn(xOff, imageName)
   local b = Instance.new("ImageButton")
-  b.Name = randomString()
+  b.Name = RandomString()
   b.Size = UDim2.new(0, 22, 0, 20)
   b.Position = UDim2.new(1, xOff, 0.5, -10)
   b.BackgroundColor3 = config.COLORS.SECONDARY
@@ -7450,11 +7551,11 @@ RoundCorner(hdump, 0, 6)
   Explorer.ApplyImage(b, imageName)
   return b
  end
- local hzoomin = makeZoomBtn(-196, "ZoomIn")
- local hzoomout = makeZoomBtn(-170, "ZoomOut")
+ local hzoomin = MakeZoomBtn(-196, "ZoomIn")
+ local hzoomout = MakeZoomBtn(-170, "ZoomOut")
 
  local sBody = Instance.new("Frame")
- sBody.Name = randomString()
+ sBody.Name = RandomString()
  sBody.Size = UDim2.new(1, 0, 1, -28)
  sBody.Position = UDim2.new(0, 0, 0, 28)
  sBody.BackgroundTransparency = 1
@@ -7463,7 +7564,7 @@ RoundCorner(hdump, 0, 6)
  sBody.Parent = panel
 
  local sScroll = Instance.new("Frame")
- sScroll.Name = randomString()
+ sScroll.Name = RandomString()
  sScroll.Size = UDim2.new(1, -12, 1, -8)
  sScroll.Position = UDim2.new(0, 0, 0, 0)
  sScroll.BackgroundTransparency = 1
@@ -7473,7 +7574,7 @@ RoundCorner(hdump, 0, 6)
  sScroll.Parent = sBody
 
  local sCode = Instance.new("Frame")
- sCode.Name = randomString()
+ sCode.Name = RandomString()
  sCode.BackgroundTransparency = 1
  sCode.ClipsDescendants = true
  sCode.Size = UDim2.new(1, -40, 1, 0)
@@ -7483,7 +7584,7 @@ RoundCorner(hdump, 0, 6)
  sCode.Parent = sScroll
 
  local sGutter = Instance.new("Frame")
- sGutter.Name = randomString()
+ sGutter.Name = RandomString()
  sGutter.BackgroundColor3 = config.COLORS.HEADER
  sGutter.BackgroundTransparency = 0.5
  sGutter.BorderSizePixel = 0
@@ -7494,7 +7595,7 @@ RoundCorner(hdump, 0, 6)
  sGutter.Parent = sScroll
 
  local gInner = Instance.new("Frame")
- gInner.Name = randomString()
+ gInner.Name = RandomString()
  gInner.BackgroundTransparency = 1
  gInner.BorderSizePixel = 0
  gInner.Size = UDim2.new(1, 0, 1, 0)
@@ -7504,7 +7605,7 @@ RoundCorner(hdump, 0, 6)
  gInner.Parent = sGutter
 
  local cInner = Instance.new("Frame")
- cInner.Name = randomString()
+ cInner.Name = RandomString()
  cInner.BackgroundTransparency = 1
  cInner.BorderSizePixel = 0
  cInner.Size = UDim2.new(1, 0, 1, 0)
@@ -7514,7 +7615,7 @@ RoundCorner(hdump, 0, 6)
  cInner.Parent = sCode
 
  local sVbar = Instance.new("Frame")
- sVbar.Name = randomString()
+ sVbar.Name = RandomString()
  sVbar.Size = UDim2.new(0, 10, 1, 0)
  sVbar.Position = UDim2.new(1, -10, 0, 0)
  sVbar.BackgroundTransparency = 1
@@ -7525,7 +7626,7 @@ RoundCorner(hdump, 0, 6)
  sVbar.Parent = sBody
 
  local sVthumb = Instance.new("Frame")
- sVthumb.Name = randomString()
+ sVthumb.Name = RandomString()
  sVthumb.Size = UDim2.new(1, 0, 0.2, 0)
  sVthumb.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
  sVthumb.BorderSizePixel = 0
@@ -7535,7 +7636,7 @@ RoundCorner(hdump, 0, 6)
  RoundCorner(sVthumb, 1, 0)
 
  local sHbar = Instance.new("Frame")
- sHbar.Name = randomString()
+ sHbar.Name = RandomString()
  sHbar.Size = UDim2.new(1, -10, 0, 10)
  sHbar.Position = UDim2.new(0, 0, 1, -10)
  sHbar.BackgroundTransparency = 1
@@ -7546,7 +7647,7 @@ RoundCorner(hdump, 0, 6)
  sHbar.Parent = sBody
 
  local sHthumb = Instance.new("Frame")
- sHthumb.Name = randomString()
+ sHthumb.Name = RandomString()
  sHthumb.Size = UDim2.new(0.2, 0, 1, 0)
  sHthumb.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
  sHthumb.BorderSizePixel = 0
@@ -7557,7 +7658,7 @@ RoundCorner(hdump, 0, 6)
 
  local charW = 8
  do
-  local w = measureCharW()
+  local w = MeasureCharW()
   if w and w > 2 then charW = w end
  end
 
@@ -7577,20 +7678,20 @@ RoundCorner(hdump, 0, 6)
  local appliedCY, appliedHX = nil, nil
  local vVis, vF, vP, hVis, hF, hP, hGW = nil, nil, nil, nil, nil, nil, nil
  local pending = false
- local pumpHighlight
+ local PumpHighlight
 
- local function isBlank(l) return l:find("^%s*$") ~= nil end
+ local function IsBlank(l) return l:find("^%s*$") ~= nil end
 
- local function indentOf(ln)
+ local function IndentOf(ln)
   local v = st.ind[ln]
   if v then return v end
   local lines = st.lines
   local line = lines[ln]
-  if isBlank(line) then
+  if IsBlank(line) then
    local prevI, nextI = 0, 0
    for j = ln - 1, math.max(1, ln - BLANK_SCAN), -1 do
     local l = lines[j]
-    if not isBlank(l) then
+    if not IsBlank(l) then
      local _, e = l:find("^ *")
      prevI = math.floor(e / INDENT_SIZE)
      break
@@ -7598,7 +7699,7 @@ RoundCorner(hdump, 0, 6)
    end
    for j = ln + 1, math.min(#lines, ln + BLANK_SCAN) do
     local l = lines[j]
-    if not isBlank(l) then
+    if not IsBlank(l) then
      local _, e = l:find("^ *")
      nextI = math.floor(e / INDENT_SIZE)
      break
@@ -7613,15 +7714,15 @@ RoundCorner(hdump, 0, 6)
   return v
  end
 
- local function guideX(k)
+ local function GuideX(k)
   return math.floor(8 + (k - 1) * INDENT_SIZE * charW + 0.5)
  end
 
- local function createEntry()
+ local function CreateEntry()
   local num = Instance.new("TextLabel")
-  num.Name = randomString()
+  num.Name = RandomString()
   num.BackgroundTransparency = 1
-  applyCodeFont(num)
+  ApplyCodeFont(num)
   num.TextSize = TS
   num.TextColor3 = config.COLORS.TEXT_DIM
   num.TextXAlignment = Enum.TextXAlignment.Right
@@ -7632,10 +7733,10 @@ RoundCorner(hdump, 0, 6)
   num.Parent = gInner
 
   local code = Instance.new("TextLabel")
-  code.Name = randomString()
+  code.Name = RandomString()
   code.BackgroundTransparency = 1
   code.RichText = true
-  applyCodeFont(code)
+  ApplyCodeFont(code)
   code.TextSize = TS
   code.TextColor3 = TEXT_PLAIN
   code.TextXAlignment = Enum.TextXAlignment.Left
@@ -7647,7 +7748,7 @@ RoundCorner(hdump, 0, 6)
   code.Parent = cInner
 
   local gf = Instance.new("Frame")
-  gf.Name = randomString()
+  gf.Name = RandomString()
   gf.BackgroundTransparency = 1
   gf.BorderSizePixel = 0
   gf.Size = UDim2.new(0, 0, 0, LH)
@@ -7659,17 +7760,17 @@ RoundCorner(hdump, 0, 6)
   return { num = num, code = code, gf = gf, guides = {}, shown = 0, line = nil, vis = false, hl = false }
  end
 
- local function setGuides(e, count)
+ local function SetGuides(e, count)
   if count > MAX_GUIDES then count = MAX_GUIDES end
   local g = e.guides
   for k = #g + 1, count do
    local f = Instance.new("Frame")
-   f.Name = randomString()
+   f.Name = RandomString()
    f.BorderSizePixel = 0
    f.BackgroundColor3 = config.COLORS.WHITE
    f.BackgroundTransparency = GUIDE_TRANSPARENCY
    f.Size = UDim2.new(0, 1, 0, LH)
-   f.Position = UDim2.new(0, guideX(k), 0, 0)
+   f.Position = UDim2.new(0, GuideX(k), 0, 0)
    f.ZIndex = 2
    f.Active = false
    f.Archivable = false
@@ -7687,17 +7788,17 @@ RoundCorner(hdump, 0, 6)
   e.shown = count
  end
 
- local function hideEntry(e)
+ local function HideEntry(e)
   e.line = nil
   if e.vis then
    e.vis = false
    e.num.Visible = false
    e.code.Visible = false
   end
-  if e.shown > 0 then setGuides(e, 0) end
+  if e.shown > 0 then SetGuides(e, 0) end
  end
 
- local function bindEntry(e, ln)
+ local function BindEntry(e, ln)
   e.line = ln
   local y = (ln - 1 - st.base) * LH
   local r = st.rich[ln]
@@ -7705,9 +7806,9 @@ RoundCorner(hdump, 0, 6)
   e.num.Text = tostring(ln)
   e.num.Position = UDim2.new(0, 0, 0, y)
   e.code.Position = UDim2.new(0, 8, 0, y)
-  e.code.Text = r or esc(st.lines[ln])
+  e.code.Text = r or Esc(st.lines[ln])
   e.gf.Position = UDim2.new(0, 0, 0, y)
-  setGuides(e, indentOf(ln))
+  SetGuides(e, IndentOf(ln))
   if not e.vis then
    e.vis = true
    e.num.Visible = true
@@ -7715,15 +7816,15 @@ RoundCorner(hdump, 0, 6)
   end
  end
 
- local function ensurePoolSize(n)
-  for i = #entries + 1, n do entries[i] = createEntry() end
+ local function EnsureEntryPoolSize(n)
+  for i = #entries + 1, n do entries[i] = CreateEntry() end
  end
 
- local function invalidateAll()
+ local function InvalidateAll()
   for i = 1, #entries do entries[i].line = nil end
  end
 
- local function refreshNow()
+ local function RefreshNow()
   if not panel.Visible then return end
   local total = #st.lines
   local viewH = sScroll.AbsoluteSize.Y
@@ -7745,11 +7846,11 @@ RoundCorner(hdump, 0, 6)
   end
 
   if visibleCount ~= st.pool then
-   ensurePoolSize(visibleCount)
+   EnsureEntryPoolSize(visibleCount)
    st.pool = visibleCount
    for i = 1, #entries do
     entries[i].line = nil
-    if i > visibleCount then hideEntry(entries[i]) end
+    if i > visibleCount then HideEntry(entries[i]) end
    end
   end
 
@@ -7761,7 +7862,7 @@ RoundCorner(hdump, 0, 6)
 
   if math.abs(st.index - st.base) > REBASE then
    st.base = st.index
-   invalidateAll()
+   InvalidateAll()
   end
 
   local cy = -(st.index - st.base) * LH
@@ -7779,7 +7880,7 @@ RoundCorner(hdump, 0, 6)
    local e = entries[s]
    if ln <= total then
     if e.line ~= ln then
-     bindEntry(e, ln)
+     BindEntry(e, ln)
     elseif not e.hl then
      local r = rich[ln]
      if r ~= nil then
@@ -7788,7 +7889,7 @@ RoundCorner(hdump, 0, 6)
      end
     end
    elseif e.line ~= nil or e.vis then
-    hideEntry(e)
+    HideEntry(e)
    end
   end
 
@@ -7819,19 +7920,19 @@ RoundCorner(hdump, 0, 6)
    sHbar.Visible = false
   end
 
-  if st.hlDone < total and not st.hlBusy then pumpHighlight() end
+  if st.hlDone < total and not st.hlBusy then PumpHighlight() end
  end
 
- local function refresh()
+ local function Refresh()
   if pending then return end
   pending = true
   config.SV.RunSrv.RenderStepped:Once(function()
    pending = false
-   refreshNow()
+   RefreshNow()
   end)
  end
 
- local function pointIn(gui, mp)
+ local function PointIn(gui, mp)
   local ap, as = gui.AbsolutePosition, gui.AbsoluteSize
   return mp.X >= ap.X and mp.X <= ap.X + as.X and mp.Y >= ap.Y and mp.Y <= ap.Y + as.Y
  end
@@ -7842,15 +7943,15 @@ RoundCorner(hdump, 0, 6)
   local delta = input.Position.Z
   if delta == 0 then return end
   local mp = Vector2.new(input.Position.X, input.Position.Y)
-  if not pointIn(panel, mp) then return end
-  if config.main.Visible and pointIn(config.main, mp) then return end
+  if not PointIn(panel, mp) then return end
+  if config.main.Visible and PointIn(config.main, mp) then return end
   local viewH = sScroll.AbsoluteSize.Y
   local maxIdx = math.max(0, #st.lines - math.floor(viewH / LH))
   st.index = math.clamp(st.index - delta * 3, 0, maxIdx)
-  refresh()
+  Refresh()
  end)
 
- local function draggable(thumb, track, isHorizontal)
+ local function DraggableThumb(thumb, track, isHorizontal)
   local dragging, startPos, startScroll
   config.WidenHit(thumb, isHorizontal).InputBegan:Connect(function(inp)
    if not config.Fresh(inp) then return end
@@ -7880,7 +7981,7 @@ RoundCorner(hdump, 0, 6)
      st.index = math.clamp(math.floor(startScroll + delta / usable * maxIdx + 0.5), 0, maxIdx)
     end
    end
-   refresh()
+   Refresh()
   end)
   config.SV.UserInput.InputEnded:Connect(function(inp)
    if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
@@ -7888,17 +7989,17 @@ RoundCorner(hdump, 0, 6)
    end
   end)
  end
- draggable(sVthumb, sVbar, false)
- draggable(sHthumb, sHbar, true)
+ DraggableThumb(sVthumb, sVbar, false)
+ DraggableThumb(sHthumb, sHbar, true)
 
- sScroll:GetPropertyChangedSignal("AbsoluteSize"):Connect(refresh)
+ sScroll:GetPropertyChangedSignal("AbsoluteSize"):Connect(Refresh)
 
- local function setHeader(inst)
-  applyIcon(hicon, inst.ClassName)
-  htitle.Text = escape(inst.Name)
+ local function SetHeader(inst)
+  ApplyIcon(hicon, inst.ClassName)
+  htitle.Text = Escape(inst.Name)
  end
 
- pumpHighlight = function()
+ PumpHighlight = function()
   if st.hlBusy then return end
   local lines = st.lines
   if st.hlDone >= #lines then return end
@@ -7915,12 +8016,12 @@ RoundCorner(hdump, 0, 6)
     local t0 = os.clock()
     while i < target and os.clock() - t0 < HL_BUDGET do
      i += 1
-     local ok, r, ns = pcall(highlightLine, lines[i], state)
+     local ok, r, ns = pcall(HighlightLine, lines[i], state)
      if ok then rich[i] = r state = ns else state = nil end
     end
     if st.gen ~= gen then return end
     st.hlDone, st.hlState = i, state
-    refresh()
+    Refresh()
     if i < target then task.wait() end
    end
    if st.gen == gen then
@@ -7930,14 +8031,14 @@ RoundCorner(hdump, 0, 6)
   end)
  end
 
- local function load(inst, keepScroll, force)
+ local function Load(inst, keepScroll, force)
   local src = Explorer.GetSource(inst)
   if src == nil then
    src = ""
   end
   if not force and st.loaded and st.inst == inst and st.raw == src then
-   setHeader(inst)
-   refresh()
+   SetHeader(inst)
+   Refresh()
    return
   end
   st.inst, st.raw = inst, src
@@ -7960,16 +8061,16 @@ RoundCorner(hdump, 0, 6)
   st.contentW = maxLen * charW + 40
   if not keepScroll then st.index, st.hoff = 0, 0 end
   st.base = st.index
-  invalidateAll()
-  setHeader(inst)
-  refresh()
+  InvalidateAll()
+  SetHeader(inst)
+  Refresh()
  end
 
- local function layout()
+ local function Layout()
   local scr = config.window.AbsoluteSize
   local x0, x1 = 0, scr.X
   local pad = 3
-  local function claim(gui, side)
+  local function Claim(gui, side)
    if not gui or not gui.Visible then return end
    if side == "left" then
     x0 = math.max(x0, gui.AbsolutePosition.X + gui.AbsoluteSize.X + pad)
@@ -7977,68 +8078,70 @@ RoundCorner(hdump, 0, 6)
     x1 = math.min(x1, gui.AbsolutePosition.X - pad)
    end
   end
-  claim(config.main, config.DockSide)
-  claim(config.pmain, config.PDock.Side)
+  Claim(config.main, config.DockSide)
+  Claim(config.pmain, config.PDock.Side)
   local w = x1 - x0
-  local inset = topInset()
+  local inset = TopInset()
   panel.Position = UDim2.new(0, x0, 0, inset)
   panel.Size = UDim2.new(0, math.max(0, w), 1, -inset)
   panel.Visible = config.srcOpen and w > 0
-  refresh()
+  Refresh()
  end
- config.layoutSource = layout
- config.main:GetPropertyChangedSignal("Visible"):Connect(layout)
+ config.LayoutSource = Layout
+ config.main:GetPropertyChangedSignal("Visible"):Connect(Layout)
 
  function Explorer.OpenSource(inst)
   if not inst then return end
   config.srcOpen = true
-  layout()
-  load(inst, st.inst == inst)
+  Layout()
+  Load(inst, st.inst == inst)
  end
 
  function Explorer.CloseSource()
   config.srcOpen = false
-  layout()
+  Layout()
  end
 
  function Explorer.SetHighlighter(mod)
   if mod ~= nil and (type(mod) ~= "table" or type(mod.Tokenize) ~= "function") then return false end
   Explorer.Highlighter = mod
-  if config.srcOpen and st.inst then load(st.inst, true, true) end
+  if config.srcOpen and st.inst then Load(st.inst, true, true) end
   return true
  end
 
- config.reloadSource = function(target)
+ config.ReloadSource = function(target)
   if not config.srcOpen or not st.inst then return end
-  if type(target) == "function" or target == st.inst then load(st.inst, true) end
+  if type(target) == "function" or target == st.inst or target == GetRealRef(st.inst) then
+   Load(st.inst, true)
+  end
  end
 
  local MIN_TS, MAX_TS = 8, 28
- local function setFontSize(n, force)
+ local function SetFontSize(n, force)
   n = math.clamp(n, MIN_TS, MAX_TS)
   if n == TS and not force then return end
   TS = n
   LH = n + 4
   do
-   local w = measureCharW()
+   local w = MeasureCharW()
    if w and w > 2 then charW = w end
   end
   for _, e in ipairs(entries) do
-   applyCodeFont(e.num)
-   applyCodeFont(e.code)
+   ApplyCodeFont(e.num)
+   ApplyCodeFont(e.code)
    e.num.TextSize = TS
    e.code.TextSize = TS
    e.num.Size = UDim2.new(1, -8, 0, LH)
    e.gf.Size = UDim2.new(0, 0, 0, LH)
    for k, g in ipairs(e.guides) do
     g.Size = UDim2.new(0, 1, 0, LH)
-    g.Position = UDim2.new(0, guideX(k), 0, 0)
+    g.Position = UDim2.new(0, GuideX(k), 0, 0)
    end
    e.line = nil
   end
   st.gW = #tostring(#st.lines) * charW + 20
   st.contentW = st.maxLen * charW + 40
-  refresh()
+  Refresh()
  end
 
  task.spawn(function()
@@ -8061,35 +8164,35 @@ RoundCorner(hdump, 0, 6)
   end)
   if ok and face then
    CODE_FACE = face
-   setFontSize(TS, true)
+   SetFontSize(TS, true)
   end
  end)
 
- local function mouseOverSource()
+ local function MouseOverSource()
   if not panel.Visible then return false end
   local ml = config.SV.UserInput:GetMouseLocation()
   local gi = Vector2.new(0, 0)
   pcall(function() gi = config.SV.Gui:GetGuiInset() end)
-  local function inside(gui, m)
-   return gui.Visible and pointIn(gui, m)
+  local function Inside(gui, m)
+   return gui.Visible and PointIn(gui, m)
   end
-  local over = inside(panel, ml) or inside(panel, ml - gi)
+  local over = Inside(panel, ml) or Inside(panel, ml - gi)
   if not over then return false end
-  if config.main.Visible and (inside(config.main, ml) or inside(config.main, ml - gi)) then return false end
+  if config.main.Visible and (Inside(config.main, ml) or Inside(config.main, ml - gi)) then return false end
   return true
  end
 
  config.SV.ContextAction:BindActionAtPriority("ExplorerSourceFontSize", function(_, state, inp)
-  if not mouseOverSource() then return Enum.ContextActionResult.Pass end
+  if not MouseOverSource() then return Enum.ContextActionResult.Pass end
   if state == Enum.UserInputState.Begin then
-   setFontSize(TS + (inp.KeyCode == Enum.KeyCode.I and 1 or -1))
+   SetFontSize(TS + (inp.KeyCode == Enum.KeyCode.I and 1 or -1))
   end
   return Enum.ContextActionResult.Sink
  end, false, Enum.ContextActionPriority.High.Value, Enum.KeyCode.I, Enum.KeyCode.O)
 
  hclose.Activated:Connect(Explorer.CloseSource)
- hzoomin.Activated:Connect(function() setFontSize(TS + 1) end)
- hzoomout.Activated:Connect(function() setFontSize(TS - 1) end)
+ hzoomin.Activated:Connect(function() SetFontSize(TS + 1) end)
+ hzoomout.Activated:Connect(function() SetFontSize(TS - 1) end)
  hcopy.Activated:Connect(function()
   if setclipboard then
    pcall(setclipboard, st.raw)
@@ -8136,18 +8239,18 @@ RoundCorner(hdump, 0, 6)
  		st.ind = {}
  		st.gW = #tostring(#lines) * charW + 20
  		st.contentW = st.maxLen * charW + 40
- 		invalidateAll()
- 		refresh()
+ 		InvalidateAll()
+ 		Refresh()
  	end)
  end)
 
- config.main:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
- config.main:GetPropertyChangedSignal("AbsolutePosition"):Connect(layout)
- config.main:GetPropertyChangedSignal("Visible"):Connect(layout)
- config.window:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
- config.pmain:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
- config.pmain:GetPropertyChangedSignal("AbsolutePosition"):Connect(layout)
- config.pmain:GetPropertyChangedSignal("Visible"):Connect(layout)
+ config.main:GetPropertyChangedSignal("AbsoluteSize"):Connect(Layout)
+ config.main:GetPropertyChangedSignal("AbsolutePosition"):Connect(Layout)
+ config.main:GetPropertyChangedSignal("Visible"):Connect(Layout)
+ config.window:GetPropertyChangedSignal("AbsoluteSize"):Connect(Layout)
+ config.pmain:GetPropertyChangedSignal("AbsoluteSize"):Connect(Layout)
+ config.pmain:GetPropertyChangedSignal("AbsolutePosition"):Connect(Layout)
+ config.pmain:GetPropertyChangedSignal("Visible"):Connect(Layout)
 
  task.spawn(function()
   local ok, mod = pcall(function()
@@ -8211,27 +8314,27 @@ do
  Explorer.Mode = "Game"
  Explorer.Root = gameRoot
 
- local function currentRoot()
+ local function CurrentRoot()
   if Explorer.Mode ~= "Game" then return virtualRoot end
   return showNil and nilRoot or gameRoot
  end
 
- local function safe(f, ...)
+ local function Safe(f, ...)
   local ok, r = pcall(f, ...)
   if ok then return r end
   return nil
  end
 
- local function readParent(i) return i.Parent end
- local function readNameOf(i) return i.Name end
+ local function ReadParent(i) return i.Parent end
+ local function ReadNameOf(i) return i.Name end
 
- local function vOf(real)
+ local function VOf(real)
   if real == nil then return nil end
   local v = realToV[real]
   if v then return v end
-  local ok, par = pcall(readParent, real)
+  local ok, par = pcall(ReadParent, real)
   if ok and par == game then
-   local okN, nm = pcall(readNameOf, real)
+   local okN, nm = pcall(ReadNameOf, real)
    if okN then
     local kids = gameRoot.Children
     for i = 1, #kids do
@@ -8246,8 +8349,8 @@ do
   return nil
  end
 
- local function mirrorOne(real, parent)
-  local ok, name, class = pcall(readInfo, real)
+ local function MirrorOne(real, parent)
+  local ok, name, class = pcall(ReadInfo, real)
   if not ok then return nil end
   local v = setmetatable({
    Name = tostring(name),
@@ -8263,13 +8366,13 @@ do
   return v
  end
 
- local function finish()
+ local function Finish()
   Explorer.ScanTree()
   RefreshTree()
   if Explorer.RefreshProperties then Explorer.RefreshProperties() end
  end
 
- local function clearGameRoot()
+ local function ClearGameRoot()
   Explorer.SelectedSet = {}
   Explorer.Selected = nil
   config.Anchor = nil
@@ -8282,13 +8385,13 @@ do
  local function ScanGame()
   if scanning then return end
   scanning = true
-  clearGameRoot()
+  ClearGameRoot()
   local showHidden = config.ShowHiddenServices ~= false
   for i, svcName in ipairs(Services) do
    if showHidden or not HIDDEN_SERVICES[svcName] then
-    local svc = safe(GetService, svcName)
+    local svc = Safe(GetService, svcName)
     if svc then
-     local v = mirrorOne(cloneref(svc), gameRoot)
+     local v = MirrorOne(cloneref(svc), gameRoot)
      if v then
       v.Name = svcName
       v.Metadata.Order = i
@@ -8302,9 +8405,9 @@ do
   if showHidden and okC and type(top) == "table" then
    for j = 1, #top do
     local kid = top[j]
-    local okN, nm = pcall(readNameOf, kid)
+    local okN, nm = pcall(ReadNameOf, kid)
     if okN and not have[nm] and kid ~= config.folder then
-     local v = mirrorOne(cloneref(kid), gameRoot)
+     local v = MirrorOne(cloneref(kid), gameRoot)
      if v then
       have[nm] = true
       v.Metadata.Order = #Services + j
@@ -8314,11 +8417,11 @@ do
   end
   scanning = false
   scanned = true
-  finish()
+  Finish()
   if config.SearchQuery ~= "" then Explorer.EnsureDeepLoad() end
  end
 
- local function unregister(v)
+ local function Unregister(v)
   local stack, top = {v}, 1
   while top > 0 do
    local n = stack[top]
@@ -8331,7 +8434,7 @@ do
   end
  end
 
- local function dropDetachedSelection()
+ local function DropDetachedSelection()
   local changedSel = false
   for sel in pairs(Explorer.SelectedSet) do
    local cur = sel
@@ -8361,7 +8464,7 @@ do
   if scanning then return end
   if type(getnilinstances) ~= "function" then return end
   scanning = true
-  local list = safe(getnilinstances) or {}
+  local list = Safe(getnilinstances) or {}
   local existing = {}
   for _, c in ipairs(nilRoot.Children) do
    if c.Real then existing[c.Real] = c end
@@ -8371,10 +8474,10 @@ do
   local t0 = os.clock()
   for i = 1, #list do
    local real = list[i]
-   local ok, par = pcall(readParent, real)
+   local ok, par = pcall(ReadParent, real)
    if ok and par == nil then
     present[real] = true
-    if not existing[real] and mirrorOne(real, nilRoot) then added = true end
+    if not existing[real] and MirrorOne(real, nilRoot) then added = true end
    end
    if i % 64 == 0 and os.clock() - t0 > YIELD_BUDGET then
     task.wait()
@@ -8388,14 +8491,14 @@ do
     keep[n] = c
    else
     c.Parent = nil
-    unregister(c)
+    Unregister(c)
     removed = true
    end
   end
   if removed then
    nilRoot.Children = keep
    nilRoot._sorted = nil
-   dropDetachedSelection()
+   DropDetachedSelection()
   end
   scanning = false
   if added or removed then
@@ -8446,14 +8549,14 @@ do
   end)
  end
 
- local function applyRoot()
+ local function ApplyRoot()
   Explorer.Selected = nil
   Explorer.SelectedSet = {}
   config.Anchor = nil
-  Explorer.Root = currentRoot()
+  Explorer.Root = CurrentRoot()
   deepLoaded, deepRunning = false, false
   deepToken += 1
-  finish()
+  Finish()
   if Explorer.PropsOnSelect then Explorer.PropsOnSelect() end
   if Explorer.OnSelectCb then pcall(Explorer.OnSelectCb, nil) end
   if config.SearchQuery ~= "" then Explorer.EnsureDeepLoad() end
@@ -8463,16 +8566,16 @@ do
  nilBtn = Explorer.AddMenuButton("Nil Instances", function()
   if Explorer.Mode ~= "Game" then return end
   showNil = not showNil
-  applyRoot()
+  ApplyRoot()
   if showNil and not scanning and #nilRoot.Children == 0 then
    task.spawn(ScanNilInstances)
   end
  end)
 
  local settingsDirty = false
- local function rescanGame()
+ local function RescanGame()
   if scanning then return end
-  for _, c in ipairs(gameRoot.Children) do unregister(c) end
+  for _, c in ipairs(gameRoot.Children) do Unregister(c) end
   ScanGame()
  end
 
@@ -8481,7 +8584,7 @@ do
   Add("Show Hidden Services", "Toggle", function(v)
    config.ShowHiddenServices = v
    if Explorer.Mode == "Game" then
-    rescanGame()
+    RescanGame()
    else
     settingsDirty = true
    end
@@ -8508,15 +8611,15 @@ do
   Explorer.Selected = nil
   Explorer.SelectedSet = {}
   config.Anchor = nil
-  Explorer.Root = currentRoot()
+  Explorer.Root = CurrentRoot()
   nilBtn.Visible = (mode == "Game")
   if mode == "Game" and not scanned then
    task.spawn(function() ScanGame() ScanNilInstances() end)
   elseif mode == "Game" and settingsDirty then
    settingsDirty = false
-   rescanGame()
+   RescanGame()
   end
-  finish()
+  Finish()
   if Explorer.PropsOnSelect then Explorer.PropsOnSelect() end
   if Explorer.OnSelectCb then pcall(Explorer.OnSelectCb, nil) end
   return true
@@ -8553,26 +8656,26 @@ do
   local nameCursor = 1
   local build = nil
 
-  local function readName(i) return i.Name end
+  local function ReadName(i) return i.Name end
 
-  local function onAdded(inst)
-   if vOf(inst.Parent) then
+  local function OnAdded(inst)
+   if VOf(inst.Parent) then
     addN += 1
     addQ[addN] = inst
    end
   end
 
-  local function onRemoving(inst)
+  local function OnRemoving(inst)
    local v = realToV[inst]
    if v then
     removeQ[v] = true
    else
-    local pv = vOf(inst.Parent)
+    local pv = VOf(inst.Parent)
     if pv and not pv.Loaded then pv.HasKids = nil end
    end
   end
 
-  local function markParent(pv)
+  local function MarkParent(pv)
    if pv == Explorer.Root then rowsDirty = true return end
    local idx = Explorer.RowIndex
    if idx and idx[pv] then
@@ -8580,35 +8683,35 @@ do
    end
   end
 
-  local function bsearch(cache, key, n)
+  local function Bsearch(cache, key, n)
    local lo, hi = 1, n + 1
    while lo < hi do
     local mid = (lo + hi) // 2
-    if refreshKey(cache[mid]) <= key then lo = mid + 1 else hi = mid end
+    if RefreshKey(cache[mid]) <= key then lo = mid + 1 else hi = mid end
    end
    return lo
   end
 
-  local function sortedInsert(pv, v)
+  local function SortedInsert(pv, v)
    local ch = pv.Children
    local n = #ch
    ch[n + 1] = v
    local cache = pv._sorted
    if cache and #cache == n then
-    table.insert(cache, bsearch(cache, refreshKey(v), n), v)
+    table.insert(cache, Bsearch(cache, RefreshKey(v), n), v)
     pv._live = true
    else
     pv._sorted = nil
    end
   end
 
-  local function reposition(pv, v)
+  local function Reposition(pv, v)
    local cache = pv._sorted
    if cache and pv._live then
     local old = table.find(cache, v)
     if old then
      table.remove(cache, old)
-     local pos = bsearch(cache, refreshKey(v), #cache)
+     local pos = Bsearch(cache, RefreshKey(v), #cache)
      table.insert(cache, pos, v)
      return pos ~= old
     end
@@ -8617,7 +8720,7 @@ do
    return true
   end
 
-  local function filterOut(arr, set)
+  local function FilterOut(arr, set)
    local n, w = #arr, 0
    for i = 1, n do
     local c = arr[i]
@@ -8629,15 +8732,15 @@ do
    for i = w + 1, n do arr[i] = nil end
   end
 
-  local function processRemovals()
+  local function ProcessRemovals()
    local byParent, any = {}, false
    for v in pairs(removeQ) do
     removeQ[v] = nil
     local pv, r = v.Parent, v.Real
     local pr = pv and pv.Real
     if r and pr then
-     local ok, cur = pcall(readParent, r)
-     if not (ok and cur ~= nil and vOf(cur) == pv) then
+     local ok, cur = pcall(ReadParent, r)
+     if not (ok and cur ~= nil and VOf(cur) == pv) then
       local set = byParent[pv]
       if not set then set = {} byParent[pv] = set end
       set[v] = true
@@ -8660,21 +8763,21 @@ do
       end
      end
     else
-     filterOut(ch, set)
-     if cacheOk then filterOut(cache, set) end
+     FilterOut(ch, set)
+     if cacheOk then FilterOut(cache, set) end
     end
     if not cacheOk then pv._sorted = nil end
     for v in pairs(set) do
      v.Parent = nil
-     unregister(v)
+     Unregister(v)
     end
     any = true
-    markParent(pv)
+    MarkParent(pv)
    end
-   if any then dropDetachedSelection() end
+   if any then DropDetachedSelection() end
   end
 
-  local function processAdds(t0)
+  local function ProcessAdds(t0)
    local count, added = 0, false
    while addHead <= addN do
     local inst = addQ[addHead]
@@ -8682,7 +8785,7 @@ do
     addHead += 1
     count += 1
     if inst ~= config.folder then
-     local pv = vOf(inst.Parent)
+     local pv = VOf(inst.Parent)
      if pv then
       if not pv.Loaded then
        if pv.HasKids ~= true then
@@ -8691,7 +8794,7 @@ do
         if idx and idx[pv] then drawDirty = true end
        end
       elseif not realToV[inst] then
-       local ok, name, class = pcall(readInfo, inst)
+       local ok, name, class = pcall(ReadInfo, inst)
        if ok then
         local v = setmetatable({
          Name = tostring(name),
@@ -8700,10 +8803,10 @@ do
          Children = {},
          Real = inst,
         }, VirtualInstance)
-        sortedInsert(pv, v)
+        SortedInsert(pv, v)
         realToV[inst] = v
         added = true
-        markParent(pv)
+        MarkParent(pv)
        end
       end
      end
@@ -8714,7 +8817,7 @@ do
    return added
   end
 
-  local function reconcile(pv)
+  local function Reconcile(pv)
    local real = pv.Real
    if not real or not pv.Loaded then return end
    local ok, kids = pcall(real.GetChildren, real)
@@ -8724,7 +8827,7 @@ do
     local kid = kids[i]
     present[kid] = true
     if kid ~= config.folder and not realToV[kid] then
-     local okI, name, class = pcall(readInfo, kid)
+     local okI, name, class = pcall(ReadInfo, kid)
      if okI then
       local v = setmetatable({
        Name = tostring(name),
@@ -8733,7 +8836,7 @@ do
        Children = {},
        Real = kid,
       }, VirtualInstance)
-      sortedInsert(pv, v)
+      SortedInsert(pv, v)
       realToV[kid] = v
       changed = true
      end
@@ -8744,12 +8847,12 @@ do
     local c = ch[i]
     if c.Real and not present[c.Real] then removeQ[c] = true changed = true end
    end
-   if changed then markParent(pv) end
+   if changed then MarkParent(pv) end
   end
 
   local RECON_INTERVAL = 0.25
   local reconCursor, lastRecon = 1, 0
-  local function reconcileStep()
+  local function ReconcileStep()
    local rows = config.visiblerows
    local n = #rows
    if n == 0 then return end
@@ -8759,41 +8862,41 @@ do
     reconCursor += 1
     local v = row.instance
     if row.expanded and v.Real and v.Loaded then
-     reconcile(v)
+     Reconcile(v)
      return
     end
    end
   end
 
-  local function checkRow(row)
+  local function CheckRow(row)
    local v = row and row.instance
    local r = v and v.Real
    if not r then return end
-   local ok, name = pcall(readName, r)
+   local ok, name = pcall(ReadName, r)
    if not ok then return end
    name = tostring(name)
    if name == v.Name then return end
    v.Name = name
    drawDirty = true
    local p = v.Parent
-   if p and reposition(p, v) then markParent(p) end
+   if p and Reposition(p, v) then MarkParent(p) end
   end
 
-  local function viewNames()
+  local function ViewNames()
    local rows = config.visiblerows
    local from = config.ScrollIndex + 1
    local to = math.min(#rows, from + math.ceil(config.body.AbsoluteSize.Y / config.ROW_H) + 2)
-   for i = from, to do checkRow(rows[i]) end
+   for i = from, to do CheckRow(rows[i]) end
   end
 
-  local function bgNames()
+  local function BgNames()
    local rows = config.visiblerows
    local n = #rows
    if n == 0 then return end
    if nameCursor > n then nameCursor = 1 end
    local t0, checked = os.clock(), 0
    while checked < n do
-    checkRow(rows[nameCursor])
+    CheckRow(rows[nameCursor])
     nameCursor += 1
     if nameCursor > n then nameCursor = 1 end
     checked += 1
@@ -8801,20 +8904,20 @@ do
    end
   end
 
-  local function startBuild()
+  local function StartBuild()
    local b = {
     rows = {}, index = {}, n = 0,
     sK = {}, sI = {}, sD = {}, top = 1,
     bestEst = -1, bestRow = nil,
     rev = config.RowsRev,
    }
-   b.sK[1] = table.clone(sortedChildren(Explorer.Root))
+   b.sK[1] = table.clone(SortedChildren(Explorer.Root))
    b.sI[1] = 1
    b.sD[1] = 0
    build = b
   end
 
-  local function stepBuild(budget)
+  local function StepBuild(budget)
    local b = build
    local rows, index = b.rows, b.index
    local sK, sI, sD = b.sK, b.sI, b.sD
@@ -8842,7 +8945,7 @@ do
       if child.Real and not child.Loaded then Explorer.LoadChildren(child) end
       top += 1
       b.top = top
-      sK[top] = table.clone(sortedChildren(child))
+      sK[top] = table.clone(SortedChildren(child))
       sI[top] = 1
       sD[top] = depth + 1
      end
@@ -8857,7 +8960,7 @@ do
    return true
   end
 
-  local function finishBuild()
+  local function FinishBuild()
    local b = build
    build = nil
    if b.rev ~= config.RowsRev then
@@ -8868,30 +8971,30 @@ do
    Explorer.RowIndex = b.index
    local br = b.bestRow
    config.TreeWidthRow = br
-   config.TreeWidthBase = br and (br.depth * config.Positions.INDENT + 44 + nameWidth(br.instance) + 60) or 0
+   config.TreeWidthBase = br and (br.depth * config.Positions.INDENT + 44 + NameWidth(br.instance) + 60) or 0
    config.emptyLabel.Visible = (b.n == 0)
    drawDirty = false
    lastDraw = os.clock()
    RefreshTree()
   end
 
-  local function step()
+  local function Step()
    local now = os.clock()
    local game_ = Explorer.Mode == "Game"
-   if next(removeQ) ~= nil then processRemovals() end
-   if addHead <= addN and processAdds(now) then addedSinceDeep = true end
+   if next(removeQ) ~= nil then ProcessRemovals() end
+   if addHead <= addN and ProcessAdds(now) then addedSinceDeep = true end
    if game_ and not config.IsMinimized then
     if now - lastView >= VIEW_NAME_INTERVAL then
      lastView = now
-     viewNames()
+     ViewNames()
     end
     if now - lastBg >= BG_NAME_INTERVAL then
      lastBg = now
-     bgNames()
+     BgNames()
     end
     if now - lastRecon >= RECON_INTERVAL then
      lastRecon = now
-     reconcileStep()
+     ReconcileStep()
     end
    end
    if game_ and showNil and not scanning and now - lastNil >= NIL_INTERVAL then
@@ -8924,10 +9027,10 @@ do
 
    if not build and rowsDirty then
     rowsDirty = false
-    startBuild()
+    StartBuild()
    end
    if build then
-    if stepBuild(BUILD_BUDGET) then finishBuild() end
+    if StepBuild(BUILD_BUDGET) then FinishBuild() end
    elseif drawDirty and now - lastDraw >= DRAW_GAP then
     drawDirty = false
     lastDraw = now
@@ -8935,23 +9038,23 @@ do
    end
   end
 
-  local function loadKids(pv)
+  local function LoadKids(pv)
    if pv.Real and not pv.Loaded then Explorer.LoadChildren(pv) end
   end
 
-  local function workspaceNode()
+  local function WorkspaceNode()
    for _, c in ipairs(gameRoot.Children) do
     if c.Name == "Workspace" then return c end
    end
    return nil
   end
 
-  local function ensureNode(real, pv)
-   if pv == nilRoot then return mirrorOne(real, nilRoot) end
-   loadKids(pv)
+  local function EnsureNode(real, pv)
+   if pv == nilRoot then return MirrorOne(real, nilRoot) end
+   LoadKids(pv)
    local v = realToV[real]
    if v then return v end
-   local ok, name, class = pcall(readInfo, real)
+   local ok, name, class = pcall(ReadInfo, real)
    if not ok then return nil end
    v = setmetatable({
     Name = tostring(name),
@@ -8960,7 +9063,7 @@ do
     Children = {},
     Real = real,
    }, VirtualInstance)
-   sortedInsert(pv, v)
+   SortedInsert(pv, v)
    realToV[real] = v
    return v
   end
@@ -8968,16 +9071,16 @@ do
   local G = {}
   Explorer.Game = G
 
-  function G.isGame(v)
+  function G.IsGame(v)
    return Explorer.Mode == "Game" and v ~= nil and (v.Real ~= nil or v == gameRoot or v == nilRoot)
   end
 
-  function G.create(className, name, pv)
+  function G.Create(className, name, pv)
    if pv == gameRoot then
-    pv = workspaceNode()
+    pv = WorkspaceNode()
     if not pv then return nil end
    end
-   loadKids(pv)
+   LoadKids(pv)
    local ok, real = pcall(Instance.new, className)
    if not ok or not real then return nil end
    pcall(function() real.Name = Explorer.UniqueName(pv, name) end)
@@ -8988,46 +9091,46 @@ do
      return nil
     end
    end
-   return ensureNode(real, pv)
+   return EnsureNode(real, pv)
   end
 
-  function G.destroy(v)
+  function G.Destroy(v)
    if v.Parent == gameRoot then return false end
    local real = v.Real
    if real then
     local ok = pcall(real.Destroy, real)
     if not ok then return false end
    end
-   unregister(v)
+   Unregister(v)
    return true
   end
 
-  function G.rename(v, name)
+  function G.Rename(v, name)
    local ok = pcall(function() v.Real.Name = name end)
    if not ok then return false end
    v.Name = name
    local p = v.Parent
-   if p then reposition(p, v) end
+   if p then Reposition(p, v) end
    return true
   end
 
-  function G.move(src, pv)
+  function G.Move(src, pv)
    local real = src.Real
    if not real or pv == gameRoot then return false end
-   loadKids(pv)
+   LoadKids(pv)
    local ok = pcall(function()
     if pv == nilRoot then real.Parent = nil else real.Parent = pv.Real end
    end)
    if not ok then return false end
    src:SetParent(pv)
-   if pv == nilRoot then unregister(src) else realToV[real] = src end
+   if pv == nilRoot then Unregister(src) else realToV[real] = src end
    return true
   end
 
-  function G.clone(src, pv)
+  function G.Clone(src, pv)
    local real = src.Real
    if not real or pv == gameRoot then return nil end
-   loadKids(pv)
+   LoadKids(pv)
    local ok, c = pcall(real.Clone, real)
    if not ok or not c then return nil end
    pcall(function() c.Name = Explorer.UniqueName(pv, src.Name) end)
@@ -9038,14 +9141,14 @@ do
      return nil
     end
    end
-   return ensureNode(c, pv)
+   return EnsureNode(c, pv)
   end
 
   local gm = cloneref(game)
-  pcall(function() gm.DescendantAdded:Connect(onAdded) end)
-  pcall(function() gm.DescendantRemoving:Connect(onRemoving) end)
+  pcall(function() gm.DescendantAdded:Connect(OnAdded) end)
+  pcall(function() gm.DescendantRemoving:Connect(OnRemoving) end)
   config.SV.RunSrv.Heartbeat:Connect(function()
-   pcall(step)
+   pcall(Step)
   end)
  end
 
@@ -9073,7 +9176,7 @@ task.spawn(function()
 end)
 
 config.window:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
- if config.layoutDocks then config.layoutDocks() end
+ if config.LayoutDocks then config.LayoutDocks() end
 end)
 
 getgenv().Explorer = Explorer
