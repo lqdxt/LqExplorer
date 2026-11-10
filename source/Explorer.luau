@@ -7229,6 +7229,13 @@ do
   return v
  end})
 
+ local kwOpenTag = setmetatable({}, {__index = function(t, c)
+  local v = '<font color="' .. c .. '"><stroke color="' .. c .. '" thickness="0.6" transparency="0.35">'
+  t[c] = v
+  return v
+ end})
+ local KW_CLOSE = "</stroke></font>"
+
  local function highlightWithModule(H, line, state)
   local cc = state ~= nil and state.kind == "comment"
   local cs = state ~= nil and state.kind == "string"
@@ -7238,7 +7245,8 @@ do
   local out = {}
   for k, tok in ipairs(tokens) do
    local c = tok.type ~= "plain" and colors[tok.type] or nil
-   if c then out[k] = openTag[c] .. esc(tok.value) .. "</font>"
+   if c and tok.type == "keyword" then out[k] = kwOpenTag[c] .. esc(tok.value) .. KW_CLOSE
+   elseif c then out[k] = openTag[c] .. esc(tok.value) .. "</font>"
    else out[k] = esc(tok.value) end
   end
   local ns = nil
@@ -7257,7 +7265,8 @@ do
   local out, n, i = {}, #line, 1
   local function push(text, c)
    if text == "" then return end
-   if c then out[#out + 1] = openTag[c] .. esc(text) .. "</font>"
+   if c == C_KEYWORD then out[#out + 1] = kwOpenTag[c] .. esc(text) .. KW_CLOSE
+   elseif c then out[#out + 1] = openTag[c] .. esc(text) .. "</font>"
    else out[#out + 1] = esc(text) end
   end
   if state then
