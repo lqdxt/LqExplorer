@@ -7173,14 +7173,14 @@ function Explorer.GetSource(inst)
   local real = realRef
   local ok, r = pcall(function() return real.Source end)
   if ok and type(r) == "string" and r ~= "" then s = r end
-  if s == nil and decompile then
-   local ok2, r2 = pcall(decompile, real)
-   if ok2 and type(r2) == "string" then s = r2 end
-  end
  end
  if s == nil and Explorer.SourceProvider then
   local ok, r = pcall(Explorer.SourceProvider, inst)
   if ok then s = r end
+ end
+ if s == nil and realRef and decompile then
+  local ok, r = pcall(decompile, realRef)
+  if ok and type(r) == "string" then s = r end
  end
  if s ~= nil and type(s) ~= "string" then s = tostring(s) end
  return s
