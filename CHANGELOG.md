@@ -1,6 +1,15 @@
-Updates almost everyday!
+# Lq Explorer Changelog
 
----
+Updates almost everyday
+
+# Version 1.7
+- Reworked properties scrollbar
+- Long property names now cut off differently
+- Category headers no longer toggle
+- Enum dropdown minor changes
+- Changed split defaults
+- Widened stack splitters since they were very skinny
+
 # Version 1.6
 - Changed SpringConstraint's map position to the right one since it was the same as Decal
 
