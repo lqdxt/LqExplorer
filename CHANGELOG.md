@@ -2,6 +2,10 @@
 
 > Updates almost everyday.
 
+**Version 1.8:**
+- Added selection outlines
+- Added resize handles to 2D and 3D instances
+
 **Version 1.7:**
 - Reworked properties scrollbar
 - Long property names now cut off differently
