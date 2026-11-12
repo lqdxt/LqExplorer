@@ -156,9 +156,9 @@ config.WidenHit = function(thumb, horizontal)
   local ap = thumb.AbsolutePosition - config.window.AbsolutePosition
   local x, y, w, h
   if horizontal then
-   x, y, w, h = ap.X - 10, ap.Y - 28, as.X + 20, as.Y + 28
+   x, y, w, h = ap.X - 10, ap.Y - 28, as.X + 20, as.Y + 28 -- extends UP only
   else
-   x, y, w, h = ap.X - 28, ap.Y - 10, as.X + 28, as.Y + 20
+   x, y, w, h = ap.X - 28, ap.Y - 10, as.X + 28, as.Y + 20 -- extends LeFT only
   end
   hit.Position = UDim2.fromOffset(math.floor(x), math.floor(y))
   hit.Size = UDim2.fromOffset(math.ceil(w), math.ceil(h))
@@ -1772,6 +1772,7 @@ config.close.Parent = config.header
 MakeCloseIcon(config.close, 8, 4, Color3.fromRGB(210, 210, 210))
 
 config.MENU_Z, config.menuGui, config.topbar = nil
+--#module: Topbar.luau
 do
 local MENU_BTN_W, MENU_BTN_H = 96, 32
 local CELL_W, CELL_H, CELL_GAP, BAR_PAD = 76, 66, 4, 8
@@ -2009,6 +2010,7 @@ end
 config.MenuOpen = false
 menubtn.Activated:Connect(function() SetMenuOpen(not config.MenuOpen) end)
 end
+--#endmodule
 
 config.pinbtn = Instance.new("TextButton")
 config.pinbtn.Name = RandomString()
@@ -2142,6 +2144,7 @@ config.insertBtn.ZIndex = 6
 config.insertBtn.Archivable = false
 config.insertBtn.Parent = config.scrolling
 
+--#module: Ring.luau
 do
  local ring = Instance.new("Frame")
  ring.Size = UDim2.new(0, 14, 0, 14)
@@ -2165,6 +2168,7 @@ do
   bar.Parent = config.insertBtn
  end
 end
+--#endmodule
 
 local function PlaceInsertBtn(row, slot)
  local w = config.SV.TextSrv:GetTextSize(row.instance.Name, 21, Enum.Font.SourceSans, Vector2.new(10000, 26)).X
@@ -2417,6 +2421,7 @@ config.LayoutDocks = function()
  if config.LayoutSource then config.LayoutSource() end
 end
 
+--#module: Splitter.luau
 do
  local dragging, startY, startSplit
  config.stackSplitter.InputBegan:Connect(function(inp)
@@ -2437,6 +2442,7 @@ do
   if IsPress(inp) then dragging = false end
  end)
 end
+--#endmodule
 
 local function DropZone(gui, cur)
  local ap, as = gui.AbsolutePosition, gui.AbsoluteSize
@@ -2521,6 +2527,7 @@ MakeResizeHandler(220, 160, "top_right", 1,0, 3-config.EDGE*2, -config.EDGE*2, 0
 MakeResizeHandler(220, 160, "bottom_left", 0,1, -3, 0, 0,0, config.EDGE*2, config.EDGE*2, 9, config.main, function() return config.DockSide ~= nil end, SyncMainResize)
 MakeResizeHandler(220, 160, "bottom_right", 1,1, 3-config.EDGE*2, 0, 0,0, config.EDGE*2, config.EDGE*2, 9, config.main, function() return config.DockSide ~= nil end, SyncMainResize)
 
+--#module: RowDrag.luau
 do
 local Drag = {
  pending = nil, active = false, list = nil, target = nil,
@@ -2815,6 +2822,7 @@ end)
 Drag.CursorOf = DragCursor
 Explorer.Drag = Drag
 end
+--#endmodule
 
 local function CreatePoolEntry(poolIndex)
  local entry = Instance.new("TextButton")
@@ -4991,6 +4999,7 @@ config.SV.UserInput.InputBegan:Connect(function(inp, gpe)
  end
 end)
 
+--#module: Properties.luau
 do
  local ROW = config.ROW_H
 
@@ -7019,7 +7028,9 @@ do
   end
  end)
 end
+--#endmodule
 
+--#module: Viewer.luau
 do
  local VState = {
   RotationX = -0.26, RotationY = 0, Distance = 10,
@@ -7403,6 +7414,7 @@ do
  Explorer.IsViewerOpen = function() return viewerPanel.Visible end
  Explorer.ViewerPanel = viewerPanel
 end
+--#endmodule
 
 function Explorer.DumpFunctions(scr)
 	if scr ~= nil and typeof(scr) ~= "Instance" and type(scr) == "table" then
@@ -7654,6 +7666,7 @@ function Explorer.GetSource(inst)
  return s
 end
 
+--#module: SourceViewer.luau
 do
  local LH, TS, CODE_FONT = 18, 14, Enum.Font.Code
  local CODE_FACE = nil
@@ -7685,7 +7698,7 @@ do
   end
   return w
  end
- local TEXT_PLAIN = Color3.fromRGB(255, 255, 255) -- KEEP IT, LOOKS BAD WHEN GRAY
+ local TEXT_PLAIN = Color3.fromRGB(255, 255, 255) -- KEEP I
 
  local function Esc(s)
   if not s:find("[&<>]") then return s end
@@ -7807,22 +7820,22 @@ do
  hcopy.Parent = hdr
  RoundCorner(hcopy, 0, 6)
 
-local hdump = Instance.new("TextButton")
-hdump.Name = RandomString()
-hdump.Size = UDim2.new(0, 52, 0, 20)
-hdump.Position = UDim2.new(1, -144, 0.5, -10)
-hdump.BackgroundColor3 = config.COLORS.SECONDARY
-hdump.BackgroundTransparency = 0.5
-hdump.AutoButtonColor = true
-hdump.Text = "Dump"
-hdump.TextColor3 = config.COLORS.TEXT_BRIGHT
-hdump.FontFace = config.FONT.GothamMedium
-hdump.TextSize = 11
-hdump.BorderSizePixel = 0
-hdump.ZIndex = 4
-hdump.Archivable = false
-hdump.Parent = hdr
-RoundCorner(hdump, 0, 6)
+ local hdump = Instance.new("TextButton")
+ hdump.Name = RandomString()
+ hdump.Size = UDim2.new(0, 52, 0, 20)
+ hdump.Position = UDim2.new(1, -144, 0.5, -10)
+ hdump.BackgroundColor3 = config.COLORS.SECONDARY
+ hdump.BackgroundTransparency = 0.5
+ hdump.AutoButtonColor = true
+ hdump.Text = "Dump"
+ hdump.TextColor3 = config.COLORS.TEXT_BRIGHT
+ hdump.FontFace = config.FONT.GothamMedium
+ hdump.TextSize = 11
+ hdump.BorderSizePixel = 0
+ hdump.ZIndex = 4
+ hdump.Archivable = false
+ hdump.Parent = hdr
+ RoundCorner(hdump, 0, 6)
 
  local function MakeZoomBtn(xOff, imageName)
   local b = Instance.new("ImageButton")
@@ -8555,7 +8568,9 @@ RoundCorner(hdump, 0, 6)
   if ok and type(mod) == "table" then Explorer.SetHighlighter(mod) end
  end)
 end
+--#endmodule
 
+--#module: Game.luau
 do
  local Services = {
   "Workspace",
@@ -9200,6 +9215,9 @@ do
    end
   end
 
+  -- sK[top] = children array at this depth
+  -- sI[top] = next index into that array
+  -- sD[top] = depth
   local function StartBuild()
    local b = {
     rows = {}, index = {}, n = 0,
@@ -9456,6 +9474,7 @@ do
   end
  end)
 end
+--#endmodule
 
 for _, v in ipairs(config.folder:GetDescendants()) do
  if v.RobloxLocked == false then v.RobloxLocked = true end
