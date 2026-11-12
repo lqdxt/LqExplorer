@@ -7685,7 +7685,7 @@ do
   end
   return w
  end
- local TEXT_PLAIN = Color3.fromRGB(255, 255, 255) -- KEEP I
+ local TEXT_PLAIN = Color3.fromRGB(255, 255, 255) -- KEEP IT, LOOKS BAD WHEN GRAY
 
  local function Esc(s)
   if not s:find("[&<>]") then return s end
