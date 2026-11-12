@@ -1363,7 +1363,7 @@ Explorer.AddDropdown = function(builder, opts)
    if item.kind == "Options" then
     local chev = Instance.new("ImageLabel")
     chev.Name = RandomString()
-    chev.Size = UDim2.new(0, 16, 0, 16)
+    chev.Size = UDim2.new(0, 10, 0, 10)
     chev.AnchorPoint = Vector2.new(0.5, 0.5)
     chev.Position = UDim2.new(1, -14, 0.5, 0)
     chev.BackgroundTransparency = 1
@@ -2845,14 +2845,26 @@ local function CreatePoolEntry(poolIndex)
 
  local toggle = Instance.new("ImageButton")
  toggle.Name = RandomString()
- toggle.Size = UDim2.new(0, 16, 0, 16)
+ toggle.Size = UDim2.new(0, 20, 0, 20)
  toggle.BackgroundTransparency = 1
- toggle.Image = config.IMG.Caret
+ toggle.Image = ""
  toggle.ZIndex = 5
  toggle.Active = true
  toggle.AutoButtonColor = false
  toggle.Archivable = false
  toggle.Parent = config.scrolling
+
+ local toggleIcon = Instance.new("ImageLabel")
+ toggleIcon.Name = RandomString()
+ toggleIcon.Size = UDim2.new(0, 10, 0, 10)
+ toggleIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+ toggleIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+ toggleIcon.BackgroundTransparency = 1
+ toggleIcon.Image = config.IMG.Caret
+ toggleIcon.ZIndex = 5
+ toggleIcon.Active = false
+ toggleIcon.Archivable = false
+ toggleIcon.Parent = toggle
 
  local icon = Instance.new("ImageLabel")
  icon.Name = RandomString()
@@ -3681,7 +3693,7 @@ function RefreshTree()
    local isSelected = Explorer.SelectedSet[inst] == true
    data.highlighted = isHighlighted
 
-   e.toggle.Position = UDim2.new(0, config.Positions.ARROW_X - 4 + indentation - config.ScrollHOffset, 0, (i-0.8)*config.ROW_H + (config.ROW_H-26)/2)
+   e.toggle.Position = UDim2.new(0, config.Positions.ARROW_X - 6 + indentation - config.ScrollHOffset, 0, (i-1)*config.ROW_H + (config.ROW_H-20)/2)
    e.toggle.Visible = hasKids
    e.toggle.Rotation = row.expanded and 90 or 0
 
@@ -5741,7 +5753,7 @@ do
   BorderStroke(b, 1, 24, 24, 27)
   local c = Instance.new("ImageLabel")
   c.Name = RandomString()
-  c.Size = UDim2.new(0, 16, 0, 16)
+  c.Size = UDim2.new(0, 10, 0, 10)
   c.AnchorPoint = Vector2.new(0.5, 0.5)
   c.Position = UDim2.new(0.5, 0, 0.5, 0)
   c.BackgroundTransparency = 1
@@ -6056,7 +6068,7 @@ do
 
   local arrow = Instance.new("ImageButton")
   arrow.Name = RandomString()
-  arrow.Size = UDim2.new(0, 16, 0, 16)
+  arrow.Size = UDim2.new(0, 10, 0, 10)
   arrow.BackgroundTransparency = 1
   arrow.Image = config.IMG.Caret
   arrow.AutoButtonColor = false
@@ -6142,7 +6154,7 @@ do
 
   local chev = Instance.new("ImageLabel")
   chev.Name = RandomString()
-  chev.Size = UDim2.new(0, 16, 0, 16)
+  chev.Size = UDim2.new(0, 10, 0, 10)
   chev.BackgroundTransparency = 1
   chev.Image = config.IMG.Caret
   chev.Rotation = 90
@@ -6338,7 +6350,7 @@ do
   local indent = d.sub and 16 or 0
   if d.expandable then
    r.arrow.Visible = true
-   r.arrow.Position = UDim2.new(0, 4 + indent, 0.5, -8)
+   r.arrow.Position = UDim2.new(0, 4 + indent, 0.5, -5)
    r.arrow.Rotation = d.expanded and 90 or 0
   end
   local nameAvail = math.max(10, nameW - 28 - indent)
@@ -6395,7 +6407,7 @@ do
     r.hit.Position = UDim2.new(0, vx, 0, 0)
     r.hit.Size = UDim2.new(0, vw, 1, 0)
     r.chev.Visible = true
-    r.chev.Position = UDim2.new(0, vx + vw - 18, 0.5, -8)
+    r.chev.Position = UDim2.new(0, vx + vw - 12, 0.5, -5)
    end
   elseif editable and EDITABLE[t] then
    r.value.TextEditable = true
