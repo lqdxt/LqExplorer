@@ -1,5 +1,5 @@
-# Lq Explorer: New Gen Explorer
-Like Roblox Studio's latest explorer design: New Gen Explorer.
+# Lq Explorer: Next Gen Explorer
+Like Roblox Studio's latest explorer design: Next Gen Explorer.
 
 This is NOT a revival of `Dex`, completely different project.
 
