@@ -354,13 +354,13 @@ Explorer = {
   local base = "https://raw.githubusercontent.com/lqdxt/LqExplorer/main/images/"
   local function Img(file) return { Url = base .. file, File = file } end
   return {
-   ClassIcons = Img("IconMap.png"),
-   Caret = Img("Caret.png"), -- faces right
-   Options = Img("Options.png"),
-   History = Img("History.png"),
-   Rotation = Img("Rotation.png"),
-   ZoomIn = Img("ZoomIn.png"),
-   ZoomOut = Img("ZoomOut.png"),
+   ClassIcons = Img("studio-icon-map.png"),
+   Caret = Img("caret-small-right.png"),
+   Options = Img("three-dots-horizontal.png"),
+   History = Img("clock-spin-reverse.png"),
+   Rotation = Img("arrow-spin-counter-clockwise.png"),
+   ZoomIn = Img("magnifying-glass-plus.png"),
+   ZoomOut = Img("magnifying-glass-minus.png"),
   }
  end)(),
  OnSelectCb = nil,
@@ -6465,8 +6465,292 @@ do
   RefreshList()
  end
 
+
+ config.activeGuiOutline = nil
+ config.activePartHighlight = nil
+
+ -- separate ScreenGui drawn BELOW the explorer window so outlines/handles never cover it
+ local function GetOutlineLayer()
+  local layer = config.outlineLayer
+  if layer and layer.Parent then return layer end
+  layer = Instance.new("ScreenGui")
+  layer.Name = RandomString()
+  layer.ResetOnSpawn = false
+  layer.IgnoreGuiInset = true
+  layer.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+  layer.DisplayOrder = (config.window.DisplayOrder or 0) - 1
+  layer.Archivable = false
+  layer.ClipToDeviceSafeArea = config.window.ClipToDeviceSafeArea
+  layer.Parent = config.folder
+  config.outlineLayer = layer
+  return layer
+ end
+
+ local function CreateGuiOutline(inst, onUpdate)
+  local WHITE = Color3.fromRGB(255, 255, 255)
+  local HANDLE_SIZE = 8
+  local outline = Instance.new("Frame")
+  outline.Name = RandomString()
+  outline.BackgroundTransparency = 1
+  outline.BorderSizePixel = 0
+  outline.ZIndex = 1000
+  outline.Archivable = false
+  outline.Parent = GetOutlineLayer()
+
+  local function makeLine(pos, size)
+   local l = Instance.new("Frame")
+   l.BackgroundColor3 = WHITE
+   l.BorderSizePixel = 0
+   l.Position = pos
+   l.Size = size
+   l.ZIndex = 1001
+   l.Archivable = false
+   l.Parent = outline
+   return l
+  end
+
+  makeLine(UDim2.new(0, -1, 0, -1), UDim2.new(1, 2, 0, 2))
+  makeLine(UDim2.new(0, -1, 1, -1), UDim2.new(1, 2, 0, 2))
+  makeLine(UDim2.new(0, -1, 0, -1), UDim2.new(0, 2, 1, 2))
+  makeLine(UDim2.new(1, -1, 0, -1), UDim2.new(0, 2, 1, 2))
+
+  local liveConnections = {}
+
+  local function clearLive()
+   for _, c in ipairs(liveConnections) do c:Disconnect() end
+   table.clear(liveConnections)
+  end
+
+  local okSize, absSz = pcall(function() return inst.AbsoluteSize end)
+  local objW, objH = (okSize and absSz.X) or 100, (okSize and absSz.Y) or 100
+  local THICK = math.max(4, math.min(14, math.floor(math.min(objW, objH) / 3)))
+
+  local dragCatcher = Instance.new("Frame")
+  dragCatcher.Name = RandomString()
+  dragCatcher.Position = UDim2.new(0, THICK, 0, THICK)
+  dragCatcher.Size = UDim2.new(1, -THICK * 2, 1, -THICK * 2)
+  dragCatcher.BackgroundTransparency = 1
+  dragCatcher.ZIndex = 999
+  dragCatcher.Active = true
+  dragCatcher.Archivable = false
+  dragCatcher.Parent = outline
+
+  dragCatcher.InputBegan:Connect(function(io)
+   if #liveConnections > 0 then return end
+   if io.UserInputType ~= Enum.UserInputType.MouseButton1 and io.UserInputType ~= Enum.UserInputType.Touch then return end
+   local ok, startPos = pcall(function() return inst.Position end)
+   if not ok then return end
+   local startMouse = Vector2.new(io.Position.X, io.Position.Y)
+
+   table.insert(liveConnections, config.SV.UserInput.InputChanged:Connect(function(io2)
+    if io2.UserInputType ~= Enum.UserInputType.MouseMovement and io2.UserInputType ~= Enum.UserInputType.Touch then return end
+    local delta = Vector2.new(io2.Position.X, io2.Position.Y) - startMouse
+    pcall(function()
+     inst.Position = UDim2.new(
+      startPos.X.Scale, RoundPx(startPos.X.Offset + delta.X),
+      startPos.Y.Scale, RoundPx(startPos.Y.Offset + delta.Y)
+     )
+    end)
+    if onUpdate then onUpdate() end
+   end))
+
+   table.insert(liveConnections, config.SV.UserInput.InputEnded:Connect(function(io2)
+    if io2.UserInputType == Enum.UserInputType.MouseButton1 or io2.UserInputType == Enum.UserInputType.Touch then
+     clearLive()
+    end
+   end))
+  end)
+
+  config.SV.UserInput.WindowFocusReleased:Connect(clearLive)
+
+  local function makeHandle(edgeX, edgeY, pos, zIndexBase)
+   local isEdgeOnly = (edgeX == 0 or edgeY == 0)
+
+   local hitZone = Instance.new("Frame")
+   hitZone.Name = RandomString()
+   hitZone.AnchorPoint = Vector2.new(0.5, 0.5)
+   hitZone.Position = pos
+   if edgeX == 0 then
+    hitZone.Size = UDim2.new(1, -THICK * 2, 0, THICK)
+   elseif edgeY == 0 then
+    hitZone.Size = UDim2.new(0, THICK, 1, -THICK * 2)
+   else
+    hitZone.Size = UDim2.new(0, THICK, 0, THICK)
+   end
+   hitZone.BackgroundTransparency = 1
+   hitZone.ZIndex = zIndexBase
+   hitZone.Active = true
+   hitZone.Archivable = false
+   hitZone.Parent = outline
+
+   local h = Instance.new("Frame")
+   h.Name = RandomString()
+   h.AnchorPoint = Vector2.new(0.5, 0.5)
+   h.Position = pos
+   h.Size = UDim2.new(0, HANDLE_SIZE, 0, HANDLE_SIZE)
+   h.BackgroundColor3 = WHITE
+   h.BorderSizePixel = 0
+   h.ZIndex = 1004
+   h.Active = false
+   h.Archivable = false
+   h.Parent = outline
+
+   local hStroke = Instance.new("UIStroke")
+   hStroke.Color = Color3.fromRGB(0, 0, 0)
+   hStroke.Thickness = 1
+   hStroke.Archivable = false
+   hStroke.Parent = h
+
+
+   hitZone.InputBegan:Connect(function(io)
+    if #liveConnections > 0 then return end
+    if io.UserInputType ~= Enum.UserInputType.MouseButton1 and io.UserInputType ~= Enum.UserInputType.Touch then return end
+
+    local ok1, startSize = pcall(function() return inst.Size end)
+    local ok2, startPos = pcall(function() return inst.Position end)
+    local ok3, anchor = pcall(function() return inst.AnchorPoint end)
+    local ok4, startAbsSize = pcall(function() return inst.AbsoluteSize end)
+    local ok5, startAbsPos = pcall(function() return inst.AbsolutePosition end)
+    local ok6, parentAbsSize = pcall(function() return inst.Parent.AbsoluteSize end)
+    local ok7, parentAbsPos = pcall(function() return inst.Parent.AbsolutePosition end)
+    if not (ok1 and ok2 and ok3 and ok4 and ok5 and ok6 and ok7) then return end
+
+    local startMouse = Vector2.new(io.Position.X, io.Position.Y)
+    local startAbsRight = startAbsPos.X + startAbsSize.X
+    local startAbsBottom = startAbsPos.Y + startAbsSize.Y
+
+    table.insert(liveConnections, config.SV.UserInput.InputChanged:Connect(function(io2)
+     if io2.UserInputType ~= Enum.UserInputType.MouseMovement and io2.UserInputType ~= Enum.UserInputType.Touch then return end
+     local delta = Vector2.new(io2.Position.X, io2.Position.Y) - startMouse
+
+     local newSizeXOffset, newPosXOffset
+     local newSizeYOffset, newPosYOffset
+
+     if edgeX ~= 0 then
+      local rawX = startAbsSize.X + delta.X * edgeX
+      local clampedX = math.max(4, rawX)
+      local dsx = clampedX - startAbsSize.X
+      local originShiftX = (edgeX == -1) and -dsx or 0
+      newSizeXOffset = RoundPx(startSize.X.Offset + dsx)
+      newPosXOffset = RoundPx(startPos.X.Offset + originShiftX + anchor.X * dsx)
+     end
+
+     if edgeY ~= 0 then
+      local rawY = startAbsSize.Y + delta.Y * edgeY
+      local clampedY = math.max(4, rawY)
+      local dsy = clampedY - startAbsSize.Y
+      local originShiftY = (edgeY == -1) and -dsy or 0
+      newSizeYOffset = RoundPx(startSize.Y.Offset + dsy)
+      newPosYOffset = RoundPx(startPos.Y.Offset + originShiftY + anchor.Y * dsy)
+     end
+
+     pcall(function()
+      if newSizeXOffset then
+       inst.Size = UDim2.new(startSize.X.Scale, newSizeXOffset, inst.Size.Y.Scale, inst.Size.Y.Offset)
+       inst.Position = UDim2.new(startPos.X.Scale, newPosXOffset, inst.Position.Y.Scale, inst.Position.Y.Offset)
+      end
+      if newSizeYOffset then
+       inst.Size = UDim2.new(inst.Size.X.Scale, inst.Size.X.Offset, startSize.Y.Scale, newSizeYOffset)
+       inst.Position = UDim2.new(inst.Position.X.Scale, inst.Position.X.Offset, startPos.Y.Scale, newPosYOffset)
+      end
+     end)
+     if onUpdate then onUpdate() end
+    end))
+
+    table.insert(liveConnections, config.SV.UserInput.InputEnded:Connect(function(io2)
+     if io2.UserInputType == Enum.UserInputType.MouseButton1 or io2.UserInputType == Enum.UserInputType.Touch then
+      clearLive()
+     end
+    end))
+   end)
+
+   hitZone.MouseEnter:Connect(function() h.Size = UDim2.new(0, HANDLE_SIZE + 2, 0, HANDLE_SIZE + 2) end)
+   hitZone.MouseLeave:Connect(function() h.Size = UDim2.new(0, HANDLE_SIZE, 0, HANDLE_SIZE) end)
+  end
+
+  makeHandle(0, -1, UDim2.new(0.5, 0, 0, 0), 1002)
+  makeHandle(0, 1, UDim2.new(0.5, 0, 1, 0), 1002)
+  makeHandle(-1, 0, UDim2.new(0, 0, 0.5, 0), 1002)
+  makeHandle(1, 0, UDim2.new(1, 0, 0.5, 0), 1002)
+
+  makeHandle(-1, -1, UDim2.new(0, 0, 0, 0), 1003)
+  makeHandle(1, -1, UDim2.new(1, 0, 0, 0), 1003)
+  makeHandle(-1, 1, UDim2.new(0, 0, 1, 0), 1003)
+  makeHandle(1, 1, UDim2.new(1, 0, 1, 0), 1003)
+
+  return outline, liveConnections
+ end
+
+ local function ClearSelectionVisuals()
+  if config.activeGuiOutline then
+   if config.activeGuiOutline.posCon then config.activeGuiOutline.posCon:Disconnect() end
+   if config.activeGuiOutline.sizeCon then config.activeGuiOutline.sizeCon:Disconnect() end
+   if config.activeGuiOutline.handleConnections then
+    for _, c in ipairs(config.activeGuiOutline.handleConnections) do c:Disconnect() end
+   end
+   pcall(function() config.activeGuiOutline.frame:Destroy() end)
+   config.activeGuiOutline = nil
+  end
+  if config.activePartHighlight then
+   pcall(function() config.activePartHighlight:Destroy() end)
+   config.activePartHighlight = nil
+  end
+ end
+
+ local function ShowSelectionVisual(inst)
+  ClearSelectionVisuals()
+  if not inst then return end
+  local okR, real = pcall(function() return inst.Real end)
+  if okR and real then inst = real end
+  if typeof(inst) ~= "Instance" then return end
+
+  local isGui = false
+  pcall(function() isGui = inst:IsA("GuiObject") end)
+  local isPV = false
+  pcall(function() isPV = inst:IsA("PVInstance") end)
+
+  if isGui then
+   local outlineFrame, handleConnections
+   local function updatePos()
+    local fn, absPos = pcall(function() return inst.AbsolutePosition end)
+    local ok, absSize = pcall(function() return inst.AbsoluteSize end)
+    if not (fn and ok) then return end
+    local parentAbs = Vector2.new(0, 0)
+    pcall(function() parentAbs = outlineFrame.Parent.AbsolutePosition end)
+    outlineFrame.Position = UDim2.new(0, absPos.X - parentAbs.X, 0, absPos.Y - parentAbs.Y)
+    outlineFrame.Size = UDim2.new(0, absSize.X, 0, absSize.Y)
+   end
+   outlineFrame, handleConnections = CreateGuiOutline(inst, updatePos)
+   updatePos()
+
+   local posCon, sizeCon
+   pcall(function() posCon = inst:GetPropertyChangedSignal("AbsolutePosition"):Connect(updatePos) end)
+   pcall(function() sizeCon = inst:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePos) end)
+
+   config.activeGuiOutline = { frame = outlineFrame, posCon = posCon, sizeCon = sizeCon, handleConnections = handleConnections }
+  elseif isPV then
+   local box = Instance.new("SelectionBox")
+   box.LineThickness = 0.05
+   box.Color3 = Color3.fromRGB(0, 170, 255)
+   box.Archivable = false
+   local adorn = pcall(function() box.Adornee = inst end)
+   if adorn then
+    box.Parent = config.folder
+    config.activePartHighlight = box
+   else
+    pcall(function() box:Destroy() end)
+   end
+  end
+ end
+
+ function Explorer.UpdateSelectionVisual()
+  ShowSelectionVisual(Explorer.Selected)
+ end
+
+
  Explorer.PropsOnSelect = function()
   if P.Inst ~= Explorer.Selected then P.Scroll = 0 end
+  Explorer.UpdateSelectionVisual()
   Explorer.RefreshProperties()
  end
 
