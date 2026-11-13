@@ -34,3 +34,6 @@
 **Version 1.1:**
 - Fixed a few critical bugs
 - Improved instance dragging
+
+**Version 1.0:**
+- Release
