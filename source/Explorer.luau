@@ -1,4 +1,5 @@
 local config = {
+ window = nil,
  ROW_H = 25,
  ScrollIndex = 0,
  ScrollHOffset = 0,
@@ -26,6 +27,101 @@ local config = {
  pooldata = {},
  visiblerows = {},
  guideLines = {},
+ ServiceCache = {},
+ SV = nil,
+ Frame = 0,
+ LastPressFrame = -1,
+ Fresh = nil,
+ WidenHit = nil,
+ Held = nil,
+ COLORS = nil,
+ FONT = nil,
+ LAZY_TABLES = nil,
+ Root = nil,
+ NATURAL_SORT = false,
+ CLASS_PRIORITY = nil,
+ Positions = nil,
+ AssetCache = {},
+ IMG = {},
+ ICON_ID = nil,
+ ICON_SIZE = nil,
+ ICONS = nil,
+ ADBP = nil,
+ main = nil,
+ docksplitter = nil,
+ LayoutSource = nil,
+ PDock = nil,
+ folder = nil,
+ DT = 1,
+ WinOrder = {},
+ header = nil,
+ separator = nil,
+ searchRow = nil,
+ searchbar = nil,
+ threedotmenu = nil,
+ colonimage = nil,
+ SearchHistory = {},
+ historybtn = nil,
+ clearbtn = nil,
+ historyDropdown = nil,
+ accent = nil,
+ title = nil,
+ close = nil,
+ MENU_Z = 60,
+ menuGui = nil,
+ topbar = nil,
+ SetPropertiesActive = nil,
+ MenuOpen = nil,
+ pinbtn = nil,
+ body = nil,
+ scrolling = nil,
+ vbar = nil,
+ vthumb = nil,
+ vvis = nil,
+ hbar = nil,
+ hthumb = nil,
+ hvis = nil,
+ emptyLabel = nil,
+ insertBtn = nil,
+ dockHint = nil,
+ stackSplitter = nil,
+ LayoutDocks = nil,
+ HoverInst = nil,
+ InsertTarget = nil,
+ SUBCLASS = nil,
+ LCLS = {},
+ PredMeta = nil,
+ PredCounter = 0,
+ RowsRev = 0,
+ TreeWidthBase = nil,
+ TreeWidthRow = nil,
+ searchOptionsDropdown = nil,
+ searchToken = 0,
+ SearchAppliedText = nil,
+ contextItems = {},
+ contextDropdown = nil,
+ MenuTime = nil,
+ InsertConns = nil,
+ InsertMenu = nil,
+ INSERT_CLASSES = {},
+ OverInsert = false,
+ pmain = nil,
+ pdocksplitter = nil,
+ activeGuiOutline = nil,
+ activePartVisuals = nil,
+ MaxResizeHandles = 25,
+ MaxSelectionBoxes = 100,
+ ResizeIncrement = 1,
+ ResizeFineIncrement = 0.1,
+ ResizeMinSize = 0.05,
+ ResizeMaxSize = 2048,
+ ResizeColor = nil,
+ outlineLayer = nil,
+ SCRIPT_CLASSES = nil,
+ srcOpen = false,
+ ReloadSource = nil,
+ settingsDropdown = nil,
+ OnMenuToggle = nil,
 }
 
 local function MakeFolder(tree)
@@ -57,11 +153,12 @@ local function GetService(name)
  return nil
 end
 
+
 cloneref = cloneref or function(ref)
  if not getreg then return ref end
- 
+
  local InstanceList
- 
+
  local a = Instance.new("Part")
  for _, c in pairs(getreg()) do
   if type(c) == "table" and #c then
@@ -250,7 +347,7 @@ function VirtualInstance:SetParent(parent)
  if old then
   local ch = old.Children
   for i = #ch, 1, -1 do
-   if ch[i] == self then table.remove(ch, i) break end
+   if ch[i] == self then table.remove(ch, i); break end
   end
   old._sorted = nil
  end
@@ -320,7 +417,7 @@ local function SortedChildren(inst)
   local ok, prev = true, nil
   for i = 1, n do
    local k = RefreshKey(cache[i])
-   if prev and k < prev then ok = false break end
+   if prev and k < prev then ok = false; break end
    prev = k
   end
   if ok then return cache end
@@ -1114,7 +1211,7 @@ config.window:GetPropertyChangedSignal("AbsoluteSize"):Connect(ApplyResponsiveWi
 config.WinOrder = {}
 local function BringToFront(w)
  for i, v in ipairs(config.WinOrder) do
-  if v == w then table.remove(config.WinOrder, i) break end
+  if v == w then table.remove(config.WinOrder, i); break end
  end
  table.insert(config.WinOrder, w)
  for i, v in ipairs(config.WinOrder) do v.ZIndex = 1 + i end
@@ -1363,7 +1460,7 @@ Explorer.AddDropdown = function(builder, opts)
    if item.kind == "Options" then
     local chev = Instance.new("ImageLabel")
     chev.Name = RandomString()
-    chev.Size = UDim2.new(0, 10, 0, 10)
+    chev.Size = UDim2.new(0, 9, 0, 9)
     chev.AnchorPoint = Vector2.new(0.5, 0.5)
     chev.Position = UDim2.new(1, -14, 0.5, 0)
     chev.BackgroundTransparency = 1
@@ -1548,7 +1645,7 @@ Explorer.AddDropdown = function(builder, opts)
   return self
  end
 
- function handle:Close() Close() return self end
+ function handle:Close() Close(); return self end
  function handle:Toggle(x, y)
   if handle.Frame then Close() else self:Open(x, y) end
   return self
@@ -1558,10 +1655,10 @@ Explorer.AddDropdown = function(builder, opts)
   return self
  end
  function handle:Refresh()
-  if handle.Frame then Build() Render() end
+  if handle.Frame then Build(); Render() end
   return self
  end
- function handle:Destroy() Close() return self end
+ function handle:Destroy() Close(); return self end
 
  return handle
 end
@@ -1969,9 +2066,9 @@ local function MakeMenuCell(index, labelText, buildIcon)
    cell.BackgroundTransparency = 1
   end
  end
- cell.MouseEnter:Connect(function() hover = true Paint() end)
- cell.MouseLeave:Connect(function() hover = false Paint() end)
- return cell, function(on) active = on and true or false Paint() end
+ cell.MouseEnter:Connect(function() hover = true; Paint() end)
+ cell.MouseLeave:Connect(function() hover = false; Paint() end)
+ return cell, function(on) active = on and true or false; Paint() end
 end
 
 local explorerbtn, setExplorerActive = MakeMenuCell(1, "Explorer", BuildExplorerIcon)
@@ -2198,10 +2295,10 @@ local function MakeDraggable(panel, handle, opts)
  config.SV.UserInput.InputChanged:Connect(function(inp)
   if not state.Dragging then return end
   if not config.Held(inp) then
-  	state.Dragging = false
-  	state.activeInput = nil
-  	if opts.OnEnd then opts.OnEnd(state.didDrag, state.cursor) end
-  	return
+   state.Dragging = false
+   state.activeInput = nil
+   if opts.OnEnd then opts.OnEnd(state.didDrag, state.cursor) end
+   return
   end
   local ai = state.activeInput
   if inp ~= ai and not (inp.UserInputType == Enum.UserInputType.MouseMovement and ai.UserInputType == Enum.UserInputType.MouseButton1) then return end
@@ -2274,10 +2371,10 @@ local function MakeResizeHandler(min_w, min_h, edge, xS, yS, xO, yO, wS, hS, wO,
   movCon = config.SV.UserInput.InputChanged:Connect(function(i)
    if not Explorer.PanelResizing[window] then return end
    if not config.Held(i) then
-   	if relCon then relCon:Disconnect() end
-   	if movCon then movCon:Disconnect() end
-   	Explorer.PanelResizing[window] = nil
-   	return
+    if relCon then relCon:Disconnect() end
+    if movCon then movCon:Disconnect() end
+    Explorer.PanelResizing[window] = nil
+    return
    end
    if i.UserInputType ~= Enum.UserInputType.MouseMovement and i.UserInputType ~= Enum.UserInputType.Touch then return end
 
@@ -2433,7 +2530,7 @@ do
  end)
  config.SV.UserInput.InputChanged:Connect(function(inp)
   if not dragging then return end
-  if not config.Held(inp) then dragging = false return end
+  if not config.Held(inp) then dragging = false; return end
   if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
   config.PDock.Split = startSplit + (inp.Position.Y - startY)
   config.LayoutDocks()
@@ -2478,7 +2575,7 @@ local function ResolveDrop(dragged, other, otherSide, otherVisible, cur)
 end
 
 local function ShowHint(dragged, other, side, zone)
- if not side then config.dockHint.Visible = false return end
+ if not side then config.dockHint.Visible = false; return end
  local scr = config.window.AbsoluteSize
  if zone and other then
   local ap, as = other.AbsolutePosition, other.AbsoluteSize
@@ -2657,7 +2754,7 @@ local function DragTopLevel(list)
  for _, i in ipairs(list) do
   local cur, nested = i.Parent, false
   while cur do
-   if set[cur] then nested = true break end
+   if set[cur] then nested = true; break end
    cur = cur.Parent
   end
   if not nested and i.Parent ~= Explorer.Root then out[#out + 1] = i end
@@ -2717,7 +2814,7 @@ local function DragStop()
  Drag.grab = nil
  dragGhost.Visible = false
  dropHL.Visible = false
- if Drag.hb then Drag.hb:Disconnect() Drag.hb = nil end
+ if Drag.hb then Drag.hb:Disconnect(); Drag.hb = nil end
 end
 
 local function DragBegin()
@@ -2729,7 +2826,7 @@ local function DragBegin()
   list = DragTopLevel({ inst })
   if #list > 0 then Explorer.SetSelection(list, inst) end
  end
- if #list == 0 then Drag.pending = nil return end
+ if #list == 0 then Drag.pending = nil; return end
  Drag.list = list
  Drag.active = true
  if Explorer.CloseContextMenu then pcall(Explorer.CloseContextMenu) end
@@ -2790,7 +2887,7 @@ config.SV.UserInput.InputChanged:Connect(function(inp)
  end
  DragUpdate()
  end)
- if not okc then DragWarn("move", errc) DragStop() end
+ if not okc then DragWarn("move", errc); DragStop() end
 end)
 
 config.SV.UserInput.InputEnded:Connect(function(inp)
@@ -2864,7 +2961,7 @@ local function CreatePoolEntry(poolIndex)
 
  local toggleIcon = Instance.new("ImageLabel")
  toggleIcon.Name = RandomString()
- toggleIcon.Size = UDim2.new(0, 10, 0, 10)
+ toggleIcon.Size = UDim2.new(0, 9, 0, 9)
  toggleIcon.AnchorPoint = Vector2.new(0.5, 0.5)
  toggleIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
  toggleIcon.BackgroundTransparency = 1
@@ -2975,7 +3072,7 @@ local function CreatePoolEntry(poolIndex)
     rowWidth = entry.AbsoluteSize.X,
     grabY = Explorer.Drag.anchor and (Explorer.Drag.anchor.Y - entry.AbsolutePosition.Y) or (config.ROW_H / 2),
     CancelHold = function()
-     if holdThread then task.cancel(holdThread) holdThread = nil end
+     if holdThread then task.cancel(holdThread); holdThread = nil end
     end,
    }
    Explorer.Drag.startPos = Vector2.new(inp.Position.X, inp.Position.Y)
@@ -3001,7 +3098,7 @@ local function CreatePoolEntry(poolIndex)
 
  entry.InputEnded:Connect(function(inp)
   if inp.UserInputType ~= Enum.UserInputType.MouseButton1 and inp.UserInputType ~= Enum.UserInputType.Touch then return end
-  if holdThread then task.cancel(holdThread) holdThread = nil end
+  if holdThread then task.cancel(holdThread); holdThread = nil end
  end)
 
  toggle.MouseButton1Down:Connect(function()
@@ -3089,7 +3186,7 @@ config.SUBCLASS = {
 config.LCLS = {}
 local function Lcls(c)
  local l = config.LCLS[c]
- if not l then l = c:lower() config.LCLS[c] = l end
+ if not l then l = c:lower(); config.LCLS[c] = l end
  return l
 end
 
@@ -3150,9 +3247,9 @@ local function Tokenize(str)
   local ch = str:sub(i, i)
   if ch == '"' then
    inQ = not inQ
-   cn += 1 cur[cn] = ch
+   cn += 1; cur[cn] = ch
   elseif inQ then
-   cn += 1 cur[cn] = ch
+   cn += 1; cur[cn] = ch
   elseif ch == "(" or ch == ")" then
    Push()
    n += 1
@@ -3160,7 +3257,7 @@ local function Tokenize(str)
   elseif ch:match("%s") then
    Push()
   else
-   cn += 1 cur[cn] = ch
+   cn += 1; cur[cn] = ch
   end
  end
  Push()
@@ -3186,7 +3283,7 @@ local function MakeGetter(key)
     if v ~= nil then return v end
    end
    for pk, pv in pairs(props) do
-    if tostring(pk):lower() == k then pKey = pk return pv end
+    if tostring(pk):lower() == k then pKey = pk; return pv end
    end
   end
   local attrs = rawget(inst, "Attributes")
@@ -3196,7 +3293,7 @@ local function MakeGetter(key)
     if v ~= nil then return v end
    end
    for ak, av in pairs(attrs) do
-    if tostring(ak):lower() == k then aKey = ak return av end
+    if tostring(ak):lower() == k then aKey = ak; return av end
    end
   end
   return nil
@@ -3244,7 +3341,7 @@ local function MakeAtom(t)
    return TagPred(function(inst)
     local cn = inst.ClassName
     local r = memo[cn]
-    if r == nil then r = IsA(inst, rest) memo[cn] = r end
+    if r == nil then r = IsA(inst, rest); memo[cn] = r end
     return r
    end, 1, true)
   elseif p == "tag" then
@@ -3476,7 +3573,7 @@ function Explorer.ScanTree()
   local kids = inst.Children
   for i = 1, #kids do
    local c = kids[i]
-   if Matches(c) or IsAncestorOfMatch(c) then a = true break end
+   if Matches(c) or IsAncestorOfMatch(c) then a = true; break end
   end
   ancMemo[inst] = a
   return a
@@ -3543,7 +3640,7 @@ local function AppendSubtree(out, inst, depth)
   local expanded = Expanded[child] == true
   n += 1
   out[n] = { instance = child, depth = depth, expanded = expanded, searchLeaf = false, match = false }
-  if expanded then AppendSubtree(out, child, depth + 1) n = #out end
+  if expanded then AppendSubtree(out, child, depth + 1); n = #out end
  end
 end
 
@@ -3673,7 +3770,7 @@ function RefreshTree()
     if config.ShowHierarchyHighlights then
      local cur = inst.Parent
      while cur do
-      if Explorer.SelectedSet[cur] then isDesc = true break end
+      if Explorer.SelectedSet[cur] then isDesc = true; break end
       cur = cur.Parent
      end
     end
@@ -3797,7 +3894,7 @@ function RefreshTree()
   for d = 0, firstRow.depth - 1 do
    stackTop += 1
    local slot = runStack[stackTop]
-   if not slot then slot = {} runStack[stackTop] = slot end
+   if not slot then slot = {}; runStack[stackTop] = slot end
    slot.depth, slot.startIdx = d, 0
   end
  end
@@ -3814,7 +3911,7 @@ function RefreshTree()
    if row.expanded then
     stackTop += 1
     local slot = runStack[stackTop]
-    if not slot then slot = {} runStack[stackTop] = slot end
+    if not slot then slot = {}; runStack[stackTop] = slot end
     slot.depth, slot.startIdx = D, i
    end
   end
@@ -3906,12 +4003,12 @@ local function Draggable(thumb, track, isHorizontal, vis)
   startScroll = Current()
   Paint()
  end)
- track.MouseEnter:Connect(function() hovering = true Paint() end)
- track.MouseLeave:Connect(function() hovering = false Paint() end)
+ track.MouseEnter:Connect(function() hovering = true; Paint() end)
+ track.MouseLeave:Connect(function() hovering = false; Paint() end)
 
  config.SV.UserInput.InputChanged:Connect(function(inp)
   if not dragging then return end
-  if not config.Held(inp) then dragging = false Paint() return end
+  if not config.Held(inp) then dragging = false; Paint(); return end
   if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
   local m = MaxScroll()
   local ts = track.AbsoluteSize
@@ -4119,7 +4216,7 @@ function OpenContextMenu(inst, x, y)
    for _, src in ipairs(Explorer.Clipboard) do
     local cur = inst
     while cur do
-     if cur == src then blocked = true break end
+     if cur == src then blocked = true; break end
      cur = cur.Parent
     end
    end
@@ -4210,7 +4307,7 @@ function Explorer.DestroyInstance(inst, silent)
  Explorer.SelectedSet[inst] = nil
  if Explorer.Selected == inst then
   Explorer.Selected = next(Explorer.SelectedSet)
-  if Explorer.PropsOnSelect then Explorer.PropsOnSelect() end 
+  if Explorer.PropsOnSelect then Explorer.PropsOnSelect() end
   if Explorer.OnSelectCb then pcall(Explorer.OnSelectCb, Explorer.Selected) end
  end
  Explorer.Expanded[inst] = nil
@@ -4263,7 +4360,7 @@ function Explorer.SelectInstance(inst)
  end
  Explorer.ScanTree()
  RefreshTree()
-  if Explorer.PropsOnSelect then Explorer.PropsOnSelect() end 
+  if Explorer.PropsOnSelect then Explorer.PropsOnSelect() end
  if Explorer.OnSelectCb then pcall(Explorer.OnSelectCb, inst) end
 end
 
@@ -4285,7 +4382,7 @@ function Explorer.SetSelection(list, primary)
  for _, i in ipairs(list) do Explorer.SelectedSet[i] = true end
  Explorer.Selected = primary or list[#list]
  RefreshTree()
- if Explorer.PropsOnSelect then Explorer.PropsOnSelect() end 
+ if Explorer.PropsOnSelect then Explorer.PropsOnSelect() end
  if Explorer.OnSelectCb then pcall(Explorer.OnSelectCb, Explorer.Selected) end
 end
 
@@ -4347,7 +4444,7 @@ local function TopLevel(list)
  for _, i in ipairs(list) do
   local cur, nested = i.Parent, false
   while cur do
-   if set[cur] then nested = true break end
+   if set[cur] then nested = true; break end
    cur = cur.Parent
   end
   if not nested then out[#out + 1] = i end
@@ -4392,7 +4489,7 @@ function Explorer.Paste(target)
   if Explorer.ClipboardCut then
    local cur, bad = parent, false
    while cur do
-    if cur == src then bad = true break end
+    if cur == src then bad = true; break end
     cur = cur.Parent
    end
    if not bad and src.Parent then
@@ -4431,7 +4528,7 @@ function Explorer.MoveInstances(list, parent)
  for _, src in ipairs(TopLevel(list)) do
   local cur, bad = parent, false
   while cur do
-   if cur == src then bad = true break end
+   if cur == src then bad = true; break end
    cur = cur.Parent
   end
   if not bad and src.Parent and src.Parent ~= parent then
@@ -4527,7 +4624,7 @@ function Explorer.StartRename(inst)
  if not e or not e.label.Visible then return end
 
  local PAD = 6
- local textW = config.SV.TextSrv:GetTextSize(
+ config.SV.TextSrv:GetTextSize(
   inst.Name, e.label.TextSize, Enum.Font.SourceSans, Vector2.new(10000, 26)
  ).X
 
@@ -4595,9 +4692,9 @@ function Explorer.AddSetting(name, default, callback)
  end
 end
 
-function Explorer.SetProperty(inst, key, value) inst.Properties[key] = value if Explorer.RefreshProperties then Explorer.RefreshProperties() end end
+function Explorer.SetProperty(inst, key, value) inst.Properties[key] = value; if Explorer.RefreshProperties then Explorer.RefreshProperties() end end
 function Explorer.GetProperty(inst, key) return inst.Properties[key] end
-function Explorer.SetAttribute(inst, key, value) inst.Attributes[key] = value if Explorer.RefreshProperties then Explorer.RefreshProperties() end end
+function Explorer.SetAttribute(inst, key, value) inst.Attributes[key] = value; if Explorer.RefreshProperties then Explorer.RefreshProperties() end end
 function Explorer.GetAttribute(inst, key) return inst.Attributes[key] end
 
 function Explorer.Refresh()
@@ -4641,7 +4738,7 @@ function Explorer.ClearAll()
  Explorer.SelectedSet = {}
  Explorer.ScanTree()
  RefreshTree()
- if Explorer.PropsOnSelect then Explorer.PropsOnSelect() end 
+ if Explorer.PropsOnSelect then Explorer.PropsOnSelect() end
 end
 
 function Explorer.Open()
@@ -4888,7 +4985,7 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
  end)
  conns[#conns + 1] = config.SV.UserInput.InputChanged:Connect(function(inp)
   if not dragging then return end
-  if not config.Held(inp) then dragging = false return end
+  if not config.Held(inp) then dragging = false; return end
   if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
   local maxIndex = math.max(0, #items - VISIBLE)
   local usable = listH * (1 - thumb.Size.Y.Scale)
@@ -4904,7 +5001,7 @@ function Explorer.OpenInsertMenu(parentInst, x, y)
  end)
 
  task.defer(function()
-  if box.Parent then box:CaptureFocus() box.Text = "" end
+  if box.Parent then box:CaptureFocus(); box.Text = "" end
  end)
 end
 
@@ -5829,7 +5926,7 @@ do
   BorderStroke(b, 1, 24, 24, 27)
   local c = Instance.new("ImageLabel")
   c.Name = RandomString()
-  c.Size = UDim2.new(0, 10, 0, 10)
+  c.Size = UDim2.new(0, 9, 0, 9)
   c.AnchorPoint = Vector2.new(0.5, 0.5)
   c.Position = UDim2.new(0.5, 0, 0.5, 0)
   c.BackgroundTransparency = 1
@@ -6144,7 +6241,7 @@ do
 
   local arrow = Instance.new("ImageButton")
   arrow.Name = RandomString()
-  arrow.Size = UDim2.new(0, 10, 0, 10)
+  arrow.Size = UDim2.new(0, 9, 0, 9)
   arrow.BackgroundTransparency = 1
   arrow.Image = config.IMG.Caret
   arrow.AutoButtonColor = false
@@ -6230,7 +6327,7 @@ do
 
   local chev = Instance.new("ImageLabel")
   chev.Name = RandomString()
-  chev.Size = UDim2.new(0, 10, 0, 10)
+  chev.Size = UDim2.new(0, 9, 0, 9)
   chev.BackgroundTransparency = 1
   chev.Image = config.IMG.Caret
   chev.Rotation = 90
@@ -6277,7 +6374,7 @@ do
    local d = editData or r.data
    editData = nil
    if not d or d.kind ~= "prop" then return end
-   if not d.Commit or d.readonly then value.Text = Fmt(d.value) return end
+   if not d.Commit or d.readonly then value.Text = Fmt(d.value); return end
    local nv = ParseValue(value.Text, d.value)
    if nv == nil or (d.name == "Name" and nv == "") then
     value.Text = Fmt(d.value)
@@ -6426,7 +6523,7 @@ do
   local indent = d.sub and 16 or 0
   if d.expandable then
    r.arrow.Visible = true
-   r.arrow.Position = UDim2.new(0, 4 + indent, 0.5, -5)
+   r.arrow.Position = UDim2.new(0, 4 + indent, 0.5, -4)
    r.arrow.Rotation = d.expanded and 90 or 0
   end
   local nameAvail = math.max(10, nameW - 28 - indent)
@@ -6483,7 +6580,7 @@ do
     r.hit.Position = UDim2.new(0, vx, 0, 0)
     r.hit.Size = UDim2.new(0, vw, 1, 0)
     r.chev.Visible = true
-    r.chev.Position = UDim2.new(0, vx + vw - 12, 0.5, -5)
+    r.chev.Position = UDim2.new(0, vx + vw - 12, 0.5, -4)
    end
   elseif editable and EDITABLE[t] then
    r.value.TextEditable = true
@@ -6592,7 +6689,7 @@ do
   outline.Archivable = false
   outline.Parent = GetOutlineLayer()
 
-  local function makeLine(pos, size)
+  local function MakeLine(pos, size)
    local l = Instance.new("Frame")
    l.BackgroundColor3 = WHITE
    l.BorderSizePixel = 0
@@ -6604,14 +6701,14 @@ do
    return l
   end
 
-  makeLine(UDim2.new(0, -1, 0, -1), UDim2.new(1, 2, 0, 2))
-  makeLine(UDim2.new(0, -1, 1, -1), UDim2.new(1, 2, 0, 2))
-  makeLine(UDim2.new(0, -1, 0, -1), UDim2.new(0, 2, 1, 2))
-  makeLine(UDim2.new(1, -1, 0, -1), UDim2.new(0, 2, 1, 2))
+  MakeLine(UDim2.new(0, -1, 0, -1), UDim2.new(1, 2, 0, 2))
+  MakeLine(UDim2.new(0, -1, 1, -1), UDim2.new(1, 2, 0, 2))
+  MakeLine(UDim2.new(0, -1, 0, -1), UDim2.new(0, 2, 1, 2))
+  MakeLine(UDim2.new(1, -1, 0, -1), UDim2.new(0, 2, 1, 2))
 
   local liveConnections = {}
 
-  local function clearLive()
+  local function ClearLive()
    for _, c in ipairs(liveConnections) do c:Disconnect() end
    table.clear(liveConnections)
   end
@@ -6651,16 +6748,14 @@ do
 
    table.insert(liveConnections, config.SV.UserInput.InputEnded:Connect(function(io2)
     if io2.UserInputType == Enum.UserInputType.MouseButton1 or io2.UserInputType == Enum.UserInputType.Touch then
-     clearLive()
+     ClearLive()
     end
    end))
   end)
 
-  config.SV.UserInput.WindowFocusReleased:Connect(clearLive)
+  config.SV.UserInput.WindowFocusReleased:Connect(ClearLive)
 
-  local function makeHandle(edgeX, edgeY, pos, zIndexBase)
-   local isEdgeOnly = (edgeX == 0 or edgeY == 0)
-
+  local function MakeHandle(edgeX, edgeY, pos, zIndexBase)
    local hitZone = Instance.new("Frame")
    hitZone.Name = RandomString()
    hitZone.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -6706,13 +6801,13 @@ do
     local ok3, anchor = pcall(function() return inst.AnchorPoint end)
     local ok4, startAbsSize = pcall(function() return inst.AbsoluteSize end)
     local ok5, startAbsPos = pcall(function() return inst.AbsolutePosition end)
-    local ok6, parentAbsSize = pcall(function() return inst.Parent.AbsoluteSize end)
-    local ok7, parentAbsPos = pcall(function() return inst.Parent.AbsolutePosition end)
+    local ok6, _ = pcall(function() return inst.Parent.AbsoluteSize end)
+    local ok7, _ = pcall(function() return inst.Parent.AbsolutePosition end)
     if not (ok1 and ok2 and ok3 and ok4 and ok5 and ok6 and ok7) then return end
 
     local startMouse = Vector2.new(io.Position.X, io.Position.Y)
-    local startAbsRight = startAbsPos.X + startAbsSize.X
-    local startAbsBottom = startAbsPos.Y + startAbsSize.Y
+    local _ = startAbsPos.X + startAbsSize.X
+    local _ = startAbsPos.Y + startAbsSize.Y
 
     table.insert(liveConnections, config.SV.UserInput.InputChanged:Connect(function(io2)
      if io2.UserInputType ~= Enum.UserInputType.MouseMovement and io2.UserInputType ~= Enum.UserInputType.Touch then return end
@@ -6754,7 +6849,7 @@ do
 
     table.insert(liveConnections, config.SV.UserInput.InputEnded:Connect(function(io2)
      if io2.UserInputType == Enum.UserInputType.MouseButton1 or io2.UserInputType == Enum.UserInputType.Touch then
-      clearLive()
+      ClearLive()
      end
     end))
    end)
@@ -6763,15 +6858,15 @@ do
    hitZone.MouseLeave:Connect(function() h.Size = UDim2.new(0, HANDLE_SIZE, 0, HANDLE_SIZE) end)
   end
 
-  makeHandle(0, -1, UDim2.new(0.5, 0, 0, 0), 1002)
-  makeHandle(0, 1, UDim2.new(0.5, 0, 1, 0), 1002)
-  makeHandle(-1, 0, UDim2.new(0, 0, 0.5, 0), 1002)
-  makeHandle(1, 0, UDim2.new(1, 0, 0.5, 0), 1002)
+  MakeHandle(0, -1, UDim2.new(0.5, 0, 0, 0), 1002)
+  MakeHandle(0, 1, UDim2.new(0.5, 0, 1, 0), 1002)
+  MakeHandle(-1, 0, UDim2.new(0, 0, 0.5, 0), 1002)
+  MakeHandle(1, 0, UDim2.new(1, 0, 0.5, 0), 1002)
 
-  makeHandle(-1, -1, UDim2.new(0, 0, 0, 0), 1003)
-  makeHandle(1, -1, UDim2.new(1, 0, 0, 0), 1003)
-  makeHandle(-1, 1, UDim2.new(0, 0, 1, 0), 1003)
-  makeHandle(1, 1, UDim2.new(1, 0, 1, 0), 1003)
+  MakeHandle(-1, -1, UDim2.new(0, 0, 0, 0), 1003)
+  MakeHandle(1, -1, UDim2.new(1, 0, 0, 0), 1003)
+  MakeHandle(-1, 1, UDim2.new(0, 0, 1, 0), 1003)
+  MakeHandle(1, 1, UDim2.new(1, 0, 1, 0), 1003)
 
   return outline, liveConnections
  end
@@ -6810,7 +6905,7 @@ do
   h.Color3 = config.ResizeColor
   h.Archivable = false
   local okA = pcall(function() h.Adornee = part end)
-  if not okA then pcall(function() h:Destroy() end) return end
+  if not okA then pcall(function() h:Destroy() end); return end
   h.Parent = config.folder
   table.insert(vis.objs, h)
 
@@ -6912,7 +7007,7 @@ do
 
   if isGui then
    local outlineFrame, handleConnections
-   local function updatePos()
+   local function UpdatePos()
     local fn, absPos = pcall(function() return inst.AbsolutePosition end)
     local ok, absSize = pcall(function() return inst.AbsoluteSize end)
     if not (fn and ok) then return end
@@ -6921,12 +7016,12 @@ do
     outlineFrame.Position = UDim2.new(0, absPos.X - parentAbs.X, 0, absPos.Y - parentAbs.Y)
     outlineFrame.Size = UDim2.new(0, absSize.X, 0, absSize.Y)
    end
-   outlineFrame, handleConnections = CreateGuiOutline(inst, updatePos)
-   updatePos()
+   outlineFrame, handleConnections = CreateGuiOutline(inst, UpdatePos)
+   UpdatePos()
 
    local posCon, sizeCon
-   pcall(function() posCon = inst:GetPropertyChangedSignal("AbsolutePosition"):Connect(updatePos) end)
-   pcall(function() sizeCon = inst:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePos) end)
+   pcall(function() posCon = inst:GetPropertyChangedSignal("AbsolutePosition"):Connect(UpdatePos) end)
+   pcall(function() sizeCon = inst:GetPropertyChangedSignal("AbsoluteSize"):Connect(UpdatePos) end)
 
    config.activeGuiOutline = { frame = outlineFrame, posCon = posCon, sizeCon = sizeCon, handleConnections = handleConnections }
   elseif isPV then
@@ -7009,7 +7104,7 @@ do
   pvhit.MouseLeave:Connect(function() if not dragging then pvvis.BackgroundColor3 = Color3.fromRGB(90, 90, 90) end end)
   config.SV.UserInput.InputChanged:Connect(function(inp)
    if not dragging then return end
-   if not config.Held(inp) then dragging = false pvvis.BackgroundColor3 = Color3.fromRGB(90, 90, 90) return end
+   if not config.Held(inp) then dragging = false; pvvis.BackgroundColor3 = Color3.fromRGB(90, 90, 90); return end
    if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
    local m = MaxScroll()
    local trackH = pvtrack.AbsoluteSize.Y
@@ -7068,7 +7163,7 @@ do
   end)
   config.SV.UserInput.InputChanged:Connect(function(inp)
    if not dragging then return end
-   if not config.Held(inp) then dragging = false return end
+   if not config.Held(inp) then dragging = false; return end
    if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
    local w = math.max(1, list.AbsoluteSize.X)
    P.Divider = math.clamp(startDiv + (inp.Position.X - startX) / w, 0.2, 0.75)
@@ -7339,8 +7434,8 @@ do
 
  local StopViewer
  StopViewer = function()
-  if VState.conn then VState.conn:Disconnect() VState.conn = nil end
-  if VState.Model then VState.Model:Destroy() VState.Model = nil end
+  if VState.conn then VState.conn:Disconnect(); VState.conn = nil end
+  if VState.Model then VState.Model:Destroy(); VState.Model = nil end
   viewport:ClearAllChildren()
   VState.OriginalInstance = nil
   vtitle.Text = "3D Preview"
@@ -7539,7 +7634,7 @@ do
 
  config.SV.UserInput.InputChanged:Connect(function(inp)
   if not VState.Dragging or VState.CameraLocked or inp ~= VState.ActiveInput then return end
-  if not config.Held(inp) then VState.Dragging = false VState.ActiveInput = nil return end
+  if not config.Held(inp) then VState.Dragging = false; VState.ActiveInput = nil; return end
   if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
   local delta = inp.Position - VState.LastPosition
   VState.LastPosition = inp.Position
@@ -7587,185 +7682,185 @@ end
 --#endmodule
 
 function Explorer.DumpFunctions(scr)
-	if scr ~= nil and typeof(scr) ~= "Instance" and type(scr) == "table" then
-		scr = scr.Real
-			or (scr.Metadata and scr.Metadata.Real)
-			or scr
-	end
+ if scr ~= nil and typeof(scr) ~= "Instance" and type(scr) == "table" then
+  scr = scr.Real
+   or (scr.Metadata and scr.Metadata.Real)
+   or scr
+ end
 
-	local MAX_DEPTH = 100
+ local MAX_DEPTH = 100
 
-	local function GetSource(f)
-		local ok, src = pcall(debug.info, f, "s")
-		return ok and src or nil
-	end
+ local function GetSource(f)
+  local ok, src = pcall(debug.info, f, "s")
+  return ok and src or nil
+ end
 
-	local hasNativeIsClosure = iscclosure ~= nil
-	local function IsLClosure(f, cachedSrc)
-		if hasNativeIsClosure then return not iscclosure(f) end
-		local src = cachedSrc or GetSource(f)
-		return src ~= nil and src ~= "[C]"
-	end
+ local hasNativeIsClosure = iscclosure ~= nil
+ local function IsLClosure(f, cachedSrc)
+  if hasNativeIsClosure then return not iscclosure(f) end
+  local src = cachedSrc or GetSource(f)
+  return src ~= nil and src ~= "[C]"
+ end
 
-	local getupvals = debug.getupvalues or getupvalues or (debug.getupvalue and function(func)
-		local out = {}
-		local i = 1
-		while true do
-			local ok, name, val = pcall(debug.getupvalue, func, i)
-			if not ok or name == nil then break end
-			out[name ~= "" and name or i] = val
-			i = i + 1
-		end
-		return out
-	end)
+ local getupvals = debug.getupvalues or getupvalues or (debug.getupvalue and function(func)
+  local out = {}
+  local i = 1
+  while true do
+   local ok, name, val = pcall(debug.getupvalue, func, i)
+   if not ok or name == nil then break end
+   out[name ~= "" and name or i] = val
+   i = i + 1
+  end
+  return out
+ end)
 
-	local getconsts = debug.getconstants or getconstants
-	local getprotos = debug.getprotos or getprotos
+ local getconsts = debug.getconstants or getconstants
+ local getprots = debug.getprotos or getprotos
 
-	local function SafeStr(s)
-		if type(s) ~= "string" then return tostring(s) end
-		local clean = {}
-		for i = 1, #s do
-			local b = s:byte(i)
-			if (b >= 32 and b <= 126) or b == 10 or b == 9 then
-				clean[#clean + 1] = s:sub(i, i)
-			end
-		end
-		return table.concat(clean)
-	end
+ local function SafeStr(s)
+  if type(s) ~= "string" then return tostring(s) end
+  local clean = {}
+  for i = 1, #s do
+   local b = s:byte(i)
+   if (b >= 32 and b <= 126) or b == 10 or b == 9 then
+    clean[#clean + 1] = s:sub(i, i)
+   end
+  end
+  return table.concat(clean)
+ end
 
-	local lines = {}
-	local function AddLine(str, indent)
-		table.insert(lines, string.rep("  ", indent or 0) .. str)
-	end
+ local lines = {}
+ local function AddLine(str, indent)
+  table.insert(lines, string.rep("  ", indent or 0) .. str)
+ end
 
-	local function GetFunctionDetails(func)
-		local ok, name, source, numParams, isVarArg, line = pcall(debug.info, func, "nsal")
-		if not ok then return "Unknown", "Unknown", 0, false, -1 end
-		return (name and name ~= "" and name or "Anonymous"), source or "Unknown", numParams or 0, isVarArg or false, line or -1
-	end
+ local function GetFunctionDetails(func)
+  local ok, name, source, numParams, isVarArg, line = pcall(debug.info, func, "nsal")
+  if not ok then return "Unknown", "Unknown", 0, false, -1 end
+  return (name and name ~= "" and name or "Anonymous"), source or "Unknown", numParams or 0, isVarArg or false, line or -1
+ end
 
-	local function DumpValue(val, indent, index, visited, depth)
-		visited = visited or {}
-		depth = depth or 0
-		if depth > MAX_DEPTH then
-			AddLine(tostring(index) .. " = ... (depth " .. MAX_DEPTH .. " exceeded)", indent)
-			return
-		end
-		local t = typeof(val)
-		if t == "function" then
-			local name = IsLClosure(val) and GetFunctionDetails(val) or "[C Function]"
-			AddLine(tostring(index) .. " [function] = " .. tostring(name), indent)
-		elseif t == "table" then
-			if visited[val] then
-				AddLine(tostring(index) .. " [table] (circular reference)", indent)
-			else
-				visited[val] = true
-				AddLine(tostring(index) .. " [table]:", indent)
-				local ok = pcall(function()
-					for k, v in next, val do
-						DumpValue(v, indent + 1, k, visited, depth + 1)
-					end
-				end)
-				if not ok then
-					AddLine("... (protected table)", indent + 1)
-				end
-			end
-		else
-			local s = ""
-			local ok = pcall(function() s = tostring(val) end)
-			if not ok then s = "<error tostring>" end
-			pcall(function() s = SafeStr(s) end)
-			AddLine(tostring(index) .. " [" .. t .. "] = " .. s, indent)
-		end
-	end
+ local function DumpValue(val, indent, index, visited, depth)
+  visited = visited or {}
+  depth = depth or 0
+  if depth > MAX_DEPTH then
+   AddLine(tostring(index) .. " = ... (depth " .. MAX_DEPTH .. " exceeded)", indent)
+   return
+  end
+  local t = typeof(val)
+  if t == "function" then
+   local name = IsLClosure(val) and GetFunctionDetails(val) or "[C Function]"
+   AddLine(tostring(index) .. " [function] = " .. tostring(name), indent)
+  elseif t == "table" then
+   if visited[val] then
+    AddLine(tostring(index) .. " [table] (circular reference)", indent)
+   else
+    visited[val] = true
+    AddLine(tostring(index) .. " [table]:", indent)
+    local ok = pcall(function()
+     for k, v in next, val do
+      DumpValue(v, indent + 1, k, visited, depth + 1)
+     end
+    end)
+    if not ok then
+     AddLine("... (protected table)", indent + 1)
+    end
+   end
+  else
+   local s = ""
+   local ok = pcall(function() s = tostring(val) end)
+   if not ok then s = "<error tostring>" end
+   pcall(function() s = SafeStr(s) end)
+   AddLine(tostring(index) .. " [" .. t .. "] = " .. s, indent)
+  end
+ end
 
-	local function DumpFunction(func, indent, visitedFuncs)
-		visitedFuncs = visitedFuncs or {}
-		if visitedFuncs[func] or not IsLClosure(func) then return end
-		visitedFuncs[func] = true
-		local name, source, params, vararg, line = GetFunctionDetails(func)
-		AddLine("", 0)
-		AddLine(string.format("Function: %s | Source: %s | Line: %d | Params: %d%s", name, source, line, params, vararg and "+" or ""), indent)
+ local function DumpFunction(func, indent, visitedFuncs)
+  visitedFuncs = visitedFuncs or {}
+  if visitedFuncs[func] or not IsLClosure(func) then return end
+  visitedFuncs[func] = true
+  local name, source, params, vararg, line = GetFunctionDetails(func)
+  AddLine("", 0)
+  AddLine(string.format("Function: %s | Source: %s | Line: %d | Params: %d%s", name, source, line, params, vararg and "+" or ""), indent)
 
-		if getupvals then
-			local ok, ups = pcall(getupvals, func)
-			if ok and typeof(ups) == "table" and next(ups) ~= nil then
-				AddLine("Upvalues:", indent)
-				local visitedValues = {}
-				for k, v in ups do DumpValue(v, indent + 1, k, visitedValues, 0) end
-			end
-		end
-		if getconsts then
-			local ok, consts = pcall(getconsts, func)
-			if ok and typeof(consts) == "table" and next(consts) ~= nil then
-				AddLine("Constants:", indent)
-				local visitedValues = {}
-				for i, c in consts do DumpValue(c, indent + 1, i, visitedValues, 0) end
-			end
-		end
-		if getprotos then
-			local ok, protos = pcall(getprotos, func)
-			if ok and typeof(protos) == "table" and next(protos) ~= nil then
-				AddLine("Prototypes:", indent)
-				for _, proto in protos do
-					if typeof(proto) == "function" and IsLClosure(proto) then
-						DumpFunction(proto, indent + 1, visitedFuncs)
-					end
-				end
-			end
-		end
-	end
+  if getupvals then
+   local ok, ups = pcall(getupvals, func)
+   if ok and typeof(ups) == "table" and next(ups) ~= nil then
+    AddLine("Upvalues:", indent)
+    local visitedValues = {}
+    for k, v in ups do DumpValue(v, indent + 1, k, visitedValues, 0) end
+   end
+  end
+  if getconsts then
+   local ok, consts = pcall(getconsts, func)
+   if ok and typeof(consts) == "table" and next(consts) ~= nil then
+    AddLine("Constants:", indent)
+    local visitedValues = {}
+    for i, c in consts do DumpValue(c, indent + 1, i, visitedValues, 0) end
+   end
+  end
+  if getprots then
+   local ok, protos = pcall(getprots, func)
+   if ok and typeof(protos) == "table" and next(protos) ~= nil then
+    AddLine("Prototypes:", indent)
+    for _, proto in protos do
+     if typeof(proto) == "function" and IsLClosure(proto) then
+      DumpFunction(proto, indent + 1, visitedFuncs)
+     end
+    end
+   end
+  end
+ end
 
-	local function IsScriptMatch(func, cachedSrc)
-		if not scr then return true end
-		local src = cachedSrc or GetSource(func)
-		if src and src ~= "[C]" then
-			if typeof(scr) == "Instance" then
-				local sName = scr:GetFullName()
-				if src == sName or src:find(scr.Name, 1, true) then return true end
-			elseif typeof(scr) == "string" and src:find(scr, 1, true) then
-				return true
-			end
-		end
-		local okEnv, env = pcall(getfenv, func)
-		if okEnv and typeof(env) == "table" and env.script == scr then return true end
-		return false
-	end
+ local function IsScriptMatch(func, cachedSrc)
+  if not scr then return true end
+  local src = cachedSrc or GetSource(func)
+  if src and src ~= "[C]" then
+   if typeof(scr) == "Instance" then
+    local sName = scr:GetFullName()
+    if src == sName or src:find(scr.Name, 1, true) then return true end
+   elseif typeof(scr) == "string" and src:find(scr, 1, true) then
+    return true
+   end
+  end
+  local okEnv, env = pcall(getfenv, func)
+  if okEnv and typeof(env) == "table" and env.script == scr then return true end
+  return false
+ end
 
-	local ok_run, err_run = pcall(function()
-		local found = 0
-		local lookin = (getgc and getgc(true)) or {}
-		local processed = 0
-		local BATCH = 1400
+ local ok_run, err_run = pcall(function()
+  local found = 0
+  local lookin = (getgc and getgc(true)) or {}
+  local processed = 0
+  local BATCH = 1400
 
-		for _, obj in ipairs(lookin) do
-			if typeof(obj) == "function" then
-				local src = hasNativeIsClosure and nil or GetSource(obj)
-				if IsLClosure(obj, src) and IsScriptMatch(obj, src) then
-					DumpFunction(obj, 1)
-					found = found + 1
-				end
-			end
-			processed = processed + 1
-			if processed % BATCH == 0 then task.wait() end
-		end
+  for _, obj in ipairs(lookin) do
+   if typeof(obj) == "function" then
+    local src = hasNativeIsClosure or GetSource(obj)
+    if IsLClosure(obj, src) and IsScriptMatch(obj, src) then
+     DumpFunction(obj, 1)
+     found = found + 1
+    end
+   end
+   processed = processed + 1
+   if processed % BATCH == 0 then task.wait() end
+  end
 
-		if found == 0 then
-			lines = nil
-			return
-		end
-		table.insert(lines, 1, "")
-		table.insert(lines, 1, string.format("-- Function Dump: %d top-level function(s) found", found))
-		table.insert(lines, 1, "-- " .. string.rep("=", 40))
-	end)
+  if found == 0 then
+   lines = nil
+   return
+  end
+  table.insert(lines, 1, "")
+  table.insert(lines, 1, string.format("-- Function Dump: %d top-level function(s) found", found))
+  table.insert(lines, 1, "-- " .. string.rep("=", 40))
+ end)
 
-	if not ok_run then
-		return "-- Dump failed: " .. tostring(err_run)
-	end
+ if not ok_run then
+  return "-- Dump failed: " .. tostring(err_run)
+ end
 
-	if not lines then return nil end
-	return table.concat(lines, "\n")
+ if not lines then return nil end
+ return table.concat(lines, "\n")
 end
 
 Explorer.Sources = setmetatable({}, {__mode = "k"})
@@ -8375,9 +8470,9 @@ do
   if total * LH > viewH then
    local thumbFrac = math.clamp(viewH / (total * LH), 0.05, 1)
    local posFrac = maxIndex > 0 and (st.index / maxIndex) * (1 - thumbFrac) or 0
-   if vVis ~= true then vVis = true sVbar.Visible = true end
-   if thumbFrac ~= vF then vF = thumbFrac sVthumb.Size = UDim2.new(1, 0, thumbFrac, 0) end
-   if posFrac ~= vP then vP = posFrac sVthumb.Position = UDim2.new(0, 0, posFrac, 0) end
+   if vVis ~= true then vVis = true; sVbar.Visible = true end
+   if thumbFrac ~= vF then vF = thumbFrac; sVthumb.Size = UDim2.new(1, 0, thumbFrac, 0) end
+   if posFrac ~= vP then vP = posFrac; sVthumb.Position = UDim2.new(0, 0, posFrac, 0) end
   elseif vVis ~= false then
    vVis = false
    sVbar.Visible = false
@@ -8386,14 +8481,14 @@ do
   if st.contentW > codeW then
    local thumbFrac = math.clamp(codeW / st.contentW, 0.05, 1)
    local posFrac = maxHOffset > 0 and (st.hoff / maxHOffset) * (1 - thumbFrac) or 0
-   if hVis ~= true then hVis = true sHbar.Visible = true end
+   if hVis ~= true then hVis = true; sHbar.Visible = true end
    if hGW ~= st.gW then
     hGW = st.gW
     sHbar.Position = UDim2.new(0, st.gW, 1, -10)
     sHbar.Size = UDim2.new(1, -st.gW - 10, 0, 10)
    end
-   if thumbFrac ~= hF then hF = thumbFrac sHthumb.Size = UDim2.new(thumbFrac, 0, 1, 0) end
-   if posFrac ~= hP then hP = posFrac sHthumb.Position = UDim2.new(posFrac, 0, 0, 0) end
+   if thumbFrac ~= hF then hF = thumbFrac; sHthumb.Size = UDim2.new(thumbFrac, 0, 1, 0) end
+   if posFrac ~= hP then hP = posFrac; sHthumb.Position = UDim2.new(posFrac, 0, 0, 0) end
   elseif hVis ~= false then
    hVis = false
    sHbar.Visible = false
@@ -8441,7 +8536,7 @@ do
   end)
   config.SV.UserInput.InputChanged:Connect(function(inp)
    if not dragging then return end
-   if not config.Held(inp) then dragging = false return end
+   if not config.Held(inp) then dragging = false; return end
    if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
    if isHorizontal then
     local trackW = track.AbsoluteSize.X
@@ -8496,7 +8591,7 @@ do
     while i < target and os.clock() - t0 < HL_BUDGET do
      i += 1
      local ok, r, ns = pcall(HighlightLine, lines[i], state)
-     if ok then rich[i] = r state = ns else state = nil end
+     if ok then rich[i] = r; state = ns else state = nil end
     end
     if st.gen ~= gen then return end
     st.hlDone, st.hlState = i, state
@@ -8681,46 +8776,46 @@ do
  end)
 
  hdump.Activated:Connect(function()
- 	if not st.inst then return end
- 	if hdump.Text == "..." then return end
- 	hdump.Text = "..."
- 	hdump.TextColor3 = config.COLORS.TEXT_DIM
+  if not st.inst then return end
+  if hdump.Text == "..." then return end
+  hdump.Text = "..."
+  hdump.TextColor3 = config.COLORS.TEXT_DIM
 
- 	local inst = st.inst
- 	task.spawn(function()
- 		local dumpText = Explorer.DumpFunctions(inst)
- 		hdump.Text = "Dump"
- 		hdump.TextColor3 = config.COLORS.TEXT_BRIGHT
+  local inst = st.inst
+  task.spawn(function()
+   local dumpText = Explorer.DumpFunctions(inst)
+   hdump.Text = "Dump"
+   hdump.TextColor3 = config.COLORS.TEXT_BRIGHT
 
- 		if not dumpText then
- 			hdump.Text = "No Dump"
- 			task.delay(1.5, function()
- 				if hdump.Text == "No Dump" then hdump.Text = "Dump" end
- 			end)
- 			return
- 		end
+   if not dumpText then
+    hdump.Text = "No Dump"
+    task.delay(1.5, function()
+     if hdump.Text == "No Dump" then hdump.Text = "Dump" end
+    end)
+    return
+   end
 
- 		if st.inst ~= inst then return end
+   if st.inst ~= inst then return end
 
- 		local append = "\n\n--[[\n" .. dumpText .. "\n]]"
- 		st.raw = st.raw .. append
- 		local s = append:gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\t", "    ")
- 		local newLines = {}
- 		for line in (s .. "\n"):gmatch("(.-)\n") do
- 			newLines[#newLines + 1] = line
- 		end
+   local append = "\n\n--[[\n" .. dumpText .. "\n]]"
+   st.raw = st.raw .. append
+   local s = append:gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\t", "    ")
+   local newLines = {}
+   for line in (s .. "\n"):gmatch("(.-)\n") do
+    newLines[#newLines + 1] = line
+   end
 
- 		local lines = st.lines
- 		for _, line in ipairs(newLines) do
- 			lines[#lines + 1] = line
- 			if #line > st.maxLen then st.maxLen = #line end
- 		end
- 		st.ind = {}
- 		st.gW = #tostring(#lines) * charW + 20
- 		st.contentW = st.maxLen * charW + 40
- 		InvalidateAll()
- 		Refresh()
- 	end)
+   local lines = st.lines
+   for _, line in ipairs(newLines) do
+    lines[#lines + 1] = line
+    if #line > st.maxLen then st.maxLen = #line end
+   end
+   st.ind = {}
+   st.gW = #tostring(#lines) * charW + 20
+   st.contentW = st.maxLen * charW + 40
+   InvalidateAll()
+   Refresh()
+  end)
  end)
 
  config.main:GetPropertyChangedSignal("AbsoluteSize"):Connect(Layout)
@@ -8911,7 +9006,7 @@ do
    local r = n.Real
    if r and realToV[r] == n then realToV[r] = nil end
    local ch = n.Children
-   for i = 1, #ch do top += 1 stack[top] = ch[i] end
+   for i = 1, #ch do top += 1; stack[top] = ch[i] end
   end
  end
 
@@ -8995,7 +9090,7 @@ do
   task.spawn(function()
    local stack, top = {}, 0
    local roots = Explorer.Root.Children
-   for i = #roots, 1, -1 do top += 1 stack[top] = roots[i] end
+   for i = #roots, 1, -1 do top += 1; stack[top] = roots[i] end
    local t0 = os.clock()
    local lastRefresh = t0
    local refreshGap = 0.6
@@ -9006,7 +9101,7 @@ do
     top -= 1
     if n.Real and not n.Loaded then Explorer.LoadChildren(n) end
     local ch = n.Children
-    for i = 1, #ch do top += 1 stack[top] = ch[i] end
+    for i = 1, #ch do top += 1; stack[top] = ch[i] end
     local now = os.clock()
     if now - t0 > YIELD_BUDGET then
      task.wait()
@@ -9095,7 +9190,7 @@ do
   Explorer.Root = CurrentRoot()
   nilBtn.Visible = (mode == "Game")
   if mode == "Game" and not scanned then
-   task.spawn(function() ScanGame() ScanNilInstances() end)
+   task.spawn(function() ScanGame(); ScanNilInstances() end)
   elseif mode == "Game" and settingsDirty then
    settingsDirty = false
    RescanGame()
@@ -9157,7 +9252,7 @@ do
   end
 
   local function MarkParent(pv)
-   if pv == Explorer.Root then rowsDirty = true return end
+   if pv == Explorer.Root then rowsDirty = true; return end
    local idx = Explorer.RowIndex
    if idx and idx[pv] then
     if Explorer.Expanded[pv] == true then rowsDirty = true else drawDirty = true end
@@ -9223,7 +9318,7 @@ do
      local ok, cur = pcall(ReadParent, r)
      if not (ok and cur ~= nil and VOf(cur) == pv) then
       local set = byParent[pv]
-      if not set then set = {} byParent[pv] = set end
+      if not set then set = {}; byParent[pv] = set end
       set[v] = true
      end
     end
@@ -9326,7 +9421,7 @@ do
    local ch = pv.Children
    for i = 1, #ch do
     local c = ch[i]
-    if c.Real and not present[c.Real] then removeQ[c] = true changed = true end
+    if c.Real and not present[c.Real] then removeQ[c] = true; changed = true end
    end
    if changed then MarkParent(pv) end
   end
