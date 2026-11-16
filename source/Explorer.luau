@@ -1001,7 +1001,7 @@ local function GetIconOffset(classname)
  if not c and classname:match("Value$") then c = config.ICONS["Value"] end
  if not c and (classname:match("Service$") or classname:match("Provider$")) then c = config.ICONS["Service"] end
  if not c then c = config.ICONS["Instance"] end
- return Vector2.new((c[2] - 1) * 32, (c[1] - 1) * 32)
+ return Vector2.new((c[2]-1)*32,(c[1]-1)*32)
 end
 
 local function ApplyIcon(iconLabel, className)
@@ -4032,6 +4032,64 @@ local function AnySelected(fn)
  return false
 end
 
+function Explorer.ClearSearch()
+ config.searchToken += 1
+ config.searchbar.Text = ""
+ config.SearchAppliedText = ""
+ config.SearchQuery = ""
+ config.SearchPred = Explorer.CompileSearch("")
+ config.SearchCursor = 0
+ Explorer.SearchOpen = setmetatable({}, {__mode="k"})
+end
+
+function Explorer.JumpTo(inst)
+ if not inst or IsRootNode(inst) then return end
+ Explorer.ClearSearch()
+ local cur = inst.Parent
+ while cur and cur ~= Explorer.Root do
+  Explorer.Expanded[cur] = true
+  cur = cur.Parent
+ end
+ Explorer.ScanTree()
+ config.Anchor = inst
+ Explorer.SetSelection({ inst }, inst)
+ local idx = Explorer.RowIndex and Explorer.RowIndex[inst]
+ if idx then
+  local viewRows = math.max(1, math.floor(config.scrolling.AbsoluteSize.Y / config.ROW_H))
+  config.ScrollIndex = idx - math.ceil(viewRows / 2)
+  RefreshTree()
+ end
+end
+
+function Explorer.SelectAllChildren(inst)
+ if not inst then return end
+ local list = {}
+ local function Walk(node)
+  if node.Real and not node.Loaded then Explorer.LoadChildren(node) end
+  local kids = node.Children
+  for i = 1, #kids do
+   list[#list + 1] = kids[i]
+   Walk(kids[i])
+  end
+ end
+ Walk(inst)
+ if #list == 0 then return end
+ Explorer.ScanTree()
+ Explorer.SetSelection(list, list[1])
+end
+
+function Explorer.DeleteAllChildren(inst)
+ if not inst then return end
+ if inst.Real and not inst.Loaded then Explorer.LoadChildren(inst) end
+ local kids = table.clone(inst.Children)
+ if #kids == 0 then return end
+ for _, c in ipairs(kids) do
+  Explorer.DestroyInstance(c, true)
+ end
+ Explorer.ScanTree()
+ RefreshTree()
+end
+
 function OpenContextMenu(inst, x, y)
  if Explorer.Drag and (Explorer.Drag.active or Explorer.Drag.justDragged) then return end
  if Explorer.OnRightClickCb then
@@ -4049,6 +4107,10 @@ function OpenContextMenu(inst, x, y)
   table.insert(items, { label, danger, fn })
  end
  local C = Explorer.Can
+ if config.SearchQuery ~= "" and selCount == 1 and not IsRootNode(inst) then
+  AddItem("Jump To", false, function() Explorer.JumpTo(inst) end)
+  table.insert(items, "SEPARATOR")
+ end
  if AnySelected(C.Cut) then AddItem("Cut", false, Explorer.Cut) end
  if AnySelected(C.Copy) then AddItem("Copy", false, Explorer.Copy) end
  if #Explorer.Clipboard > 0 and C.PasteInto(inst) then
@@ -4096,7 +4158,11 @@ function OpenContextMenu(inst, x, y)
   else
    opt = { "Expand All", function() Explorer.ExpandAll(inst) end }
   end
-  table.insert(items, { "Hierarchy", false, nil, Options = { opt } })
+  table.insert(items, { "Hierarchy", false, nil, Options = {
+   opt,
+   { "Select All", function() Explorer.SelectAllChildren(inst) end },
+   { "Delete All", function() Explorer.DeleteAllChildren(inst) end },
+  } })
  end
  table.insert(items, "SEPARATOR")
  if not IsRootNode(inst) and setclipboard then
@@ -4137,7 +4203,7 @@ function Explorer.CreateInstance(className, name, parent)
  return inst
 end
 
-function Explorer.DestroyInstance(inst)
+function Explorer.DestroyInstance(inst, silent)
  if not inst or inst == Explorer.Root then return end
  local G = Explorer.Game
  if G and G.IsGame(inst) and not G.Destroy(inst) then return end
@@ -4149,6 +4215,7 @@ function Explorer.DestroyInstance(inst)
  end
  Explorer.Expanded[inst] = nil
  inst:Destroy()
+ if silent then return end
  Explorer.ScanTree()
  RefreshTree()
 end
@@ -6488,7 +6555,14 @@ do
 
 
  config.activeGuiOutline = nil
- config.activePartHighlight = nil
+ config.activePartVisuals = nil
+ config.MaxResizeHandles = 25
+ config.MaxSelectionBoxes = 100
+ config.ResizeIncrement = 1
+ config.ResizeFineIncrement = 0.1
+ config.ResizeMinSize = 0.05
+ config.ResizeMaxSize = 2048
+ config.ResizeColor = BrickColor.new("Cyan").Color
 
  -- separate ScreenGui drawn BELOW the explorer window so outlines/handles never cover it
  local function GetOutlineLayer()
@@ -6712,9 +6786,115 @@ do
    pcall(function() config.activeGuiOutline.frame:Destroy() end)
    config.activeGuiOutline = nil
   end
-  if config.activePartHighlight then
-   pcall(function() config.activePartHighlight:Destroy() end)
-   config.activePartHighlight = nil
+  local vis = config.activePartVisuals
+  if vis then
+   config.activePartVisuals = nil
+   for _, c in ipairs(vis.conns) do c:Disconnect() end
+   for _, o in ipairs(vis.objs) do pcall(function() o:Destroy() end) end
+  end
+ end
+
+ local FACE_AXIS = {
+  [Enum.NormalId.Right] = Vector3.new(1, 0, 0),
+  [Enum.NormalId.Left] = Vector3.new(-1, 0, 0),
+  [Enum.NormalId.Top] = Vector3.new(0, 1, 0),
+  [Enum.NormalId.Bottom] = Vector3.new(0, -1, 0),
+  [Enum.NormalId.Back] = Vector3.new(0, 0, 1),
+  [Enum.NormalId.Front] = Vector3.new(0, 0, -1),
+ }
+
+ local function AttachResizeHandles(part, vis)
+  local h = Instance.new("Handles")
+  h.Name = RandomString()
+  h.Style = Enum.HandlesStyle.Resize
+  h.Color3 = config.ResizeColor
+  h.Archivable = false
+  local okA = pcall(function() h.Adornee = part end)
+  if not okA then pcall(function() h:Destroy() end) return end
+  h.Parent = config.folder
+  table.insert(vis.objs, h)
+
+  local startSize, startCF
+  local lastProps = 0
+
+  table.insert(vis.conns, h.MouseButton1Down:Connect(function()
+   local ok, sz, cf = pcall(function() return part.Size, part.CFrame end)
+   if ok then startSize, startCF = sz, cf end
+  end))
+
+  table.insert(vis.conns, h.MouseDrag:Connect(function(face, distance)
+   if not startSize then return end
+   local axis = FACE_AXIS[face]
+   if not axis then return end
+   local mask = Vector3.new(math.abs(axis.X), math.abs(axis.Y), math.abs(axis.Z))
+   local cur = startSize.X * mask.X + startSize.Y * mask.Y + startSize.Z * mask.Z
+
+   local inc = config.ResizeIncrement
+   if config.SV.UserInput:IsKeyDown(Enum.KeyCode.LeftShift) then inc = config.ResizeFineIncrement end
+   local d = distance
+   if inc and inc > 0 then d = math.floor(d / inc + 0.5) * inc end
+
+   local target = math.clamp(cur + d, config.ResizeMinSize, config.ResizeMaxSize)
+   local delta = target - cur
+
+   pcall(function()
+    part.Size = startSize + mask * delta
+    part.CFrame = startCF * CFrame.new(axis * (delta / 2))
+   end)
+
+   local now = os.clock()
+   if now - lastProps > 0.15 then
+    lastProps = now
+    pcall(Explorer.RefreshProperties)
+   end
+  end))
+
+  table.insert(vis.conns, h.MouseButton1Up:Connect(function()
+   startSize, startCF = nil, nil
+   pcall(Explorer.RefreshProperties)
+  end))
+ end
+
+ -- outlines every selected 3D instance, resize handles on each selected BasePart
+ local function ShowPVVisuals()
+  local vis = { objs = {}, conns = {} }
+  config.activePartVisuals = vis
+
+  local list = {}
+  if Explorer.Selected then list[1] = Explorer.Selected end
+  for v in pairs(Explorer.SelectedSet) do
+   if v ~= Explorer.Selected then list[#list + 1] = v end
+  end
+
+  local boxes, handles = 0, 0
+  for _, v in ipairs(list) do
+   local okR, real = pcall(function() return v.Real end)
+   if not (okR and real) then real = v end
+   if typeof(real) == "Instance" then
+    local isPV, isPart = false, false
+    pcall(function()
+     isPV = real:IsA("PVInstance") and not real:IsA("Terrain")
+     isPart = real:IsA("BasePart")
+    end)
+    if isPV and boxes < config.MaxSelectionBoxes then
+     local box = Instance.new("SelectionBox")
+     box.LineThickness = 0.05
+     box.Color3 = Color3.fromRGB(0, 170, 255)
+     box.Archivable = false
+     local adorn = pcall(function() box.Adornee = real end)
+     if adorn then
+      box.Parent = config.folder
+      table.insert(vis.objs, box)
+      boxes += 1
+     else
+      pcall(function() box:Destroy() end)
+     end
+     if isPart and handles < config.MaxResizeHandles then
+      AttachResizeHandles(real, vis)
+      handles += 1
+     end
+    end
+   end
   end
  end
 
@@ -6750,17 +6930,7 @@ do
 
    config.activeGuiOutline = { frame = outlineFrame, posCon = posCon, sizeCon = sizeCon, handleConnections = handleConnections }
   elseif isPV then
-   local box = Instance.new("SelectionBox")
-   box.LineThickness = 0.05
-   box.Color3 = Color3.fromRGB(0, 170, 255)
-   box.Archivable = false
-   local adorn = pcall(function() box.Adornee = inst end)
-   if adorn then
-    box.Parent = config.folder
-    config.activePartHighlight = box
-   else
-    pcall(function() box:Destroy() end)
-   end
+   ShowPVVisuals()
   end
  end
 
@@ -7698,7 +7868,7 @@ do
   end
   return w
  end
- local TEXT_PLAIN = Color3.fromRGB(255, 255, 255) -- KEEP I
+ local TEXT_PLAIN = Color3.fromRGB(255, 255, 255) -- KEEP
 
  local function Esc(s)
   if not s:find("[&<>]") then return s end
