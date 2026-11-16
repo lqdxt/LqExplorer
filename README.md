@@ -1,7 +1,8 @@
 # Lq Explorer: Next Gen Explorer
-Like Roblox Studio's latest explorer design.
 
-This is NOT a revival of `Dex`, completely different project.
+A unique alternative for `Dex` Explorers.
+
+Uses Roblox Studio's latest explorer design. Bored of the old one.
 
 ---
 
