@@ -13,3 +13,5 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/lqdxt/LqExplorer/main
 ```
 
 You can make plugins for it too, from the APIs it exposes.
+
+> Still very active adding more unique stuff.
