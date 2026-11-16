@@ -1,14 +1,17 @@
 # Lq Explorer Changelog
 
-**Version 1.9:**
+**Version 2.0.0:**
+- Made carets 1px smaller..
+
+**Version 1.9.0:**
 - Added 'Jump To'
 - Added 'Select All' and 'Delete All' in Hierarchy
 
-**Version 1.8:**
+**Version 1.8.0:**
 - Added selection outlines
 - Added resize handles to 2D and 3D instances
 
-**Version 1.7:**
+**Version 1.7.0:**
 - Reworked properties scrollbar
 - Long property names now cut off differently
 - Category headers no longer toggle
@@ -16,26 +19,26 @@
 - Changed split defaults
 - Widened stack splitters since they were very skinny
 
-**Version 1.6:**
+**Version 1.6.0:**
 - Changed SpringConstraint's map position to the right one since it was the same as Decal
 
-**Version 1.5:**
+**Version 1.5.0:**
 - Added 'Show Hidden Services' toggle in menu
 
-**Version 1.4:**
+**Version 1.4.0:**
 - Improved search performance
 
-**Version 1.3:**
+**Version 1.3.0:**
 - Significantly improved source viewer's performance
 
-**Version 1.2:**
+**Version 1.2.0:**
 - Other minor changes to source viewer
 - Changed source viewer's font to Fira Mono
 - Replaced rbxassetids
 
-**Version 1.1:**
+**Version 1.1.0:**
 - Fixed a few critical bugs
 - Improved instance dragging
 
-**Version 1.0:**
+**Version 1.0.0:**
 - Release
