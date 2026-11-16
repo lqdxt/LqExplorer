@@ -1,6 +1,8 @@
 # Lq Explorer Changelog
 
-> Updates almost everyday.
+**Version 1.9:**
+- Added 'Jump To'
+- Added 'Select All' and 'Delete All' in Hierarchy
 
 **Version 1.8:**
 - Added selection outlines
