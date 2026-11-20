@@ -461,6 +461,7 @@ Explorer = {
    SearchForward = Img("arrow-forward-search.png"),
    Select = Img("selection-grid-cursor.png"),
    Refresh = Img("two-arrows-spin-clockwise.png"),
+   Close = Img("windows-app-close.png"),
   }
  end)(),
  OnSelectCb = nil,
@@ -672,36 +673,22 @@ local function MakePinIcon(parent, size, z, color)
  return box
 end
 
-local function MakeCloseIcon(parent, size, z, color)
- size = size - (size % 2)
- local box = Instance.new("Frame")
- box.Name = RandomString()
- box.Size = UDim2.new(0, size, 0, size)
- box.AnchorPoint = Vector2.new(0.5, 0.5)
- box.Position = UDim2.new(0.5, 0, 0.5, 0)
- box.BackgroundTransparency = 1
- box.Active = false
- box.ZIndex = z
- box.Archivable = false
- box.Parent = parent
- local len = math.floor(size * 1.41421356 + 0.5)
- local arms = {}
- for _, rot in ipairs({ 45, -45 }) do
-  local f = Instance.new("Frame")
-  f.Name = RandomString()
-  f.Size = UDim2.new(0, len, 0, 2)
-  f.AnchorPoint = Vector2.new(0.5, 0.5)
-  f.Position = UDim2.new(0.5, 0, 0.5, 0)
-  f.Rotation = rot
-  f.BackgroundColor3 = color
-  f.BorderSizePixel = 0
-  f.Active = false
-  f.ZIndex = z
-  f.Archivable = false
-  f.Parent = box
-  arms[#arms + 1] = f
- end
- return box, arms
+local function MakeCloseImage(parent, size, z, color)
+ local img = Instance.new("ImageLabel")
+ img.Name = RandomString()
+ img.Size = UDim2.new(0, size, 0, size)
+ img.AnchorPoint = Vector2.new(0.5, 0.5)
+ img.Position = UDim2.new(0.5, 0, 0.5, 0)
+ img.BackgroundTransparency = 1
+ img.Image = ""
+ img.ImageColor3 = color
+ img.ScaleType = Enum.ScaleType.Fit
+ img.Active = false
+ img.ZIndex = z
+ img.Archivable = false
+ img.Parent = parent
+ Explorer.ApplyImage(img, "Close")
+ return img
 end
 
 local function MakeChevron(parent, z)
@@ -1791,7 +1778,7 @@ config.clearbtn.Visible = false
 config.clearbtn.Archivable = false
 config.clearbtn.Parent = config.searchRow
 RoundCorner(config.clearbtn, 0, 8)
-MakeCloseIcon(config.clearbtn, 11, 7, Color3.fromRGB(160, 160, 160))
+MakeCloseImage(config.clearbtn, 10, 7, Color3.fromRGB(160, 160, 160))
 
 config.clearbtn.Activated:Connect(function()
  config.searchbar.Text = ""
@@ -1869,7 +1856,7 @@ config.close.BorderSizePixel = 0
 config.close.ZIndex = 3
 config.close.Archivable = false
 config.close.Parent = config.header
-MakeCloseIcon(config.close, 8, 4, Color3.fromRGB(210, 210, 210))
+MakeCloseImage(config.close, 12, 4, Color3.fromRGB(210, 210, 210))
 
 config.MENU_Z, config.menuGui, config.topbar = nil
 --#module: Topbar.luau
@@ -6198,7 +6185,7 @@ do
  pclose.ZIndex = 3
  pclose.Archivable = false
  pclose.Parent = hdr
- MakeCloseIcon(pclose, 8, 4, Color3.fromRGB(210, 210, 210))
+ MakeCloseImage(pclose, 12, 4, Color3.fromRGB(210, 210, 210))
 
  local ppin = Instance.new("TextButton")
  ppin.Name = RandomString()
@@ -7727,7 +7714,7 @@ do
  vclose.ZIndex = 3
  vclose.Archivable = false
  vclose.Parent = vhdr
- MakeCloseIcon(vclose, 8, 4, Color3.fromRGB(210, 210, 210))
+ MakeCloseImage(vclose, 12, 4, Color3.fromRGB(210, 210, 210))
 
  local vrotate = Instance.new("ImageButton")
  vrotate.Name = RandomString()
@@ -8390,30 +8377,30 @@ do
  hdr.Archivable = false
  hdr.Parent = panel
 
- local hicon = Instance.new("ImageLabel")
- hicon.Name = RandomString()
- hicon.Size = UDim2.new(0, 18, 0, 18)
- hicon.Position = UDim2.new(0, 8, 0.5, -9)
- hicon.BackgroundTransparency = 1
- hicon.ZIndex = 4
- hicon.Archivable = false
- hicon.Parent = hdr
+ local tabBar = Instance.new("ScrollingFrame")
+ tabBar.Name = RandomString()
+ tabBar.Size = UDim2.new(1, -204, 1, 0)
+ tabBar.Position = UDim2.new(0, 0, 0, 0)
+ tabBar.BackgroundTransparency = 1
+ tabBar.BorderSizePixel = 0
+ tabBar.ScrollBarThickness = 0
+ tabBar.ScrollingDirection = Enum.ScrollingDirection.X
+ tabBar.ElasticBehavior = Enum.ElasticBehavior.Never
+ tabBar.CanvasSize = UDim2.new(0, 0, 0, 0)
+ tabBar.AutomaticCanvasSize = Enum.AutomaticSize.X
+ tabBar.ClipsDescendants = true
+ tabBar.ZIndex = 4
+ tabBar.Archivable = false
+ tabBar.Parent = hdr
 
- local htitle = Instance.new("TextLabel")
- htitle.Name = RandomString()
- htitle.Size = UDim2.new(1, -236, 1, 0)
- htitle.Position = UDim2.new(0, 32, 0, 0)
- htitle.BackgroundTransparency = 1
- htitle.RichText = true
- htitle.Text = ""
- htitle.TextColor3 = config.COLORS.TEXT_BRIGHT
- htitle.FontFace = config.FONT.GothamRegular
- htitle.TextSize = 12
- htitle.TextXAlignment = Enum.TextXAlignment.Left
- htitle.TextTruncate = Enum.TextTruncate.AtEnd
- htitle.ZIndex = 4
- htitle.Archivable = false
- htitle.Parent = hdr
+ local tabLayout = Instance.new("UIListLayout")
+ tabLayout.FillDirection = Enum.FillDirection.Horizontal
+ tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ tabLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+ tabLayout.Padding = UDim.new(0, 0)
+ tabLayout.Parent = tabBar
+
+ local tabs, tabOf, activeTab, tabSeq = {}, {}, nil, 0
 
  local hclose = Instance.new("TextButton")
  hclose.Name = RandomString()
@@ -8426,7 +8413,7 @@ do
  hclose.ZIndex = 4
  hclose.Archivable = false
  hclose.Parent = hdr
- MakeCloseIcon(hclose, 8, 5, Color3.fromRGB(210, 210, 210))
+ MakeCloseImage(hclose, 12, 5, Color3.fromRGB(210, 210, 210))
 
  local hcopy = Instance.new("TextButton")
  hcopy.Name = RandomString()
@@ -8879,6 +8866,10 @@ do
   local mp = Vector2.new(input.Position.X, input.Position.Y)
   if not PointIn(panel, mp) then return end
   if config.main.Visible and PointIn(config.main, mp) then return end
+  if PointIn(tabBar, mp) then
+   tabBar.CanvasPosition = Vector2.new(math.max(0, tabBar.CanvasPosition.X - delta * 60), 0)
+   return
+  end
   local viewH = sScroll.AbsoluteSize.Y
   local maxIdx = math.max(0, #st.lines - math.floor(viewH / LH))
   st.index = math.clamp(st.index - delta * 3, 0, maxIdx)
@@ -8929,8 +8920,10 @@ do
  sScroll:GetPropertyChangedSignal("AbsoluteSize"):Connect(Refresh)
 
  local function SetHeader(inst)
-  ApplyIcon(hicon, inst.ClassName)
-  htitle.Text = Escape(inst.Name)
+  local t = tabOf[inst]
+  if not t then return end
+  ApplyIcon(t.icon, inst.ClassName)
+  t.label.Text = inst.Name
  end
 
  PumpHighlight = function()
@@ -9024,11 +9017,174 @@ do
  config.LayoutSource = Layout
  config.main:GetPropertyChangedSignal("Visible"):Connect(Layout)
 
+ -- Tabs: hover / selection only, no accent.
+ local function StyleTab(t)
+  local active = t == activeTab
+  local lit = active or t.hover
+  if active then
+   t.frame.BackgroundColor3 = config.COLORS.PRIMARY
+   t.frame.BackgroundTransparency = config.NT
+  elseif t.hover then
+   t.frame.BackgroundColor3 = config.COLORS.SECONDARY
+   t.frame.BackgroundTransparency = 0.5
+  else
+   t.frame.BackgroundTransparency = 1
+  end
+  t.label.TextColor3 = lit and config.COLORS.TEXT_BRIGHT or config.COLORS.TEXT
+  t.close.ImageColor3 = t.closeHover and config.COLORS.WHITE
+   or (lit and config.COLORS.TEXT or config.COLORS.TEXT_DIM)
+ end
+
+ local function ScrollTabIntoView(t)
+  task.spawn(function()
+   task.wait()
+   task.wait()
+   if not t.frame.Parent then return end
+   local left = t.frame.AbsolutePosition.X - tabBar.AbsolutePosition.X + tabBar.CanvasPosition.X
+   local right = left + t.frame.AbsoluteSize.X
+   local viewW = tabBar.AbsoluteSize.X
+   local cx = tabBar.CanvasPosition.X
+   if left < cx then
+    cx = left
+   elseif right > cx + viewW then
+    cx = right - viewW
+   end
+   tabBar.CanvasPosition = Vector2.new(math.max(0, cx), 0)
+  end)
+ end
+
+ local SelectTab
+ local function CloseTab(t)
+  local i = table.find(tabs, t)
+  if not i then return end
+  table.remove(tabs, i)
+  tabOf[t.inst] = nil
+  t.frame:Destroy()
+  if activeTab == t then
+   activeTab = nil
+   local n = tabs[i] or tabs[i - 1]
+   if n then
+    SelectTab(n)
+   else
+    Explorer.CloseSource()
+   end
+  end
+ end
+
+ local function CreateTab(inst)
+  local t = { inst = inst, index = 0, hoff = 0, hover = false, closeHover = false }
+  tabSeq += 1
+
+  local f = Instance.new("TextButton")
+  f.Name = RandomString()
+  f.Size = UDim2.new(0, 0, 1, 0)
+  f.AutomaticSize = Enum.AutomaticSize.X
+  f.BackgroundColor3 = config.COLORS.SECONDARY
+  f.BackgroundTransparency = 1
+  f.BorderSizePixel = 0
+  f.AutoButtonColor = false
+  f.Text = ""
+  f.LayoutOrder = tabSeq
+  f.ZIndex = 4
+  f.Archivable = false
+  f.Parent = tabBar
+  t.frame = f
+
+  local lay = Instance.new("UIListLayout")
+  lay.FillDirection = Enum.FillDirection.Horizontal
+  lay.SortOrder = Enum.SortOrder.LayoutOrder
+  lay.VerticalAlignment = Enum.VerticalAlignment.Center
+  lay.Padding = UDim.new(0, 6)
+  lay.Parent = f
+
+  local pad = Instance.new("UIPadding")
+  pad.PaddingLeft, pad.PaddingRight = UDim.new(0, 10), UDim.new(0, 6)
+  pad.Parent = f
+
+  local icon = Instance.new("ImageLabel")
+  icon.Name = RandomString()
+  icon.Size = UDim2.new(0, 16, 0, 16)
+  icon.BackgroundTransparency = 1
+  icon.LayoutOrder = 1
+  icon.ZIndex = 5
+  icon.Archivable = false
+  icon.Parent = f
+  t.icon = icon
+
+  local label = Instance.new("TextLabel")
+  label.Name = RandomString()
+  label.Size = UDim2.new(0, 0, 1, 0)
+  label.AutomaticSize = Enum.AutomaticSize.X
+  label.BackgroundTransparency = 1
+  label.Text = ""
+  label.TextColor3 = config.COLORS.TEXT
+  label.FontFace = config.FONT.GothamRegular
+  label.TextSize = 12
+  label.TextXAlignment = Enum.TextXAlignment.Left
+  label.TextTruncate = Enum.TextTruncate.AtEnd
+  label.LayoutOrder = 2
+  label.ZIndex = 5
+  label.Archivable = false
+  label.Parent = f
+  t.label = label
+  local cap = Instance.new("UISizeConstraint")
+  cap.MaxSize = Vector2.new(160, math.huge)
+  cap.Parent = label
+
+  local x = Instance.new("ImageButton")
+  x.Name = RandomString()
+  x.Size = UDim2.new(0, 14, 0, 14)
+  x.BackgroundTransparency = 1
+  x.BorderSizePixel = 0
+  x.AutoButtonColor = false
+  x.Image = ""
+  x.ImageColor3 = config.COLORS.TEXT_DIM
+  x.ScaleType = Enum.ScaleType.Fit
+  x.LayoutOrder = 3
+  x.ZIndex = 5
+  x.Archivable = false
+  x.Parent = f
+  local xp = Instance.new("UIPadding")
+  xp.PaddingTop, xp.PaddingBottom = UDim.new(0, 3), UDim.new(0, 3)
+  xp.PaddingLeft, xp.PaddingRight = UDim.new(0, 3), UDim.new(0, 3)
+  xp.Parent = x
+  Explorer.ApplyImage(x, "Close")
+  t.close = x
+
+  f.MouseEnter:Connect(function() t.hover = true; StyleTab(t) end)
+  f.MouseLeave:Connect(function() t.hover = false; StyleTab(t) end)
+  x.MouseEnter:Connect(function() t.closeHover = true; StyleTab(t) end)
+  x.MouseLeave:Connect(function() t.closeHover = false; StyleTab(t) end)
+  f.Activated:Connect(function() SelectTab(t) end)
+  x.Activated:Connect(function() CloseTab(t) end)
+  f.InputBegan:Connect(function(inp)
+   if inp.UserInputType == Enum.UserInputType.MouseButton3 then CloseTab(t) end
+  end)
+
+  tabs[#tabs + 1] = t
+  tabOf[inst] = t
+  SetHeader(inst)
+  StyleTab(t)
+  return t
+ end
+
+ SelectTab = function(t)
+  local switching = activeTab ~= t
+  if switching and activeTab then
+   activeTab.index, activeTab.hoff = st.index, st.hoff
+  end
+  activeTab = t
+  for _, x in ipairs(tabs) do StyleTab(x) end
+  if switching then st.index, st.hoff = t.index, t.hoff end
+  Load(t.inst, true)
+  ScrollTabIntoView(t)
+ end
+
  function Explorer.OpenSource(inst)
   if not inst then return end
   config.srcOpen = true
   Layout()
-  Load(inst, st.inst == inst)
+  SelectTab(tabOf[inst] or CreateTab(inst))
  end
 
  function Explorer.CloseSource()
