@@ -153,7 +153,6 @@ local function GetService(name)
  return nil
 end
 
-
 cloneref = cloneref or function(ref)
  if not getreg then return ref end
 
@@ -3204,6 +3203,18 @@ local function IsA(inst, cls)
 end
 
 local function HasTag(inst, tag)
+ local real = rawget(inst, "Real")
+ if real then
+  local cs = GetService("CollectionService")
+  if cs then
+   local ok, tags = pcall(cs.GetTags, cs, real)
+   if ok and type(tags) == "table" then
+    for i = 1, #tags do
+     if tags[i]:lower() == tag then return true end
+    end
+   end
+  end
+ end
  local t = rawget(inst, "Tags")
  if type(t) ~= "table" then return false end
  for k, v in pairs(t) do
@@ -3270,8 +3281,33 @@ local function ParentOf(n)
  return p
 end
 
+local function IsPropValue(v, real)
+ if v == nil or typeof(v) == "function" then return false end
+ if typeof(v) == "Instance" and v.Parent == real then return false end
+ return true
+end
+
+local function ReadReal(real, key, k)
+ local ok, v = pcall(function() return real[key] end)
+ if ok and IsPropValue(v, real) then return v end
+ local cap = key:sub(1, 1):upper() .. key:sub(2)
+ if cap ~= key then
+  ok, v = pcall(function() return real[cap] end)
+  if ok and IsPropValue(v, real) then return v end
+ end
+ local okA, attrs = pcall(real.GetAttributes, real)
+ if okA and type(attrs) == "table" then
+  if attrs[key] ~= nil then return attrs[key] end
+  for ak, av in pairs(attrs) do
+   if tostring(ak):lower() == k then return av end
+  end
+ end
+ return nil
+end
+
 local function MakeGetter(key)
  local k = key:lower()
+ local rawKey = key
  if k == "name" then return function(inst) return inst.Name end end
  if k == "classname" then return function(inst) return inst.ClassName end end
  local pKey, aKey
@@ -3296,6 +3332,8 @@ local function MakeGetter(key)
     if tostring(ak):lower() == k then aKey = ak; return av end
    end
   end
+  local real = rawget(inst, "Real")
+  if real then return ReadReal(real, rawKey, k) end
   return nil
  end
 end
@@ -4221,7 +4259,16 @@ function OpenContextMenu(inst, x, y)
     end
    end
   end
-  if not blocked then AddItem("Paste Into", false, function() Explorer.Paste(inst) end) end
+  if not blocked then
+   if Explorer.ClipboardCut then
+    AddItem("Paste Into", false, function() Explorer.Paste(inst) end)
+   else
+    table.insert(items, { "Paste", false, nil, Options = {
+     { "Paste Into", function() Explorer.Paste(inst, false) end },
+     { "Paste Into At Original Location", function() Explorer.Paste(inst, true) end },
+    } })
+   end
+  end
  end
  if AnySelected(C.Duplicate) then AddItem("Duplicate", false, Explorer.Duplicate) end
  AddItem("Insert", false, function() Explorer.OpenInsertMenu(inst, x, y) end)
@@ -4260,6 +4307,18 @@ function OpenContextMenu(inst, x, y)
    { "Select All", function() Explorer.SelectAllChildren(inst) end },
    { "Delete All", function() Explorer.DeleteAllChildren(inst) end },
   } })
+ end
+ if selCount >= 1 and IsServiceNode(inst) and Explorer.Root == inst.Parent then
+  table.insert(items, "SEPARATOR")
+  AddItem("Hide Service", false, function() Explorer.HideServices(Explorer.GetSelection()) end)
+  local hiddenList = Explorer.GetHiddenServices and Explorer.GetHiddenServices() or {}
+  if #hiddenList > 0 then
+   local sub = {}
+   for _, name in ipairs(hiddenList) do
+    table.insert(sub, { name, function() Explorer.ShowService(name) end })
+   end
+   table.insert(items, { "Show Services", false, nil, Options = sub })
+  end
  end
  table.insert(items, "SEPARATOR")
  if not IsRootNode(inst) and setclipboard then
@@ -4481,8 +4540,29 @@ function Explorer.Cut()
  Explorer.ClipboardCut = true
 end
 
-function Explorer.Paste(target)
+local function PlaceAtCamera(nodes)
+ local ok = pcall(function()
+  local cam = workspace.CurrentCamera
+  if not cam then return end
+  local dest = (cam.CFrame * CFrame.new(0, 0, -20)).Position
+  local first
+  for _, n in ipairs(nodes) do
+   local r = n.Real
+   if r and r:IsA("PVInstance") and r:IsDescendantOf(workspace) then
+    if not first then first = r:GetPivot().Position end
+    r:PivotTo(r:GetPivot() + (dest - first))
+   end
+  end
+ end)
+ return ok
+end
+
+function Explorer.Paste(target, keepLocation)
  local parent = target or Explorer.Root
+ local G0 = Explorer.Game
+ if not target and Explorer.Mode == "Game" and G0 and parent == G0.GameRoot then
+  parent = G0.WorkspaceNode() or parent
+ end
  if not Explorer.Can.PasteInto(parent) then return end
  local made = {}
  for _, src in ipairs(Explorer.Clipboard) do
@@ -4514,8 +4594,10 @@ function Explorer.Paste(target)
  if Explorer.ClipboardCut then
   Explorer.ClipboardCut = false
   Explorer.Clipboard = {}
+  keepLocation = true
  end
  if #made == 0 then return end
+ if not keepLocation and Explorer.Mode == "Game" then PlaceAtCamera(made) end
  if parent ~= Explorer.Root then Explorer.Expanded[parent] = true end
  Explorer.ScanTree()
  Explorer.SetSelection(made, made[#made])
@@ -4624,9 +4706,6 @@ function Explorer.StartRename(inst)
  if not e or not e.label.Visible then return end
 
  local PAD = 6
- config.SV.TextSrv:GetTextSize(
-  inst.Name, e.label.TextSize, Enum.Font.SourceSans, Vector2.new(10000, 26)
- ).X
 
  local box = Instance.new("TextBox")
  box.Name = RandomString()
@@ -6650,7 +6729,6 @@ do
   RefreshList()
  end
 
-
  config.activeGuiOutline = nil
  config.activePartVisuals = nil
  config.MaxResizeHandles = 25
@@ -6790,7 +6868,6 @@ do
    hStroke.Thickness = 1
    hStroke.Archivable = false
    hStroke.Parent = h
-
 
    hitZone.InputBegan:Connect(function(io)
     if #liveConnections > 0 then return end
@@ -7032,7 +7109,6 @@ do
  function Explorer.UpdateSelectionVisual()
   ShowSelectionVisual(Explorer.Selected)
  end
-
 
  Explorer.PropsOnSelect = function()
   if P.Inst ~= Explorer.Selected then P.Scroll = 0 end
@@ -8864,6 +8940,7 @@ do
  }
 
  local HIDDEN_SERVICES = { CoreGui = true, CorePackages = true }
+ local UserHidden = {}
  local YIELD_BUDGET = 0.008
  local scanning = false
  local scanned = false
@@ -8964,7 +9041,7 @@ do
   ClearGameRoot()
   local showHidden = config.ShowHiddenServices ~= false
   for i, svcName in ipairs(Services) do
-   if showHidden or not HIDDEN_SERVICES[svcName] then
+   if (showHidden or not HIDDEN_SERVICES[svcName]) and not UserHidden[svcName] then
     local svc = Safe(GetService, svcName)
     if svc then
      local v = MirrorOne(cloneref(svc), gameRoot)
@@ -8977,6 +9054,7 @@ do
   end
   local have = {}
   for _, c in ipairs(gameRoot.Children) do have[c.Name] = true end
+  for hn in pairs(UserHidden) do have[hn] = true end
   local okC, top = pcall(game.GetChildren, game)
   if showHidden and okC and type(top) == "table" then
    for j = 1, #top do
@@ -9153,6 +9231,77 @@ do
   if scanning then return end
   for _, c in ipairs(gameRoot.Children) do Unregister(c) end
   ScanGame()
+ end
+
+ local function ServiceOrder(name)
+  for i, n in ipairs(Services) do
+   if n == name then return i end
+  end
+  return #Services + 100
+ end
+
+ function Explorer.HideServices(list)
+  if Explorer.Mode ~= "Game" or Explorer.Root ~= gameRoot or scanning then return end
+  local any = false
+  for _, v in ipairs(table.clone(list or {})) do
+   if v.Parent == gameRoot then
+    UserHidden[v.Name] = true
+    Unregister(v)
+    v:SetParent(nil)
+    Explorer.Expanded[v] = nil
+    any = true
+   end
+  end
+  if not any then return end
+  gameRoot._sorted = nil
+  DropDetachedSelection()
+  Finish()
+ end
+
+ function Explorer.GetHiddenServices()
+  local out = {}
+  if Explorer.Mode ~= "Game" then return out end
+  local present, seen = {}, {}
+  for _, c in ipairs(gameRoot.Children) do present[c.Name] = true end
+  local function Add(name)
+   if seen[name] or present[name] then return end
+   seen[name] = true
+   out[#out + 1] = name
+  end
+  for _, name in ipairs(Services) do
+   if UserHidden[name] then
+    Add(name)
+   elseif not present[name] and (config.ShowHiddenServices ~= false or not HIDDEN_SERVICES[name]) then
+    if Safe(GetService, name) then Add(name) end
+   end
+  end
+  for name in pairs(UserHidden) do Add(name) end
+  table.sort(out, function(a, b)
+   local oa, ob = ServiceOrder(a), ServiceOrder(b)
+   if oa ~= ob then return oa < ob end
+   return a < b
+  end)
+  return out
+ end
+
+ function Explorer.ShowService(name)
+  if Explorer.Mode ~= "Game" or Explorer.Root ~= gameRoot or scanning then return end
+  UserHidden[name] = nil
+  for _, c in ipairs(gameRoot.Children) do
+   if c.Name == name then return end
+  end
+  local svc = Safe(GetService, name)
+  if not svc then
+   local okF, f = pcall(game.FindFirstChild, game, name)
+   if okF then svc = f end
+  end
+  if not svc then return end
+  local v = MirrorOne(cloneref(svc), gameRoot)
+  if v then
+   v.Name = name
+   v.Metadata.Order = ServiceOrder(name)
+  end
+  Finish()
  end
 
  local settingsBtn
@@ -9649,6 +9798,7 @@ do
 
   local G = {}
   Explorer.Game = G
+  G.GameRoot = gameRoot
 
   function G.IsGame(v)
    return Explorer.Mode == "Game" and v ~= nil and (v.Real ~= nil or v == gameRoot or v == nilRoot)
@@ -9693,9 +9843,12 @@ do
    return true
   end
 
+  function G.WorkspaceNode() return WorkspaceNode() end
+
   function G.Move(src, pv)
    local real = src.Real
-   if not real or pv == gameRoot then return false end
+   if pv == gameRoot then pv = WorkspaceNode() end
+   if not real or not pv then return false end
    LoadKids(pv)
    local ok = pcall(function()
     if pv == nilRoot then real.Parent = nil else real.Parent = pv.Real end
@@ -9708,7 +9861,8 @@ do
 
   function G.Clone(src, pv)
    local real = src.Real
-   if not real or pv == gameRoot then return nil end
+   if pv == gameRoot then pv = WorkspaceNode() end
+   if not real or not pv then return nil end
    LoadKids(pv)
    local ok, c = pcall(real.Clone, real)
    if not ok or not c then return nil end
