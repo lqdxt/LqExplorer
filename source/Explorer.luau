@@ -457,6 +457,10 @@ Explorer = {
    Rotation = Img("arrow-spin-counter-clockwise.png"),
    ZoomIn = Img("magnifying-glass-plus.png"),
    ZoomOut = Img("magnifying-glass-minus.png"),
+   SearchBack = Img("arrow-back-search.png"),
+   SearchForward = Img("arrow-forward-search.png"),
+   Select = Img("selection-grid-cursor.png"),
+   Refresh = Img("two-arrows-spin-clockwise.png"),
   }
  end)(),
  OnSelectCb = nil,
@@ -813,7 +817,7 @@ local function MakeDots(parent, z)
 end
 
 config.IMG = {}
-for _, key in ipairs({ "ClassIcons", "Caret", "Options", "History", "Rotation", "ZoomIn", "ZoomOut" }) do
+for _, key in ipairs({ "ClassIcons", "Caret", "Options", "History", "Rotation", "ZoomIn", "ZoomOut", "SearchBack", "SearchForward", "Select", "Refresh" }) do
  local ok, asset = pcall(Explorer.GetImage, key)
  config.IMG[key] = (ok and asset) or ""
 end
@@ -4110,6 +4114,7 @@ config.searchbar:GetPropertyChangedSignal("Text"):Connect(function()
   Explorer.ScanTree()
   RefreshTree()
   if config.SearchQuery ~= "" and Explorer.EnsureDeepLoad then Explorer.EnsureDeepLoad() end
+  if Explorer.SearchNavUpdate then Explorer.SearchNavUpdate() end
  end
  if text:match("^%s*$") then Apply() else task.delay(0.15, Apply) end
 end)
@@ -4453,7 +4458,11 @@ function Explorer.ClickSelect(inst)
  if shift and aIdx and idx then
   local a, b = math.min(aIdx, idx), math.max(aIdx, idx)
   local list = {}
-  for i = a, b do list[#list + 1] = config.visiblerows[i].instance end
+  local sameLevel = config.Anchor.Parent == inst.Parent
+  for i = a, b do
+   local r = config.visiblerows[i].instance
+   if not sameLevel or r.Parent == inst.Parent then list[#list + 1] = r end
+  end
   Explorer.SetSelection(list, inst)
  elseif ctrl then
   local list = Explorer.GetSelection()
@@ -5150,6 +5159,7 @@ config.SV.UserInput.InputBegan:Connect(function(inp, gpe)
  local rows = config.visiblerows
  local cur = Explorer.Selected and Explorer.RowIndex and Explorer.RowIndex[Explorer.Selected]
  local pageRows = math.max(1, math.floor(config.scrolling.AbsoluteSize.Y / config.ROW_H))
+ if key ~= Enum.KeyCode.Left then config.LeftMoved = nil end
  if ctrl and key == Enum.KeyCode.A then
   local all = {}
   for _, row in ipairs(rows) do
@@ -5196,9 +5206,9 @@ config.SV.UserInput.InputBegan:Connect(function(inp, gpe)
  elseif key == Enum.KeyCode.End then
   SelectRowAt(#rows)
  elseif key == Enum.KeyCode.PageDown then
-  SelectRowAt(cur and math.min(cur + pageRows, #rows) or 1)
+  SelectRowAt(math.min(config.ScrollIndex + pageRows + 1, #rows))
  elseif key == Enum.KeyCode.PageUp then
-  SelectRowAt(cur and math.max(cur - pageRows, 1) or 1)
+  SelectRowAt(math.max(config.ScrollIndex, 1))
  elseif key == Enum.KeyCode.Right and cur then
   local inst = rows[cur].instance
   if rows[cur].searchLeaf then
@@ -5209,7 +5219,11 @@ config.SV.UserInput.InputBegan:Connect(function(inp, gpe)
   end
  elseif key == Enum.KeyCode.Left and cur then
   local inst = rows[cur].instance
-  if inst.Parent and inst.Parent ~= Explorer.Root and Explorer.RowIndex[inst.Parent] then
+  if config.LeftMoved == inst and Explorer.Expanded[inst] then
+   config.LeftMoved = nil
+   Explorer.SetExpanded(inst, false)
+  elseif inst.Parent and inst.Parent ~= Explorer.Root and Explorer.RowIndex[inst.Parent] then
+   config.LeftMoved = inst.Parent
    SelectRowAt(Explorer.RowIndex[inst.Parent])
   elseif Explorer.Expanded[inst] then
    Explorer.SetExpanded(inst, false)
@@ -5222,6 +5236,276 @@ local function PointIn(gui, pos)
  local ap, as = gui.AbsolutePosition, gui.AbsoluteSize
  return pos.X >= ap.X and pos.X <= ap.X + as.X and pos.Y >= ap.Y and pos.Y <= ap.Y + as.Y
 end
+
+--#module: SearchNav.luau
+local SearchNav
+do
+ local NAVH = 24
+ local BASE_Y = 65
+ local nav = Instance.new("Frame")
+ nav.Name = RandomString()
+ nav.Size = UDim2.new(1, 0, 0, NAVH)
+ nav.Position = UDim2.new(0, 0, 0, BASE_Y)
+ nav.BackgroundTransparency = 1
+ nav.BorderSizePixel = 0
+ nav.ZIndex = 4
+ nav.Visible = false
+ nav.Archivable = false
+ nav.Parent = config.main
+ SearchNav = nav
+
+ local label = Instance.new("TextLabel")
+ label.Name = RandomString()
+ label.Position = UDim2.fromOffset(12, 0)
+ label.Size = UDim2.new(1, -130, 1, 0)
+ label.BackgroundTransparency = 1
+ label.Text = ""
+ label.TextColor3 = config.COLORS.TEXT
+ label.Font = Enum.Font.SourceSans
+ label.TextSize = 15
+ label.TextXAlignment = Enum.TextXAlignment.Left
+ label.ZIndex = 5
+ label.Archivable = false
+ label.Parent = nav
+
+ local function Btn(imgKey, fromRight)
+  local b = Instance.new("ImageButton")
+  b.Name = RandomString()
+  b.AnchorPoint = Vector2.new(1, 0.5)
+  b.Position = UDim2.new(1, -fromRight, 0.5, 0)
+  b.Size = UDim2.fromOffset(20, 20)
+  b.BackgroundTransparency = 1
+  b.Image = config.IMG[imgKey] or ""
+  b.ImageColor3 = Color3.fromRGB(140, 140, 140)
+  b.ScaleType = Enum.ScaleType.Fit
+  b.AutoButtonColor = false
+  b.BorderSizePixel = 0
+  b.ZIndex = 5
+  b.Archivable = false
+  b.Parent = nav
+  b.MouseEnter:Connect(function() b.ImageColor3 = Color3.fromRGB(200, 200, 200) end)
+  b.MouseLeave:Connect(function() b.ImageColor3 = Color3.fromRGB(140, 140, 140) end)
+  return b
+ end
+ -- left to right: back, forward, select all, refresh
+ local refB = Btn("Refresh", 10)
+ local allB = Btn("Select", 36)
+ local nextB = Btn("SearchForward", 62)
+ local prevB = Btn("SearchBack", 88)
+
+ local function Hits()
+  local hits = {}
+  for i, row in ipairs(config.visiblerows) do
+   if row.match then hits[#hits + 1] = i end
+  end
+  return hits
+ end
+
+ local shown = false
+ local function SetLayout(show)
+  if show == shown then return end
+  shown = show
+  nav.Visible = show
+  local off = BASE_Y + (show and NAVH or 0)
+  config.body.Position = UDim2.new(0, 0, 0, off)
+  config.body.Size = UDim2.new(1, 0, 1, -off)
+  RefreshTree()
+ end
+
+ local function Update()
+  local show = config.SearchQuery ~= ""
+  SetLayout(show)
+  if not show then return end
+  local n = #Hits()
+  label.Text = n == 0 and "No matches" or (n .. (n == 1 and " match" or " matches"))
+ end
+ Explorer.SearchNavUpdate = Update
+
+ function Explorer.SearchStep(dir)
+  local hits = Hits()
+  if #hits == 0 then return end
+  if dir < 0 then
+   config.SearchCursor = ((config.SearchCursor - 2) % #hits) + 1
+  else
+   config.SearchCursor = (config.SearchCursor % #hits) + 1
+  end
+  SelectRowAt(hits[config.SearchCursor])
+ end
+
+ function Explorer.SearchSelectAll()
+  local list = {}
+  for _, row in ipairs(config.visiblerows) do
+   if row.match then list[#list + 1] = row.instance end
+  end
+  if #list == 0 then return end
+  Explorer.SetSelection(list, list[#list])
+ end
+
+ function Explorer.SearchRefresh()
+  if config.SearchQuery == "" then return end
+  config.SearchPred = Explorer.CompileSearch(config.searchbar.Text)
+  config.SearchCursor = 0
+  Explorer.SearchOpen = setmetatable({}, {__mode = "k"})
+  if Explorer.ResetDeepLoad then Explorer.ResetDeepLoad() end
+  Explorer.ScanTree()
+  RefreshTree()
+  if Explorer.EnsureDeepLoad then Explorer.EnsureDeepLoad() end
+  Update()
+ end
+
+ prevB.Activated:Connect(function() Explorer.SearchStep(-1) end)
+ nextB.Activated:Connect(function() Explorer.SearchStep(1) end)
+ allB.Activated:Connect(function() Explorer.SearchSelectAll() end)
+ refB.Activated:Connect(function() Explorer.SearchRefresh() end)
+
+ task.spawn(function()
+  while nav.Parent do
+   task.wait(0.2)
+   pcall(Update)
+  end
+ end)
+end
+--#endmodule
+
+--#module: Markee.luau
+do
+ local rect = Instance.new("Frame")
+ rect.Name = RandomString()
+ rect.BackgroundColor3 = Color3.fromRGB(70, 140, 255)
+ rect.BackgroundTransparency = 0.8
+ rect.BorderSizePixel = 0
+ rect.ZIndex = 25
+ rect.Visible = false
+ rect.Archivable = false
+ rect.Parent = config.scrolling
+ local stroke = Instance.new("UIStroke")
+ stroke.Color = Color3.fromRGB(70, 140, 255)
+ stroke.Thickness = 1
+ stroke.Parent = rect
+
+ local M
+ local DRAG_MIN = 4
+
+ local function CursorOf(inp)
+  local d = Explorer.Drag
+  if d and d.CursorOf then return d.CursorOf(inp) end
+  return Vector2.new(inp.Position.X, inp.Position.Y)
+ end
+
+ local function RowSpace(y)
+  return (y - config.scrolling.AbsolutePosition.Y) / config.ROW_H + config.ScrollIndex
+ end
+
+ local function Stop()
+  if M and M.hb then M.hb:Disconnect() end
+  M = nil
+  rect.Visible = false
+ end
+
+ local function Apply()
+  if not M or not M.started then return end
+  local as = config.scrolling.AbsoluteSize
+  local curRow = RowSpace(M.cur.Y)
+  local lo, hi = math.min(M.startRow, curRow), math.max(M.startRow, curRow)
+  local y1 = (lo - config.ScrollIndex) * config.ROW_H
+  local y2 = (hi - config.ScrollIndex) * config.ROW_H
+  local top = math.clamp(y1, 0, as.Y)
+  local bot = math.clamp(y2, 0, as.Y)
+  rect.Position = UDim2.fromOffset(2, top)
+  rect.Size = UDim2.new(1, -4, 0, math.max(1, bot - top))
+  rect.Visible = true
+
+  local rows = config.visiblerows
+  local first = math.max(math.floor(lo) + 1, 1)
+  local last = math.min(math.floor(hi) + 1, #rows)
+  if first == M.lastFirst and last == M.lastLast then return end
+  M.lastFirst, M.lastLast = first, last
+  local list, seen = {}, {}
+  if M.additive then
+   for _, i in ipairs(M.base) do list[#list + 1] = i; seen[i] = true end
+  end
+  for i = first, last do
+   local r = rows[i]
+   if r and not seen[r.instance] and (config.SearchQuery == "" or r.match) then
+    list[#list + 1] = r.instance
+    seen[r.instance] = true
+   end
+  end
+  Explorer.SetSelection(list, list[#list])
+ end
+
+ config.SV.UserInput.InputBegan:Connect(function(inp)
+  if inp.UserInputType == Enum.UserInputType.Keyboard then
+   if M and M.started and inp.KeyCode == Enum.KeyCode.Escape then
+    Explorer.SetSelection(M.orig, M.orig[#M.orig])
+    Stop()
+   end
+   return
+  end
+  if inp.UserInputType ~= Enum.UserInputType.MouseButton1 and inp.UserInputType ~= Enum.UserInputType.Touch then return end
+  if M or not config.main.Visible then return end
+  if config.InsertMenu or config.ContextMenu then return end
+  local d = Explorer.Drag
+  if d and (d.pending or d.active) then return end
+  local cur = CursorOf(inp)
+  if not PointIn(config.scrolling, cur) then return end
+  if SearchNav and SearchNav.Visible and PointIn(SearchNav, cur) then return end
+  local idx = math.floor((cur.Y - config.scrolling.AbsolutePosition.Y) / config.ROW_H) + 1 + config.ScrollIndex
+  if idx <= #config.visiblerows then return end
+  local ctrl = config.SV.UserInput:IsKeyDown(Enum.KeyCode.LeftControl) or config.SV.UserInput:IsKeyDown(Enum.KeyCode.RightControl)
+  local shift = config.SV.UserInput:IsKeyDown(Enum.KeyCode.LeftShift) or config.SV.UserInput:IsKeyDown(Enum.KeyCode.RightShift)
+  M = {
+   startRow = RowSpace(cur.Y),
+   startPos = cur,
+   cur = cur,
+   additive = ctrl or shift,
+   base = Explorer.GetSelection(),
+   orig = Explorer.GetSelection(),
+   started = false,
+  }
+  local acc = 0
+  M.hb = config.SV.RunSrv.Heartbeat:Connect(function(dt)
+   if not M or not M.started then return end
+   local ap, as = config.scrolling.AbsolutePosition, config.scrolling.AbsoluteSize
+   local y = M.cur.Y
+   local edge = 22
+   local dir = 0
+   if y < ap.Y + edge then dir = -1 elseif y > ap.Y + as.Y - edge then dir = 1 end
+   if dir == 0 then acc = 0; return end
+   acc += dt * 12
+   local steps = math.floor(acc)
+   if steps > 0 then
+    acc -= steps
+    local maxIdx = math.max(0, #config.visiblerows - 1)
+    config.ScrollIndex = math.clamp(config.ScrollIndex + dir * steps, 0, maxIdx)
+    RefreshTree()
+    Apply()
+   end
+  end)
+ end)
+
+ config.SV.UserInput.InputChanged:Connect(function(inp)
+  if not M then return end
+  local t = inp.UserInputType
+  if t ~= Enum.UserInputType.MouseMovement and t ~= Enum.UserInputType.Touch then return end
+  if not config.Held(inp) then Stop() return end
+  M.cur = CursorOf(inp)
+  if not M.started then
+   if (M.cur - M.startPos).Magnitude < DRAG_MIN then return end
+   M.started = true
+   if not M.additive then M.base = {} end
+  end
+  Apply()
+ end)
+
+ config.SV.UserInput.InputEnded:Connect(function(inp)
+  if not M then return end
+  if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+   Stop()
+  end
+ end)
+end
+--#endmodule
 
 config.SV.UserInput.InputBegan:Connect(function(inp)
  if inp.UserInputType ~= Enum.UserInputType.MouseButton1 and inp.UserInputType ~= Enum.UserInputType.MouseButton2 and inp.UserInputType ~= Enum.UserInputType.Touch then return end
@@ -9159,6 +9443,10 @@ do
    if Explorer.Root == nilRoot then rowsDirty = true end
    if config.SearchQuery ~= "" then Explorer.EnsureDeepLoad() end
   end
+ end
+
+ function Explorer.ResetDeepLoad()
+  if not deepRunning then deepLoaded = false end
  end
 
  function Explorer.EnsureDeepLoad()
