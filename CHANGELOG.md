@@ -1,5 +1,10 @@
 # Lq Explorer Changelog
 
+**Version 2.2.0:**
+- You can drag a box from the empty space below the rows
+- Added shift click between siblings selects only those siblings
+- Added left arrow functionality; press and it goes to the parent, then collapses it on a second press
+
 **Version 2.1.0:**
 - Improved tag search
 - Added 'Paste' in context menu
