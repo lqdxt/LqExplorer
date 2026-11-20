@@ -1,5 +1,11 @@
 # Lq Explorer Changelog
 
+**Version 2.1.0:**
+- Improved tag search
+- Added 'Paste' in context menu
+- Added Ctrl+V functionality to paste into Workspace
+- Added 'Hide Service' and 'Show Services'
+
 **Version 2.0.0:**
 - Made carets 1px smaller..
 
