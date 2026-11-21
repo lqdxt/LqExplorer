@@ -462,6 +462,7 @@ Explorer = {
    Select = Img("selection-grid-cursor.png"),
    Refresh = Img("two-arrows-spin-clockwise.png"),
    Close = Img("windows-app-close.png"),
+   Pin = Img("arrow-down-left-to-square.png"),
   }
  end)(),
  OnSelectCb = nil,
@@ -632,54 +633,7 @@ local function MakeStudioCheckBox(parent, size, z)
  return box, Set
 end
 
-local function MakePinIcon(parent, size, z, color)
- local box = Instance.new("Frame")
- box.Name = RandomString()
- box.Size = UDim2.new(0, size, 0, size)
- box.AnchorPoint = Vector2.new(0.5, 0.5)
- box.Position = UDim2.new(0.5, 0, 0.5, 0)
- box.BackgroundTransparency = 1
- box.Active = false
- box.ZIndex = z
- box.Archivable = false
- box.Parent = parent
- local s = size / 16
- local function Px(v) return math.floor(v * s + 0.5) end
- local function MakeRect(x, y, w, h, rot, anchored)
-  local f = Instance.new("Frame")
-  f.Name = RandomString()
-  f.Size = UDim2.new(0, w, 0, h)
-  if anchored then
-   f.AnchorPoint = Vector2.new(0.5, 0.5)
-  end
-  f.Position = UDim2.new(0, x, 0, y)
-  f.Rotation = rot or 0
-  f.BackgroundColor3 = color
-  f.BorderSizePixel = 0
-  f.Active = false
-  f.ZIndex = z
-  f.Archivable = false
-  f.Parent = box
- end
- local t = math.max(1, math.floor(1.5 * s))
- local bl, bt, bb = Px(0), Px(6.5), Px(16)
- local br, bTopEnd, bRightTop = Px(9.5), Px(5), Px(11)
- MakeRect(bl, bt, t, bb - bt)
- MakeRect(bl, bb - t, br - bl, t)
- MakeRect(bl, bt, bTopEnd - bl, t)
- MakeRect(br - t, bRightTop, t, bb - bRightTop)
- local hl, ht, hp = Px(6), Px(2), Px(8)
- for j = 0, hp - 1 do
-  MakeRect(hl, ht + j, j + 1, 1)
- end
- local len = 7 * s
- local mx, my = hl + hp / 2, ht + hp / 2
- local k = 0.70710678 * len / 2
- MakeRect(mx + k, my - k, t, len, 45, true)
- return box
-end
-
-local function MakeCloseImage(parent, size, z, color)
+local function MakePinImage(parent, size, z)
  local img = Instance.new("ImageLabel")
  img.Name = RandomString()
  img.Size = UDim2.new(0, size, 0, size)
@@ -687,7 +641,25 @@ local function MakeCloseImage(parent, size, z, color)
  img.Position = UDim2.new(0.5, 0, 0.5, 0)
  img.BackgroundTransparency = 1
  img.Image = ""
- img.ImageColor3 = color
+ img.ImageColor3 = Color3.fromRGB(255, 255, 255)
+ img.ScaleType = Enum.ScaleType.Fit
+ img.Active = false
+ img.ZIndex = z
+ img.Archivable = false
+ img.Parent = parent
+ Explorer.ApplyImage(img, "Pin")
+ return img
+end
+
+local function MakeCloseImage(parent, size, z)
+ local img = Instance.new("ImageLabel")
+ img.Name = RandomString()
+ img.Size = UDim2.new(0, size, 0, size)
+ img.AnchorPoint = Vector2.new(0.5, 0.5)
+ img.Position = UDim2.new(0.5, 0, 0.5, 0)
+ img.BackgroundTransparency = 1
+ img.Image = ""
+ img.ImageColor3 = Color3.fromRGB(255, 255, 255)
  img.ScaleType = Enum.ScaleType.Fit
  img.Active = false
  img.ZIndex = z
@@ -1716,7 +1688,7 @@ config.searchRow.Parent = config.main
 
 config.searchbar = Instance.new("TextBox")
 config.searchbar.Name = RandomString()
-config.searchbar.Size = UDim2.new(1, -50, 0, 28)
+config.searchbar.Size = UDim2.new(1, -48, 0, 28)
 config.searchbar.Position = UDim2.new(0, 7, 0, 4)
 config.searchbar.BackgroundTransparency = 0
 config.searchbar.BackgroundColor3 = config.COLORS.SECONDARY
@@ -1731,7 +1703,15 @@ config.searchbar.ClearTextOnFocus = false
 config.searchbar.ZIndex = 5
 config.searchbar.Archivable = false
 config.searchbar.Parent = config.searchRow
-RoundCorner(config.searchbar, 0, 8)
+RoundCorner(config.searchbar, 0, 7)
+config.searchbarStroke = BorderStroke(config.searchbar, 1.5, 0, 120, 255)
+config.searchbarStroke.Enabled = false
+config.searchbar.Focused:Connect(function()
+ config.searchbarStroke.Enabled = true
+end)
+config.searchbar.FocusLost:Connect(function()
+ config.searchbarStroke.Enabled = false
+end)
 
 config.threedotmenu = Instance.new("ImageButton")
 config.threedotmenu.Name = RandomString()
@@ -1743,7 +1723,7 @@ config.threedotmenu.BorderSizePixel = 0
 config.threedotmenu.ZIndex = 5
 config.threedotmenu.Archivable = false
 config.threedotmenu.Parent = config.searchRow
-RoundCorner(config.threedotmenu, 0, 8)
+RoundCorner(config.threedotmenu, 0, 7)
 
 config.colonimage = Instance.new("ImageLabel")
 config.colonimage.Name = RandomString()
@@ -1763,18 +1743,17 @@ config.historybtn.Name = RandomString()
 config.historybtn.Size = UDim2.new(0, 28, 0, 28)
 config.historybtn.Position = UDim2.new(1, -68, 0.5, -13)
 config.historybtn.BackgroundColor3 = config.COLORS.SECONDARY
-config.historybtn.BackgroundTransparency = 0
+config.historybtn.BackgroundTransparency = 1
 config.historybtn.Image = config.IMG.History
 config.historybtn.BorderSizePixel = 0
 config.historybtn.ZIndex = 5
 config.historybtn.Archivable = false
 config.historybtn.Parent = config.searchRow
-RoundCorner(config.historybtn, 0, 8)
 
 config.clearbtn = Instance.new("TextButton")
 config.clearbtn.Name = RandomString()
 config.clearbtn.Size = UDim2.new(0, 28, 0, 28)
-config.clearbtn.Position = UDim2.new(1, -95, 0.5, -13)
+config.clearbtn.Position = UDim2.new(1, -90, 0.5, -13)
 config.clearbtn.BackgroundTransparency = 1
 config.clearbtn.Text = ""
 config.clearbtn.AutoButtonColor = false
@@ -1784,7 +1763,7 @@ config.clearbtn.Visible = false
 config.clearbtn.Archivable = false
 config.clearbtn.Parent = config.searchRow
 RoundCorner(config.clearbtn, 0, 8)
-MakeCloseImage(config.clearbtn, 10, 7, Color3.fromRGB(160, 160, 160))
+MakeCloseImage(config.clearbtn, 10, 7)
 
 config.clearbtn.Activated:Connect(function()
  config.searchbar.Text = ""
@@ -1862,7 +1841,7 @@ config.close.BorderSizePixel = 0
 config.close.ZIndex = 3
 config.close.Archivable = false
 config.close.Parent = config.header
-MakeCloseImage(config.close, 12, 4, Color3.fromRGB(210, 210, 210))
+MakeCloseImage(config.close, 12, 4)
 
 config.MENU_Z, config.menuGui, config.topbar = nil
 --#module: Topbar.luau
@@ -2108,7 +2087,7 @@ end
 config.pinbtn = Instance.new("TextButton")
 config.pinbtn.Name = RandomString()
 config.pinbtn.Size = UDim2.new(0, 22, 0, 22)
-config.pinbtn.Position = UDim2.new(1, -58, 0.5, -11)
+config.pinbtn.Position = UDim2.new(1, -49, 0.5, -11)
 config.pinbtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 config.pinbtn.BackgroundTransparency = 0.7
 config.pinbtn.AutoButtonColor = false
@@ -2118,7 +2097,7 @@ config.pinbtn.ZIndex = 3
 config.pinbtn.Archivable = false
 config.pinbtn.Parent = config.header
 RoundCorner(config.pinbtn, 0, 6)
-MakePinIcon(config.pinbtn, 14, 4, Color3.fromRGB(210, 210, 210))
+MakePinImage(config.pinbtn, 22, 4)
 config.pinbtn.Activated:Connect(function()
  if config.DockSide then Undock() else ApplyDock(NearestSide(config.main)) end
 end)
@@ -6191,12 +6170,12 @@ do
  pclose.ZIndex = 3
  pclose.Archivable = false
  pclose.Parent = hdr
- MakeCloseImage(pclose, 12, 4, Color3.fromRGB(210, 210, 210))
+ MakeCloseImage(pclose, 12, 4)
 
  local ppin = Instance.new("TextButton")
  ppin.Name = RandomString()
  ppin.Size = UDim2.new(0, 22, 0, 22)
- ppin.Position = UDim2.new(1, -58, 0, 3)
+ ppin.Position = UDim2.new(1, -49, 0, 3)
  ppin.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
  ppin.BackgroundTransparency = 0.7
  ppin.AutoButtonColor = false
@@ -6206,7 +6185,7 @@ do
  ppin.Archivable = false
  ppin.Parent = hdr
  RoundCorner(ppin, 0, 6)
- MakePinIcon(ppin, 14, 4, Color3.fromRGB(210, 210, 210))
+ MakePinImage(ppin, 22, 4)
 
  local searchRowP = Instance.new("Frame")
  searchRowP.Name = RandomString()
@@ -7720,7 +7699,7 @@ do
  vclose.ZIndex = 3
  vclose.Archivable = false
  vclose.Parent = vhdr
- MakeCloseImage(vclose, 12, 4, Color3.fromRGB(210, 210, 210))
+ MakeCloseImage(vclose, 12, 4)
 
  local vrotate = Instance.new("ImageButton")
  vrotate.Name = RandomString()
@@ -8419,7 +8398,7 @@ do
  hclose.ZIndex = 4
  hclose.Archivable = false
  hclose.Parent = hdr
- MakeCloseImage(hclose, 12, 5, Color3.fromRGB(210, 210, 210))
+ MakeCloseImage(hclose, 12, 5)
 
  local hcopy = Instance.new("TextButton")
  hcopy.Name = RandomString()
@@ -9023,7 +9002,6 @@ do
  config.LayoutSource = Layout
  config.main:GetPropertyChangedSignal("Visible"):Connect(Layout)
 
- -- Tabs: hover / selection only, no accent.
  local function StyleTab(t)
   local active = t == activeTab
   local lit = active or t.hover
@@ -9250,11 +9228,19 @@ do
     writefile(ttfPath, game:HttpGet("https://raw.githubusercontent.com/google/fonts/main/ofl/firamono/FiraMono-Regular.ttf"))
    end
    local ttfAsset = getcustomasset(ttfPath)
+   local faces = {
+    { name = "Regular", weight = 400, style = "normal", assetId = ttfAsset },
+   }
+   local boldPath = "LqExplorer/fonts/FiraMono-Bold.ttf"
+   pcall(function()
+    if not isfile(boldPath) then
+     writefile(boldPath, game:HttpGet("https://raw.githubusercontent.com/google/fonts/main/ofl/firamono/FiraMono-Bold.ttf"))
+    end
+    table.insert(faces, { name = "Bold", weight = 700, style = "normal", assetId = getcustomasset(boldPath) })
+   end)
    writefile(jsonPath, game:GetService("HttpService"):JSONEncode({
     name = "Fira Mono",
-    faces = {
-     { name = "Regular", weight = 400, style = "normal", assetId = ttfAsset },
-    },
+    faces = faces,
    }))
    return Font.new(getcustomasset(jsonPath), Enum.FontWeight.Regular, Enum.FontStyle.Normal)
   end)
