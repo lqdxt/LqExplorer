@@ -1,5 +1,8 @@
 # Lq Explorer Changelog
 
+**Version 2.4.0:**
+- Added automatic updates for updated images, instead of staying static forever
+
 **Version 2.3.0:**
 - Added script tab stacking to source viewer
 - Changed some things
