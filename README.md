@@ -17,7 +17,7 @@ You can make plugins for it too, from the APIs it exposes.
 
 > Still very active adding more unique stuff.
 
-# Lq Explorer Changelog
+# Lq Explorer: Changelog
 
 **Version 2.5.0:**
 - Made keyword in syntax highlighting bolder
