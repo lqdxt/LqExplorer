@@ -527,22 +527,28 @@ end
 function Explorer.GetAsset(url, name)
  if config.AssetCache[name] then return config.AssetCache[name] end
 
- local content
+ local localContent
  if isfile and isfile(name) then
-  content = readfile(name)
+  local okRead, data = pcall(readfile, name)
+  if okRead then localContent = data end
  end
 
- if not content then
-  content = game:HttpGet(url)
-  local dir = name:match("^(.*)/[^/]+$")
-  if dir and dir ~= "" and makefolder then
-   local built = ""
-   for seg in dir:gmatch("[^/]+") do
-    built = built == "" and seg or (built .. "/" .. seg)
-    pcall(makefolder, built)
+ local okGet, remote = pcall(game.HttpGet, game, url)
+ if okGet and type(remote) == "string" and #remote > 0
+  and not remote:find("^404: Not Found") then
+  if remote ~= localContent then
+   local dir = name:match("^(.*)/[^/]+$")
+   if dir and dir ~= "" and makefolder then
+    local built = ""
+    for seg in dir:gmatch("[^/]+") do
+     built = built == "" and seg or (built .. "/" .. seg)
+     if not (isfolder and isfolder(built)) then pcall(makefolder, built) end
+    end
    end
+   if writefile then pcall(writefile, name, remote) end
   end
-  if writefile then pcall(writefile, name, content) end
+ elseif not localContent then
+  error("failed to download " .. tostring(url))
  end
 
  local asset = getcustomasset(name)
