@@ -1,4 +1,4 @@
-# Lq Explorer Source-Available License v1.0
+# Lq Explorer: Source-Available License v1.0
 
 **Copyright (c) 2026 Liquidoxity. All rights reserved.**
 
@@ -39,7 +39,3 @@ This license terminates automatically upon any breach of Sections 2 or 3. On ter
 ## 6. Disclaimer
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM THE SOFTWARE OR ITS USE.
-
----
-
-*End of License.*
