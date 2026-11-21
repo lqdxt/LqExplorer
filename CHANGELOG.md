@@ -1,5 +1,10 @@
 # Lq Explorer Changelog
 
+**Version 2.5.0:**
+- Made keyword in syntax highlighting bolder
+- Changed and moved the pin buttons
+- Color changes
+
 **Version 2.4.0:**
 - Added automatic updates for updated images, instead of staying static forever
 
