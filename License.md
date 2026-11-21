@@ -1,6 +1,6 @@
 # Lq Explorer: Source-Available License v1.0
 
-**Copyright (c) 2026 Liquidoxity. All rights reserved.**
+**Copyright (c) 2026 Liquidoxity.**
 
 ## 1. Permissions
 
