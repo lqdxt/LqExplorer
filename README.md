@@ -2,8 +2,6 @@
 
 An alternative for `Dex` Explorers.
 
-Uses Roblox Studio's latest explorer design. Bored of the old one.
-
 ---
 
 This is in beta, means that some things may not be added yet.
