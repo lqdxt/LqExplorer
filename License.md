@@ -34,7 +34,7 @@ Copying Lq Explorer source into a plugin is permitted under Section 1, but the c
 
 ## 5. Termination
 
-This license terminates automatically upon any breach of Sections 2 or 3. On termination, cease all use and delete all copies in your possession or control. Sections 3, 4, and 6 survive.
+This license terminates automatically upon any breach of Sections 2 or 3. On termination, cease all use and delete all copies in your possession or control.
 
 ## 6. Disclaimer
 
