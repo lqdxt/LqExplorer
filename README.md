@@ -14,3 +14,5 @@ loadstring(game:HttpGet("https://github.com/lqdxt/LqExplorer/releases/latest/dow
 You can make plugins for it too, from the APIs it exposes.
 
 > Still very active adding more unique stuff.
+
+[Lq License](https://github.com/lqdxt/LqExplorer/blob/main/License)
