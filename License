@@ -19,15 +19,12 @@ Any copy, fork, or distribution must:
 You may not:
 
 (a) rebrand the software or any fork, or present it under any name or identity other than "Lq Explorer";
-
 (b) sell, rent, sublicense, or distribute the software for payment, or as part of a paid product or service, without prior written permission from the copyright holder;
-
 (c) misrepresent the software or any fork as your own original work or as anyone else's original work.
 
 4. Plugins
 
 Plugins that interact with Lq Explorer at runtime are independent works. This includes plugins that call public APIs, read or write state on the Explorer table, or hook or monkeypatch its functions. Plugin authors keep full copyright and may license their plugins however they choose.
-
 You may copy Lq Explorer source into a plugin under Section 1, but the copied code remains covered by this license wherever it is shipped.
 
 5. Termination
